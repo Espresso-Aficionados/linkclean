@@ -1,0 +1,49 @@
+{
+  "name": "semantics",
+  "license": "MIT",
+  "upstream": "",
+  "commit": "",
+  "sha256": "",
+  "notice": "",
+  "rules": [
+    {"id": "track", "action": "strip", "include": ["*://*/*"],
+     "params": ["utm_source", "utm_medium", "utm_campaign", "fbclid", "gclid", "%66oo", "ck", "mkt_tok"]},
+    {"id": "frag", "action": "strip", "include": ["*://*/*"], "inFragment": true, "tags": ["fragment"],
+     "params": ["xtor"], "paramRegexps": ["utm_[a-z]+"]},
+    {"id": "host-scoped", "action": "strip", "include": ["*://*.example.com/*"], "params": ["hostonly"]},
+    {"id": "idn", "action": "strip", "include": ["*://xn--bcher-kva.example/*"], "params": ["idn"]},
+    {"id": "qmark", "action": "strip", "include": ["*://qm.example.com/a?b*"], "params": ["x"]},
+    {"id": "port443", "action": "strip", "include": ["https://port.example.com:443/*"], "params": ["p443"]},
+    {"id": "suffix-ip", "action": "strip", "include": ["*://*.0.0.1/*"], "params": ["ipx"]},
+    {"id": "label", "action": "strip", "include": ["*://*.amazon.*/*"], "params": ["lbl"]},
+    {"id": "excl", "action": "strip", "include": ["*://ex.example.net/*"], "exclude": ["*://ex.example.net/keep/*"], "params": ["exparam"]},
+
+    {"id": "keep-page", "action": "keep", "include": ["*://keep.example.com/*"], "params": ["utm_source", "page"]},
+    {"id": "keep-tok", "action": "keep", "include": ["*://*/*"], "urlRegexps": ["[Uu]nsubscribe"], "params": ["mkt_tok"]},
+    {"id": "keep-ck", "action": "keep", "include": ["*://*/*/unsubscribe*"], "params": ["ck"]},
+    {"id": "keep-gclid", "action": "keep", "include": ["*://*/*"], "urlRegexps": ["/unsubscribe"], "params": ["gclid"]},
+
+    {"id": "shop-track", "action": "strip", "include": ["*://shop.example.net/*"], "params": ["tag", "ref"]},
+    {"id": "shop-path", "action": "strip", "include": ["*://shop.example.net/*"], "pathRegexps": ["/ref=[^/?]*", "/amp$"]},
+    {"id": "shop-aff-keep", "action": "keep", "affiliate": true, "network": "Shop Net", "idParam": "tag",
+     "include": ["*://shop.example.net/*"], "params": ["tag", "sub"]},
+    {"id": "shop-aff-strip", "action": "strip", "affiliate": true, "network": "Shop Net", "idParam": "tag",
+     "include": ["*://shop.example.net/*"], "params": ["tag", "sub"]},
+
+    {"id": "epn-track", "action": "strip", "include": ["*://epn.example.net/*"], "params": ["mkcid"]},
+    {"id": "epn-keep", "action": "keep", "affiliate": true, "network": "EPN", "idParam": "campid",
+     "include": ["*://epn.example.net/*"], "urlRegexps": ["[?&]campid="], "params": ["mkcid", "campid"]},
+    {"id": "epn-strip", "action": "strip", "affiliate": true, "network": "EPN", "idParam": "campid",
+     "include": ["*://epn.example.net/*"], "urlRegexps": ["[?&]campid="], "params": ["mkcid", "campid"]},
+
+    {"id": "wrap", "action": "unwrap", "include": ["*://wrap.example.org/*"], "unwrap": {"queryParams": ["u", "url"]}},
+    {"id": "wrap2", "action": "unwrap", "include": ["*://wrap.example.com/*"], "unwrap": {"queryParams": ["u"]}},
+    {"id": "wrap-same", "action": "unwrap", "include": ["*://same.example.org/*"], "unwrap": {"queryParams": ["u"], "allowSameSite": true}},
+    {"id": "gh-wrap", "action": "unwrap", "include": ["*://wrap.github.io/*"], "unwrap": {"queryParams": ["u"]}},
+    {"id": "prepend", "action": "unwrap", "include": ["*://pre.example.org/*"], "unwrap": {"queryParams": ["dest"], "prependScheme": "https"}},
+    {"id": "aff-wrap", "action": "unwrap", "affiliate": true, "network": "Wrap Net", "idParam": "pub",
+     "include": ["*://aw.example.org/*"], "unwrap": {"queryParams": ["to"]}},
+    {"id": "aff-wrap-path", "action": "unwrap", "affiliate": true, "network": "Path Net", "idPathRegexp": "^/c/([0-9]+)/",
+     "include": ["*://pw.example.org/c/*"], "unwrap": {"queryParams": ["u"]}}
+  ]
+}

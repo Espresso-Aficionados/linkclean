@@ -1,0 +1,97 @@
+Semantics suite: query tokenization, rebuild, canon, DV-7 (design §4.1,
+§4.3, §5.1, §14.1). Rules: rules.json in this directory, nothing else.
+Grammar: testdata/golden/positive.txtar.
+-- tok-basic --
+in: https://example.net/?utm_source=x&id=7
+want: https://example.net/?id=7
+removed: {"part":"query","category":"tracker","name":"utm_source","value":"x","text":"utm_source=x","rule":"semantics:track"}
+-- tok-no-value --
+in: https://example.net/?utm_source&id=7
+want: https://example.net/?id=7
+removed: {"name":"utm_source","value":"","text":"utm_source"}
+-- tok-empty-value --
+in: https://example.net/?id=7&utm_source=
+want: https://example.net/?id=7
+removed: {"name":"utm_source","value":"","text":"utm_source="}
+-- tok-value-irrelevant --
+note: the value never matters; a value equal to a tracker name is kept
+in: https://example.net/?q=utm_source&utm_source=utm_source
+want: https://example.net/?q=utm_source
+-- tok-first-eq --
+in: https://example.net/?a=b=c&utm_source==x
+want: https://example.net/?a=b=c
+removed: {"name":"utm_source","value":"=x","text":"utm_source==x"}
+-- tok-semicolon --
+note: ';' is not a separator
+in: https://example.net/?foo;utm_source=x&a=1
+want: unchanged
+-- empty-name --
+in: https://example.net/?=utm_source&a=1
+want: unchanged
+-- empty-name-dv4 --
+in: https://example.net/?=utm_source=x&a=1
+want: unchanged
+-- empty-segments-collapse --
+in: https://example.net/?&a=1&&utm_source=x&b=2&
+want: https://example.net/?a=1&b=2
+-- empty-segments-kept --
+note: no change, so nothing collapses
+in: https://example.net/?&a=1&&b=2&
+want: unchanged
+-- all-removed --
+in: https://example.net/p?utm_source=x&fbclid=y#frag
+want: https://example.net/p#frag
+-- empty-fragment-kept --
+in: https://example.net/?utm_source=x#
+want: https://example.net/#
+-- bare-question-mark --
+note: DV-7
+in: https://example.net/?
+want: unchanged
+-- bare-question-mark-path --
+in: https://example.net/page?
+want: unchanged
+-- double-ampersand-alone --
+in: https://example.net/?&&
+want: unchanged
+-- duplicates --
+in: https://example.net/?utm_source=x&utm_source=y&a=1&utm_source=z
+want: https://example.net/?a=1
+-- canon-case --
+in: https://example.net/?UTM_Source=x&Id=7
+want: https://example.net/?Id=7
+removed: {"name":"UTM_Source"}
+-- canon-escape --
+in: https://example.net/?%75tm_source=x&utm%5Fmedium=y&id=7
+want: https://example.net/?id=7
+removed: {"name":"%75tm_source"}
+removed: {"name":"utm%5Fmedium"}
+-- canon-rule-param-escaped --
+note: the rule names "%66oo"; canon makes it "foo", which every spelling matches
+in: https://example.net/?foo=1&FOO=2&%66oo=3&%2566oo=4
+want: https://example.net/?%2566oo=4
+-- canon-decoded-once --
+note: %2575 decodes once to "%75", not to "u"
+in: https://example.net/?%2575tm_source=x
+want: unchanged
+-- canon-invalid-escape --
+in: https://example.net/?utm_source%=x&utm_source%zz=y
+want: unchanged
+-- canon-plus-literal --
+in: https://example.net/?utm+source=x
+want: unchanged
+-- raw-encoding-kept --
+in: https://example.net/?q=a+b%20c&utm_source=x&r=%2F
+want: https://example.net/?q=a+b%20c&r=%2F
+-- host-spelling-kept --
+in: https://Example.NET./p?utm_source=x
+want: https://Example.NET./p
+-- no-slash-added --
+in: https://example.net?utm_source=x&a=1
+want: https://example.net?a=1
+-- userinfo-port-kept --
+in: https://u:p@example.net:8443/p?utm_source=x#f
+want: https://u:p@example.net:8443/p#f
+-- scheme-case-kept --
+in: HTTPS://example.net/p?utm_source=x
+want: HTTPS://example.net/p

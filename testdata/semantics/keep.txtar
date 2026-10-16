@@ -1,0 +1,216 @@
+Semantics suite: Keep, affiliate policy, fixed point, nested values, guards,
+fragments (design §4.3-§4.4, §5.3-§5.5, §14.1).
+-- keep-beats-same-set --
+in: https://keep.example.com/?utm_source=x&utm_medium=y
+want: https://keep.example.com/?utm_source=x
+kept: {"name":"utm_source","reason":"rule","rule":"semantics:keep-page"}
+-- keep-beats-cross-source --
+config: {"Extra":[{"id":"strip-page","action":"strip","include":["*://*/*"],"params":["page"]}]}
+in: https://keep.example.com/?page=2&utm_source=x&utm_medium=y
+want: https://keep.example.com/?page=2&utm_source=x
+kept: {"name":"page","reason":"rule","rule":"semantics:keep-page"}
+kept: {"name":"utm_source","reason":"rule","rule":"semantics:keep-page"}
+-- extra-attributed-first --
+config: {"Extra":[{"id":"strip-fb","action":"strip","include":["*://*/*"],"params":["fbclid"]}]}
+in: https://example.net/?fbclid=1
+want: https://example.net/
+removed: {"rule":"user:strip-fb"}
+-- affiliate-both-match --
+note: Amazon shape: a non-affiliate and an affiliate Strip both name tag
+in: https://shop.example.net/p?tag=foo-20&sub=s1&ref=r&x=1
+want: https://shop.example.net/p?tag=foo-20&sub=s1&x=1
+want-strip: https://shop.example.net/p?x=1
+-- affiliate-keep-reported --
+policy: keep
+in: https://shop.example.net/p?tag=foo-20&sub=s1&ref=r
+want: https://shop.example.net/p?tag=foo-20&sub=s1
+removed: {"part":"query","category":"tracker","name":"ref","rule":"semantics:shop-track"}
+kept: {"name":"tag","reason":"affiliate","rule":"semantics:shop-aff-keep"}
+-- affiliate-strip-categories --
+policy: strip
+in: https://shop.example.net/p?tag=foo-20&sub=s1&ref=r
+want: https://shop.example.net/p
+removed: {"category":"affiliate","name":"tag","rule":"semantics:shop-aff-strip","network":"Shop Net","id":"foo-20"}
+removed: {"category":"affiliate","name":"sub","rule":"semantics:shop-aff-strip","network":"Shop Net","id":""}
+removed: {"category":"tracker","name":"ref","rule":"semantics:shop-track","network":"","id":""}
+-- affiliate-idparam-canonical --
+policy: strip
+in: https://shop.example.net/p?TAG=foo%2D20
+want: https://shop.example.net/p
+removed: {"category":"affiliate","name":"TAG","value":"foo%2D20","id":"foo-20"}
+-- affiliate-empty-id --
+policy: strip
+in: https://shop.example.net/p?tag=
+want: https://shop.example.net/p
+removed: {"category":"affiliate","name":"tag","network":"Shop Net","id":""}
+-- affiliate-conditional-epn --
+note: A-12 shape: the Keep and its Strip twin apply only with campid
+in: https://epn.example.net/itm/1?mkcid=1&campid=533&x=1
+want: unchanged
+want-strip: https://epn.example.net/itm/1?x=1
+-- affiliate-conditional-epn-strip --
+policy: strip
+in: https://epn.example.net/itm/1?mkcid=1&campid=533
+want: https://epn.example.net/itm/1
+removed: {"category":"affiliate","name":"mkcid","network":"EPN","id":""}
+removed: {"category":"affiliate","name":"campid","network":"EPN","id":"533"}
+-- affiliate-conditional-epn-share --
+note: no campid: the share-link mkcid is tracking under both policies
+in: https://epn.example.net/itm/1?mkcid=16&x=1
+want: https://epn.example.net/itm/1?x=1
+removed: {"category":"tracker","name":"mkcid","rule":"semantics:epn-track"}
+-- path-ref --
+in: https://shop.example.net/p/ref=x?a=1
+want: https://shop.example.net/p?a=1
+removed: {"part":"path","category":"path","name":"/ref","value":"x","text":"/ref=x","rule":"semantics:shop-path"}
+-- path-no-eq --
+in: https://shop.example.net/p/1/amp
+want: https://shop.example.net/p/1
+removed: {"part":"path","category":"path","name":"/amp","value":"","text":"/amp"}
+-- path-emptied --
+in: https://shop.example.net/amp?a=1
+want: https://shop.example.net/?a=1
+-- path-repeated --
+in: https://shop.example.net/p/ref=a/ref=b/amp
+want: https://shop.example.net/p
+-- path-query-untouched --
+note: a path-only change copies the query verbatim
+in: https://shop.example.net/p/ref=a?&x=1&&y=2
+want: https://shop.example.net/p?&x=1&&y=2
+-- fixed-point-121 --
+note: row 121 shape: the keep trigger lives in a value stripped in round 1
+in: https://example.net/landing?utm_campaign=unsubscribe-flow&mkt_tok=abc
+want: https://example.net/landing
+-- fixed-point-keep-page --
+in: https://example.net/Unsubscribe?mkt_tok=abc&utm_source=x
+want: https://example.net/Unsubscribe?mkt_tok=abc
+kept: {"name":"mkt_tok","reason":"rule","rule":"semantics:keep-tok"}
+-- nested-in-round-urlregexp --
+note: row 126 shape: nested re-encoding turns the keep trigger /unsubscribe into %2Funsubscribe; round 2 strips gclid
+in: https://example.com/?gclid=1&u=https://example.net/unsubscribe?utm_source=x
+want: https://example.com/?u=https%3A%2F%2Fexample.net%2Funsubscribe
+removed: {"part":"nested","category":"tracker","name":"utm_source","nestedIn":"u"}
+removed: {"part":"query","category":"tracker","name":"gclid"}
+-- nested-in-round-path-glob --
+note: the synthetic "*://*/*/unsubscribe*" Keep: re-encoding turns /unsubscribe into %2Funsubscribe
+in: https://example.com/?ck=1&u=https://example.net/unsubscribe?utm_source=x
+want: https://example.com/?u=https%3A%2F%2Fexample.net%2Funsubscribe
+-- nested-basic --
+in: https://www.example.net/?u=https%3A%2F%2Fexample.org%2F%3Futm_source%3Dx%26a%3D1
+want: https://www.example.net/?u=https%3A%2F%2Fexample.org%2F%3Fa%3D1
+-- nested-bytes-kept --
+in: https://www.example.net/?u=https%3A%2F%2Fexample.org%2F%3Fa%3D1
+want: unchanged
+-- nested-depth-one --
+in: https://www.example.net/?u=https%3A%2F%2Fexample.org%2F%3Fv%3Dhttps%253A%252F%252Fexample.com%252F%253Futm_source%253Dx
+want: unchanged
+-- nested-raw-value --
+in: https://www.example.net/?u=https://example.org/?utm_source=x
+want: https://www.example.net/?u=https%3A%2F%2Fexample.org%2F
+-- nested-encode-component --
+in: https://www.example.net/?u=https%3A%2F%2Fexample.org%2Fa%3Fq%3Da%2Bb%26utm_source%3Dx
+want: https://www.example.net/?u=https%3A%2F%2Fexample.org%2Fa%3Fq%3Da%2Bb
+-- nested-off --
+config: {"DisableNested":true}
+in: https://www.example.net/?u=https%3A%2F%2Fexample.org%2F%3Futm_source%3Dx
+want: unchanged
+-- nested-ambiguous-inner --
+in: https://www.example.net/?u=https%3A%2F%2Fexample.org%2Fa%20b%3Futm_source%3Dx
+want: unchanged
+-- nested-and-outer --
+in: https://www.example.net/?utm_source=x&u=https%3A%2F%2Fexample.org%2F%3Fgclid%3D1
+want: https://www.example.net/?u=https%3A%2F%2Fexample.org%2F
+-- signed-guard --
+in: https://cdn.example.com/f.png?sig=abc&utm_source=x&hostonly=1
+want: https://cdn.example.com/f.png?sig=abc&utm_source=x
+removed: {"name":"hostonly","rule":"semantics:host-scoped"}
+kept: {"name":"utm_source","reason":"signed","rule":""}
+-- signed-guard-canonical --
+in: https://cdn.example.net/f.png?X-Amz-Signature=abc&utm_source=x
+want: unchanged
+-- signed-guard-no-nested --
+in: https://example.net/?Signature=1&u=https%3A%2F%2Fexample.org%2F%3Futm_source%3Dx
+want: unchanged
+-- signed-guard-extra --
+config: {"ExtraSignedParams":["Token"]}
+in: https://example.net/?TOKEN=1&utm_source=x
+want: unchanged
+-- signed-guard-off --
+config: {"DisableSignedGuard":true}
+in: https://example.net/?sig=1&utm_source=x
+want: https://example.net/?sig=1
+-- signed-guard-flips --
+note: a host-scoped rule removes the signature, so round 2 strips globally and runs the nested pass
+config: {"Extra":[{"id":"strip-sig","action":"strip","include":["*://cdn.example.net/*"],"params":["sig"]}]}
+in: https://cdn.example.net/?sig=1&utm_source=x&u=https%3A%2F%2Fexample.org%2F%3Ffbclid%3D1
+want: https://cdn.example.net/?u=https%3A%2F%2Fexample.org%2F
+-- archive-input --
+in: https://web.archive.org/web/2024/https://example.com/?utm_source=x
+want: unchanged
+skipped: archive
+-- archive-unwrap-target --
+note: emitted re-serialized but uncleaned
+in: https://wrap.example.org/?u=https%3A%2F%2Fweb.archive.org%2Fweb%2F1%2Fhttps%3A%2F%2Fexample.com%2F%3Futm_source%3Dx
+want: https://web.archive.org/web/1/https://example.com/?utm_source=x
+hop: {"category":"redirect","fromHost":"wrap.example.org","rule":"semantics:wrap"}
+removed: none
+-- archive-nested --
+in: https://example.net/?a=1&u=https%3A%2F%2Fweb.archive.org%2Fweb%2F1%2Fhttps%3A%2F%2Fexample.com%2F%3Futm_source%3Dx&utm_medium=y
+want: https://example.net/?a=1&u=https%3A%2F%2Fweb.archive.org%2Fweb%2F1%2Fhttps%3A%2F%2Fexample.com%2F%3Futm_source%3Dx
+-- archive-percent-host --
+note: row 128 shape: '%' in the host is ambiguous, so the guard cannot be bypassed
+in: https://web.archiv%65.org/web/2024/https://example.com/?utm_source=x
+want: unchanged
+skipped: ambiguous
+-- archive-security-rewriter --
+in: https://urldefense.com/v3/__https://example.com/?utm_source=x__;!!AbC$
+want: unchanged
+skipped: archive
+-- archive-extra --
+config: {"ExtraArchivePatterns":["*://archive.example.org/replay/*"]}
+in: https://archive.example.org/replay/x?utm_source=1
+want: unchanged
+skipped: archive
+-- archive-extra-label --
+config: {"ExtraArchivePatterns":["*://*.archivehost.*/*"]}
+in: https://www.archivehost.co.uk/x?utm_source=1
+want: unchanged
+skipped: archive
+-- archive-off --
+config: {"DisableArchiveGuard":true}
+in: https://web.archive.org/web/2024/https://example.com/?utm_source=x
+want: https://web.archive.org/web/2024/https://example.com/
+-- fragment-all --
+in: https://example.net/a#utm_source=x&xtor=RSS-1
+want: https://example.net/a
+removed: {"part":"fragment","name":"utm_source","rule":"semantics:frag"}
+removed: {"part":"fragment","name":"xtor","rule":"semantics:frag"}
+-- fragment-partial --
+in: https://example.net/#utm_source=x&tab=2
+want: unchanged
+-- fragment-functional --
+in: https://example.net/#gid=123
+want: unchanged
+-- fragment-route --
+in: https://example.net/#/route?utm_source=x
+want: unchanged
+-- fragment-text-directive --
+in: https://example.net/#:~:text=utm_source
+want: unchanged
+-- fragment-question-mark --
+in: https://example.net/#a?utm_source=x
+want: unchanged
+-- fragment-only-infragment-rules --
+note: fbclid is stripped from the query but its rule is not InFragment
+in: https://example.net/?fbclid=1#fbclid=1
+want: https://example.net/#fbclid=1
+-- fragment-keep-applies --
+in: https://keep.example.com/#utm_source=x
+want: unchanged
+-- fragment-off --
+config: {"DisableTags":["fragment"]}
+in: https://example.net/a#xtor=RSS-1
+want: unchanged
+-- fragment-with-query --
+in: https://example.net/a?utm_source=x&b=1#utm_medium=y
+want: https://example.net/a?b=1

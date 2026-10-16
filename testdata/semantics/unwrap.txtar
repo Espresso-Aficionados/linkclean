@@ -1,0 +1,185 @@
+Semantics suite: offline unwrapping, VALID, re-serialization (design §5.4, §6).
+-- unwrap-basic --
+in: https://wrap.example.org/?u=https%3A%2F%2Fexample.net%2Fa%3Futm_source%3Dx%26id%3D1
+want: https://example.net/a?id=1
+hop: {"from":"https://wrap.example.org/?u=https%3A%2F%2Fexample.net%2Fa%3Futm_source%3Dx%26id%3D1","to":"https://example.net/a?utm_source=x&id=1","category":"redirect","fromHost":"wrap.example.org","rule":"semantics:wrap","network":"","id":""}
+removed: {"part":"query","name":"utm_source"}
+-- unwrap-second-param --
+note: an empty u= fails VALID; url= is tried next
+in: https://wrap.example.org/?u=&url=https%3A%2F%2Fexample.net%2F
+want: https://example.net/
+-- unwrap-first-segment-only --
+in: https://wrap.example.org/?u=https%3A%2F%2Fexample.net%2Fa&u=https%3A%2F%2Fexample.net%2Fb
+want: https://example.net/a
+-- unwrap-canonical-param --
+in: https://wrap.example.org/?U=https%3A%2F%2Fexample.net%2F
+want: https://example.net/
+-- unwrap-chain --
+in: https://wrap.example.org/?u=https%3A%2F%2Fwrap.example.com%2F%3Fu%3Dhttps%253A%252F%252Fexample.net%252Fx
+want: https://example.net/x
+hop: {"fromHost":"wrap.example.org","rule":"semantics:wrap"}
+hop: {"fromHost":"wrap.example.com","rule":"semantics:wrap2"}
+-- unwrap-cap --
+config: {"MaxUnwrap":1}
+in: https://wrap.example.org/?u=https%3A%2F%2Fwrap.example.com%2F%3Fu%3Dhttps%253A%252F%252Fexample.net%252Fx%253Futm_source%253Dx
+want: unchanged
+abandoned: true
+hops: none
+removed: none
+-- unwrap-cap-cleans-input --
+note: an abandoned chain cleans the input with nested off
+config: {"MaxUnwrap":1}
+in: https://wrap.example.org/?utm_source=1&u=https%3A%2F%2Fwrap.example.com%2F%3Fu%3Dhttps%253A%252F%252Fexample.net%252Fx%253Fgclid%253D1
+want: https://wrap.example.org/?u=https%3A%2F%2Fwrap.example.com%2F%3Fu%3Dhttps%253A%252F%252Fexample.net%252Fx%253Fgclid%253D1
+abandoned: true
+hops: none
+-- unwrap-off --
+config: {"DisableUnwrap":true}
+in: https://wrap.example.org/?u=https%3A%2F%2Fexample.net%2Fa%3Futm_source%3Dx
+want: https://wrap.example.org/?u=https%3A%2F%2Fexample.net%2Fa
+-- valid-ip --
+in: https://wrap.example.org/?u=http%3A%2F%2F10.0.0.1%2Fadmin
+want: unchanged
+-- valid-ip-number --
+in: https://wrap.example.org/?u=http%3A%2F%2F2130706433%2F
+want: unchanged
+-- valid-ipv6 --
+in: https://wrap.example.org/?u=http%3A%2F%2F%5B2001%3Adb8%3A%3A1%5D%2F
+want: unchanged
+-- valid-single-label --
+in: https://wrap.example.org/?u=https%3A%2F%2Fintranet%2Fsecret
+want: unchanged
+-- valid-no-icann-site --
+in: https://wrap.example.org/?u=https%3A%2F%2Fa.example%2F
+want: unchanged
+-- valid-same-site --
+in: https://wrap.example.org/?u=https%3A%2F%2Fwww.example.org%2Fx
+want: unchanged
+-- valid-same-site-allowed --
+in: https://same.example.org/?u=https%3A%2F%2Fwww.example.org%2Fx
+want: https://www.example.org/x
+-- valid-private-suffix-same-site --
+note: ICANN-only: wrap.github.io and b.github.io share the site github.io
+in: https://wrap.github.io/?u=https%3A%2F%2Fb.github.io%2F
+want: unchanged
+-- valid-private-suffix-other --
+in: https://wrap.github.io/?u=https%3A%2F%2Fexample.net%2F
+want: https://example.net/
+-- valid-userinfo --
+in: https://wrap.example.org/?u=https%3A%2F%2Fuser%40example.net%2F
+want: unchanged
+-- valid-control-in-host --
+in: https://wrap.example.org/?u=https%3A%2F%2Fexa%0Ample.net%2F
+want: unchanged
+-- valid-percent-in-host --
+in: https://wrap.example.org/?u=https%3A%2F%2Fexa%2525mple.net%2F
+want: unchanged
+-- valid-backslash --
+in: https://wrap.example.org/?u=https%3A%2F%2Fexample.net%5C%40evil.example.com%2F
+want: unchanged
+-- valid-port-zero --
+in: https://wrap.example.org/?u=https%3A%2F%2Fexample.net%3A0%2F
+want: unchanged
+-- valid-port-range --
+in: https://wrap.example.org/?u=https%3A%2F%2Fexample.net%3A70000%2F
+want: unchanged
+-- valid-port-ok --
+in: https://wrap.example.org/?u=https%3A%2F%2Fexample.net%3A8443%2F
+want: https://example.net:8443/
+-- valid-scheme --
+in: https://wrap.example.org/?u=ftp%3A%2F%2Fexample.net%2F
+want: unchanged
+-- too-long --
+config: {"MaxURLLength":60}
+in: https://wrap.example.org/?u=https%3A%2F%2Fexample.net%2Faaaaaaaaaaaa
+want: unchanged
+skipped: toolong
+-- reser-space --
+in: https://wrap.example.org/?u=https%3A%2F%2Fexample.net%2Fa%20b%3Fx%3D1
+want: https://example.net/a%20b?x=1
+-- reser-plus --
+note: DV-12 shape: '+' stays literal
+in: https://wrap.example.org/?u=https%3A%2F%2Fexample.net%2FC++%2F%3Fq%3Da+b
+want: https://example.net/C++/?q=a+b
+-- reser-newline --
+in: https://wrap.example.org/?u=https%3A%2F%2Fexample.net%2Fa%0Ab
+want: https://example.net/a%0Ab
+-- reser-quotes-brackets --
+in: https://wrap.example.org/?u=https%3A%2F%2Fexample.net%2F%22%3C%3E%7B%7D%7C%5E%60
+want: https://example.net/%22%3C%3E%7B%7D%7C%5E%60
+-- reser-unicode-path --
+in: https://wrap.example.org/?u=https%3A%2F%2Fexample.net%2Fcaf%C3%A9
+want: https://example.net/caf%C3%A9
+-- reser-idn-host --
+in: https://wrap.example.org/?u=https%3A%2F%2Fb%C3%BCcher.de%2F
+want: https://xn--bcher-kva.de/
+-- reser-homograph --
+in: https://wrap.example.org/?u=https%3A%2F%2F%D0%B0pple.com%2F
+want: https://xn--pple-43d.com/
+-- reser-second-hash --
+in: https://wrap.example.org/?u=https%3A%2F%2Fexample.net%2Fa%23b%23c
+want: https://example.net/a#b%23c
+-- reser-empty-path --
+in: https://wrap.example.org/?u=https%3A%2F%2Fexample.net
+want: https://example.net
+-- reser-scheme-host-case --
+in: https://wrap.example.org/?u=HTTPS%3A%2F%2FExample.NET%2FX
+want: https://example.net/X
+-- reser-bad-escape --
+in: https://wrap.example.org/?u=https%3A%2F%2Fexample.net%2F100%25%2525
+want: https://example.net/100%25%25
+-- prepend-scheme --
+in: https://pre.example.org/?dest=www.example.net%2Fp
+want: https://www.example.net/p
+-- prepend-scheme-present --
+note: DV-13 shape
+in: https://pre.example.org/?dest=https%3A%2F%2Fwww.example.net%2Fp
+want: https://www.example.net/p
+-- prepend-scheme-http --
+in: https://pre.example.org/?dest=HTTP%3A%2F%2Fwww.example.net%2Fp
+want: http://www.example.net/p
+-- affiliate-unwrap-query-id --
+in: https://aw.example.org/?pub=P%2D1&to=https%3A%2F%2Fwww.example.net%2Fp
+want: unchanged
+want-strip: https://www.example.net/p
+-- affiliate-unwrap-query-id-strip --
+policy: strip
+in: https://aw.example.org/?pub=P%2D1&to=https%3A%2F%2Fwww.example.net%2Fp
+want: https://www.example.net/p
+hop: {"category":"affiliate","fromHost":"aw.example.org","network":"Wrap Net","id":"P-1","rule":"semantics:aff-wrap"}
+-- affiliate-unwrap-path-id --
+policy: strip
+in: https://pw.example.org/c/1234/56?u=https%3A%2F%2Fwww.example.net%2Fp
+want: https://www.example.net/p
+hop: {"category":"affiliate","fromHost":"pw.example.org","network":"Path Net","id":"1234"}
+-- affiliate-unwrap-path-no-id --
+policy: strip
+in: https://pw.example.org/c/x/56?u=https%3A%2F%2Fwww.example.net%2Fp
+want: https://www.example.net/p
+hop: {"category":"affiliate","network":"Path Net","id":""}
+-- affiliate-unwrap-keep-cleans-nested --
+note: inert under AffiliateKeep, but the nested destination is still cleaned (row 139 shape)
+policy: keep
+in: https://aw.example.org/?pub=P1&to=https%3A%2F%2Fwww.example.net%2Fp%3Futm_source%3Dx
+want: https://aw.example.org/?pub=P1&to=https%3A%2F%2Fwww.example.net%2Fp
+hops: none
+removed: {"part":"nested","name":"utm_source","nestedIn":"to"}
+-- affiliate-unwrap-extra --
+note: Unwrap+Affiliate in Extra follows the same gate (§4.4)
+config: {"Extra":[{"id":"x-aff","action":"unwrap","affiliate":true,"include":["*://xa.example.org/*"],"unwrap":{"queryParams":["u"]}}]}
+in: https://xa.example.org/?u=https%3A%2F%2Fwww.example.net%2F
+want: unchanged
+want-strip: https://www.example.net/
+-- affiliate-unwrap-abandoned --
+policy: strip
+config: {"MaxUnwrap":1}
+in: https://aw.example.org/?pub=P1&to=https%3A%2F%2Fwrap.example.com%2F%3Fu%3Dhttps%253A%252F%252Fexample.net%252Fx
+want: unchanged
+abandoned: true
+hops: none
+-- extra-unwrap-first --
+note: Extra unwrappers outrank the sources
+config: {"Extra":[{"id":"x","action":"unwrap","include":["*://wrap.example.org/*"],"unwrap":{"queryParams":["url"]}}]}
+in: https://wrap.example.org/?u=https%3A%2F%2Fexample.net%2Fa&url=https%3A%2F%2Fexample.net%2Fb
+want: https://example.net/b
+hop: {"rule":"user:x"}

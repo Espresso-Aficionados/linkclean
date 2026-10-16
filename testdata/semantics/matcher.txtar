@@ -1,0 +1,85 @@
+Semantics suite: matcher pitfalls (design §4.2, §14.1).
+-- suffix-apex --
+in: https://example.com/?hostonly=1&a=1
+want: https://example.com/?a=1
+-- suffix-sub --
+in: https://a.b.example.com/?hostonly=1
+want: https://a.b.example.com/
+-- suffix-not-substring --
+note: *.example.com vs badexample.com
+in: https://badexample.com/?hostonly=1
+want: unchanged
+-- suffix-not-in-userinfo --
+in: https://www.example.com@evil.example.net/?hostonly=1
+want: unchanged
+-- suffix-not-in-query --
+in: https://evil.example.net/?u=https://www.example.com/&hostonly=1
+want: unchanged
+-- idn-punycode-pattern --
+note: the pattern is written in punycode; a Unicode host matches through its view; output verbatim
+in: https://bücher.example/?idn=1&a=1
+want: https://bücher.example/?a=1
+-- idn-punycode-input --
+in: https://xn--bcher-kva.example/?idn=1
+want: https://xn--bcher-kva.example/
+-- idn-uppercase --
+in: https://BÜCHER.example/?idn=1
+want: https://BÜCHER.example/
+-- glob-literal-question-mark --
+in: https://qm.example.com/a?b=1&x=2
+want: https://qm.example.com/a?b=1
+-- glob-question-mark-not-wildcard --
+in: https://qm.example.com/ab?x=2
+want: unchanged
+-- glob-question-mark-needs-query --
+in: https://qm.example.com/a?x=2&b=1
+want: unchanged
+-- port-default-443 --
+in: https://port.example.com/?p443=1
+want: https://port.example.com/
+-- port-explicit-443 --
+in: https://port.example.com:443/?p443=1
+want: https://port.example.com:443/
+-- port-other --
+in: https://port.example.com:8443/?p443=1
+want: unchanged
+-- port-http-default --
+note: the pattern's scheme is https
+in: http://port.example.com:443/?p443=1
+want: unchanged
+-- suffix-ipv4 --
+note: *.0.0.1 never matches an IP by subdomain
+in: http://10.0.0.1/?ipx=1&utm_source=x
+want: http://10.0.0.1/?ipx=1
+-- ipv6-global-only --
+in: http://[2001:db8::1]/?ipx=1&utm_source=x
+want: http://[2001:db8::1]/?ipx=1
+-- label-apex --
+in: https://amazon.com/?lbl=1
+want: https://amazon.com/
+-- label-cc-sld --
+in: https://www.amazon.co.uk/?lbl=1
+want: https://www.amazon.co.uk/
+-- label-sub --
+in: https://smile.amazon.de/?lbl=1
+want: https://smile.amazon.de/
+-- label-not-other-site --
+in: https://amazon.evil.example/?lbl=1
+want: unchanged
+-- label-not-private-github --
+note: DR-F7: ICANN site of amazon.github.io is github.io
+in: https://amazon.github.io/?lbl=1
+want: unchanged
+-- label-not-private-blogspot --
+in: https://amazon.blogspot.com/?lbl=1
+want: unchanged
+-- label-not-com-be --
+note: com.be is not a public suffix (§4.2 limitation)
+in: https://www.amazon.com.be/?lbl=1
+want: unchanged
+-- exclude --
+in: https://ex.example.net/a?exparam=1
+want: https://ex.example.net/a
+-- exclude-applies --
+in: https://ex.example.net/keep/a?exparam=1
+want: unchanged
