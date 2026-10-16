@@ -12,13 +12,20 @@ type RuleError struct {
 }
 
 func (e *RuleError) Error() string {
-	switch {
-	case e.Set == "" && e.RuleID == "":
-		return fmt.Sprintf("linkclean: %s: %v", e.Field, e.Err)
-	case e.Field == "":
-		return fmt.Sprintf("linkclean: %s:%s: %v", e.Set, e.RuleID, e.Err)
+	where := e.Set
+	if e.RuleID != "" {
+		where += ":" + e.RuleID
 	}
-	return fmt.Sprintf("linkclean: %s:%s: %s: %v", e.Set, e.RuleID, e.Field, e.Err)
+	if e.Field != "" {
+		if where != "" {
+			where += ": "
+		}
+		where += e.Field
+	}
+	if where == "" {
+		return fmt.Sprintf("linkclean: %v", e.Err)
+	}
+	return fmt.Sprintf("linkclean: %s: %v", where, e.Err)
 }
 
 func (e *RuleError) Unwrap() error { return e.Err }
