@@ -32,6 +32,7 @@ type Pattern struct {
 	base      string
 	slashStar bool
 	escaped   bool // the NORMAL form differs from the raw form
+	anyPath   bool // the path glob is "/*", which every pathForRequest matches
 }
 
 // Parse compiles one pattern of the §4.2 subset:
@@ -180,6 +181,7 @@ func (m *Pattern) setPath(path string) {
 		m.normal = newGlob(n)
 	}
 	m.base, m.slashStar = strings.CutSuffix(n, "/*")
+	m.anyPath = path == "/*"
 }
 
 // String returns the pattern's source text.
@@ -191,7 +193,8 @@ func (m *Pattern) Host() (HostKind, string) { return m.kind, m.host }
 
 // Target is the per-call view a pattern is matched against. The engine fills
 // the exported fields once per call from the URL's views and calls SetPath
-// once per round.
+// once per round. A Target caches state across Match calls, so it must not be
+// shared between goroutines.
 type Target struct {
 	Scheme string // "http" or "https"
 	Host   string // host view: lowercased, trailing dots trimmed, punycode
@@ -200,23 +203,34 @@ type Target struct {
 	Site   string // ICANN eTLD+1 of Host; required before matching a HostLabel pattern ("" = no site)
 
 	path, normal string
+	normalDone   bool // normal and escaped are valid
 	escaped      bool // normal != path
 }
 
-// SetPath sets the pathForRequest the path globs are matched against and
-// caches its UnescapeNormal form. It allocates only when the path has an
-// escape that NORMAL decodes.
+// SetPath sets the pathForRequest the path globs are matched against. Its
+// UnescapeNormal form is computed on the first Match that needs it, which
+// allocates only when the path has an escape that NORMAL decodes.
 func (t *Target) SetPath(pathForRequest string) {
 	t.path = pathForRequest
-	t.normal = UnescapeNormal(pathForRequest)
-	t.escaped = t.normal != pathForRequest
+	t.normal = ""
+	t.normalDone = false
+	t.escaped = false
+}
+
+func (t *Target) ensureNormal() {
+	if !t.normalDone {
+		t.normal = UnescapeNormal(t.path)
+		t.escaped = t.normal != t.path
+		t.normalDone = true
+	}
 }
 
 // Match reports whether t matches m (§4.2): the scheme; the host per its
 // kind; the port against the effective port; and the path glob against the
 // raw pathForRequest or its NORMAL form (pattern and path both unescaped, as
-// Chromium does), where a pattern "P/*" also matches the path "P". It does
-// not allocate.
+// Chromium does), where a pattern "P/*" also matches the path "P". It
+// allocates only to compute the path's NORMAL form, once per SetPath, and
+// never for a "/*" path glob.
 func (m *Pattern) Match(t *Target) bool {
 	if t.Scheme != "http" && t.Scheme != "https" {
 		return false
@@ -243,6 +257,10 @@ func (m *Pattern) Match(t *Target) bool {
 			return false
 		}
 	}
+	if m.anyPath && strings.HasPrefix(t.path, "/") {
+		return true
+	}
+	t.ensureNormal()
 	if m.slashStar && t.normal == m.base {
 		return true
 	}
