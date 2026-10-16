@@ -1,0 +1,847 @@
+Golden cases: Appendix C of the design (rows 1-148, E1-E18) plus synthetic
+ov-<id> rows naming every overlay rule that no Appendix C row exercises.
+Rows whose expectation is "unchanged" under both policies with the zero
+Config are in negative.txt instead.
+
+Each "-- <id> --" section is one case: "key: value" lines, value = rest of the
+line verbatim; blank lines and lines starting with '#' are ignored.
+
+  in:          input URL (required, once)
+  want:        expected Clean output under AffiliateKeep, and under
+               AffiliateStrip unless want-strip is given; "unchanged" = input
+  want-strip:  expected Clean output under AffiliateStrip
+  policy:      both (default), keep or strip; with strip only, want: is the
+               AffiliateStrip expectation
+  config:      JSON object decoded into linkclean.Config (no Affiliate, no Sources)
+  rules:       space-separated full IDs of the overlay rules the case exercises
+               (each changes the result when disabled)
+  abandoned:   true => Result.UnwrapAbandoned
+  skipped:     expected Result.Skipped (scheme, unparseable, ambiguous,
+               toolong, archive, roundcap)
+  hops: none | hop: <JSON>       one per hop, in order; listed fields compared
+  removed: none | removed: <JSON> one per Removal, in Removed order; listed
+               fields compared, count must equal len(Removed)
+  kept: <JSON> one per Kept entry ({"name","reason"}); count compared
+  note:        free text (Appendix C note; marks: † changed in v2, ‡ amendment,
+               ◆ maintainer amendment, § depends on a capture-status entry)
+
+Every case also asserts Clean(out) == out, Explain(in).URL == Clean(in), and,
+when out != in, no byte <= 0x20 or 0x7F in out and url.Parse(out) succeeds.
+-- 1 --
+note: basic
+in: https://example.com/?utm_source=x&id=7
+want: https://example.com/?id=7
+-- 2 --
+note: fragment kept
+in: https://example.com/?id=7&utm_source=x&utm_medium=y#top
+want: https://example.com/?id=7#top
+-- 3 --
+note: ? dropped because we removed everything
+in: https://example.com/?utm_source=x
+want: https://example.com/
+-- 4 --
+note: DV-3
+in: https://example.com/?utm_source=
+want: https://example.com/
+-- 5 --
+note: DV-3
+in: https://example.com/?utm_source
+want: https://example.com/
+-- 6 --
+note: DV-2
+in: https://example.com/?UTM_SOURCE=x&id=7
+want: https://example.com/?id=7
+-- 7 --
+note: DV-2
+in: https://example.com/?%75tm_source=x&id=7
+want: https://example.com/?id=7
+-- 8 --
+note: empty segments collapse on change
+in: https://example.com/?a=1&&utm_source=x&b=2
+want: https://example.com/?a=1&b=2
+-- 9 --
+in: https://example.com/?&utm_source=x&a=1
+want: https://example.com/?a=1
+-- 10 --
+in: https://example.com/?a=1&utm_source=x&
+want: https://example.com/?a=1
+-- 11 --
+note: duplicates
+in: https://example.com/?utm_source=x&utm_source=y&a=1&utm_source=z
+want: https://example.com/?a=1
+-- 14 --
+in: https://example.com/?utm_source==x&a=1
+want: https://example.com/?a=1
+-- 15 --
+note: split at first =
+in: https://example.com/?a=b=c&utm_source=x
+want: https://example.com/?a=b=c
+-- 17 --
+note: raw encoding kept
+in: https://example.com/?q=a+b%20c&utm_source=x
+want: https://example.com/?q=a+b%20c
+-- 19 --
+note: † F-1 fragment rule (all segments strippable)
+in: https://example.com/#utm_source=x
+want: https://example.com/
+rules: linkclean/overlay:fragment-trackers
+-- 21 --
+note: empty fragment kept
+in: https://example.com/?utm_source=x#
+want: https://example.com/#
+-- 22 --
+note: query-filter global
+in: https://example.com/path?fbclid=abc&x=1
+want: https://example.com/path?x=1
+-- 23 --
+note: overlay M-8
+in: https://example.com/?mkt_tok=abc&x=1
+want: https://example.com/?x=1
+rules: linkclean/overlay:marketo-mkt_tok
+-- 26 --
+note: Brave X rule
+in: https://x.com/user/status/1?s=20&t=abc
+want: https://x.com/user/status/1
+-- 27 --
+note: *.x.com
+in: https://mobile.x.com/user/status/1?s=20&t=abc
+want: https://mobile.x.com/user/status/1
+-- 28b --
+note: Brave exclude keeps t/s
+config: {"DisableUnwrap":true}
+in: https://x.com/i/redirect?url=https%3A%2F%2Fa.example.net%2F&t=abc&s=1
+want: unchanged
+-- 29 --
+in: https://www.youtube.com/watch?v=abc&si=XYZ&t=42
+want: https://www.youtube.com/watch?v=abc&t=42
+-- 30 --
+note: query-filter *://*.youtube.com/*
+in: https://www.youtube.com/shorts/abc?si=XYZ
+want: https://www.youtube.com/shorts/abc
+-- 31 --
+note: not expanded
+in: https://youtu.be/abc?si=XYZ&t=42
+want: https://youtu.be/abc?t=42
+-- 32 --
+in: https://music.youtube.com/watch?v=abc&si=XYZ
+want: https://music.youtube.com/watch?v=abc
+-- 33 --
+in: https://www.youtube.com/watch?v=abc&feature=share&pp=ygU
+want: https://www.youtube.com/watch?v=abc
+-- 34 --
+note: ‡ A-1 keep beats Brave; K-2 keeps th under both policies
+in: https://www.amazon.com/dp/B0ABC?tag=foo-20&ref_=nav&th=1&psc=1
+want: https://www.amazon.com/dp/B0ABC?tag=foo-20&th=1&psc=1
+want-strip: https://www.amazon.com/dp/B0ABC?th=1&psc=1
+rules: linkclean/overlay:amazon-affiliate-keep linkclean/overlay:amazon-affiliate-strip linkclean/overlay:amazon-th
+-- 35 --
+note: ‡ apex; K-2
+in: https://amazon.com/dp/B0ABC?tag=foo-20&ref_=nav&th=1
+want: https://amazon.com/dp/B0ABC?tag=foo-20&th=1
+want-strip: https://amazon.com/dp/B0ABC?th=1
+rules: linkclean/overlay:amazon-affiliate-keep linkclean/overlay:amazon-affiliate-strip linkclean/overlay:amazon-th
+-- 36 --
+in: https://www.instagram.com/p/abc/?igsh=xyz&img_index=1
+want: https://www.instagram.com/p/abc/?img_index=1
+-- 37 --
+in: https://instagram.com/p/abc/?igsh=xyz
+want: https://instagram.com/p/abc/
+-- 38 --
+in: https://open.spotify.com/track/abc?si=xyz&context=1
+want: https://open.spotify.com/track/abc?context=1
+-- 39 --
+in: https://www.reddit.com/r/x/comments/1/?share_id=abc&utm_name=iossmf
+want: https://www.reddit.com/r/x/comments/1/
+-- 40 --
+in: https://old.reddit.com/r/x/comments/1/?share_id=abc
+want: https://old.reddit.com/r/x/comments/1/
+-- 41 --
+note: S-8
+in: https://en.m.wikipedia.org/wiki/X?wprov=sfti1
+want: https://en.m.wikipedia.org/wiki/X
+rules: linkclean/overlay:wikimedia-wprov
+-- 42 --
+note: † Brave mkevt + R-2 _trksid
+in: https://www.ebay.de/itm/123?mkevt=1&_trksid=p1
+want: https://www.ebay.de/itm/123
+rules: linkclean/overlay:ebay
+-- 43 --
+in: https://www.google.com/search?q=go&ei=abc&ved=xyz&oq=go
+want: https://www.google.com/search?q=go
+-- 44 --
+in: https://www.facebook.com/x?__cft__[0]=abc&__tn__=R
+want: https://www.facebook.com/x
+-- 45 --
+note: canon collapses both spellings
+in: https://www.facebook.com/x?__cft__%5B0%5D=abc&id=1
+want: https://www.facebook.com/x?id=1
+-- 46 --
+note: host spelling kept
+in: https://WWW.Example.COM/?utm_source=x
+want: https://WWW.Example.COM/
+-- 47 --
+note: no / added
+in: https://example.com?utm_source=x&a=1
+want: https://example.com?a=1
+-- 48 --
+in: https://example.com./?utm_source=x
+want: https://example.com./
+-- 49 --
+note: trailing dot trimmed for matching
+in: https://www.amazon.com./dp/B0?ref_=nav
+want: https://www.amazon.com./dp/B0
+-- 50 --
+note: userinfo kept
+in: https://user:pw@example.com/?utm_source=x
+want: https://user:pw@example.com/
+-- 51 --
+in: https://example.com:8443/?utm_source=x
+want: https://example.com:8443/
+-- 52 --
+note: IP host, global rule
+in: http://192.168.0.1/?utm_source=x&a=1
+want: http://192.168.0.1/?a=1
+-- 53 --
+note: nested
+in: https://www.example.com/?u=https%3A%2F%2Fexample.net%2F%3Futm_source%3Dx%26a%3D1
+want: https://www.example.com/?u=https%3A%2F%2Fexample.net%2F%3Fa%3D1
+-- 54 --
+note: encodeComponent
+in: https://www.example.com/?u=https%3A%2F%2Fexample.net%2F%3Fq%3Da%2Bb%26utm_source%3Dx
+want: https://www.example.com/?u=https%3A%2F%2Fexample.net%2F%3Fq%3Da%2Bb
+-- 57 --
+in: https://www.example.com/?utm_source=x&u=https%3A%2F%2Fexample.net%2F%3Fgclid%3D1
+want: https://www.example.com/?u=https%3A%2F%2Fexample.net%2F
+-- 59 --
+note: per-rule exclude
+in: https://dev-pages.bravesoftware.com/clean-urls/exempted/?brave_testing1=foo&utm_content=x
+want: https://dev-pages.bravesoftware.com/clean-urls/exempted/?brave_testing1=foo
+-- 61 --
+note: match on punycode, output verbatim
+in: https://bücher.example/?utm_source=x
+want: https://bücher.example/
+-- 62 --
+in: https://www.linkedin.com/posts/abc?utm_source=share&rcm=xyz&trk=public
+want: https://www.linkedin.com/posts/abc
+-- 63 --
+note: †‡ P-1 path, R-1 sr; linkCode kept by A-1 (MD-3)
+in: https://www.amazon.com/Some-Title/dp/B0ABC/ref=sr_1_3?crid=X&keywords=k&qid=1&sr=8-3&linkCode=ll1&tag=aff-20
+want: https://www.amazon.com/Some-Title/dp/B0ABC?linkCode=ll1&tag=aff-20
+want-strip: https://www.amazon.com/Some-Title/dp/B0ABC
+rules: linkclean/overlay:amazon-affiliate-keep linkclean/overlay:amazon-affiliate-strip linkclean/overlay:amazon-ref-path linkclean/overlay:amazon-search
+-- 64 --
+note: Brave
+in: https://www.imdb.com/title/tt1/?ref_=nv_sr_1
+want: https://www.imdb.com/title/tt1/
+-- 65 --
+note: †‡ linkId kept by A-1 (MD-3); ref stripped by Brave under both
+in: https://www.amazon.de/dp/B0?linkId=abc&ref=as_li_ss_tl&psc=1
+want: https://www.amazon.de/dp/B0?linkId=abc&psc=1
+want-strip: https://www.amazon.de/dp/B0?psc=1
+rules: linkclean/overlay:amazon-affiliate-keep linkclean/overlay:amazon-affiliate-strip
+-- 67 --
+note: U-1 then clean. With DisableUnwrap: unchanged (usg = signed)
+in: https://www.google.com/url?q=https%3A%2F%2Fexample.net%2F%3Futm_source%3Dx&usg=AOv
+want: https://example.net/
+rules: linkclean/overlay:google-url
+-- 67/nounwrap --
+note: row 67 with DisableUnwrap: usg is a signed param, so nothing is stripped
+config: {"DisableUnwrap":true}
+in: https://www.google.com/url?q=https%3A%2F%2Fexample.net%2F%3Futm_source%3Dx&usg=AOv
+want: unchanged
+-- 68 --
+note: U-2
+in: https://l.facebook.com/l.php?u=https%3A%2F%2Fexample.net%2Fa%3Ffbclid%3DIw%26id%3D1&h=AT0
+want: https://example.net/a?id=1
+rules: linkclean/overlay:facebook-l
+-- 69a --
+note: † cap → restore (K8); uses ship-status wrappers; 6-deep chain, outermost wrapper l.facebook.com
+in: https://l.facebook.com/l.php?u=https%3A%2F%2Fl.instagram.com%2F%3Fu%3Dhttps%253A%252F%252Fl.facebook.com%252Fl.php%253Fu%253Dhttps%25253A%25252F%25252Fl.instagram.com%25252F%25253Fu%25253Dhttps%2525253A%2525252F%2525252Fl.facebook.com%2525252Fl.php%2525253Fu%2525253Dhttps%252525253A%252525252F%252525252Fl.instagram.com%252525252F%252525253Fu%252525253Dhttps%25252525253A%25252525252F%25252525252Fexample.net%25252525252Fa%25252525253Futm_source%25252525253Dx%252525252526id%25252525253D1%2525252526e%252525253DAT0%25252526h%2525253DAT0%252526e%25253DAT0%2526h%253DAT0%26e%3DAT0&h=AT0
+want: unchanged
+abandoned: true
+rules: linkclean/overlay:facebook-l linkclean/overlay:instagram-l
+-- 69b --
+note: † cap → restore (K8); uses ship-status wrappers; 6-deep chain, outermost wrapper l.instagram.com
+in: https://l.instagram.com/?u=https%3A%2F%2Fl.facebook.com%2Fl.php%3Fu%3Dhttps%253A%252F%252Fl.instagram.com%252F%253Fu%253Dhttps%25253A%25252F%25252Fl.facebook.com%25252Fl.php%25253Fu%25253Dhttps%2525253A%2525252F%2525252Fl.instagram.com%2525252F%2525253Fu%2525253Dhttps%252525253A%252525252F%252525252Fl.facebook.com%252525252Fl.php%252525253Fu%252525253Dhttps%25252525253A%25252525252F%25252525252Fexample.net%25252525252Fa%25252525253Futm_source%25252525253Dx%252525252526id%25252525253D1%2525252526h%252525253DAT0%25252526e%2525253DAT0%252526h%25253DAT0%2526e%253DAT0%26h%3DAT0&e=AT0
+want: unchanged
+abandoned: true
+rules: linkclean/overlay:facebook-l linkclean/overlay:instagram-l
+-- 70 --
+note: Brave global
+in: https://example.com/?ck_subscriber_id=1&x=1
+want: https://example.com/?x=1
+-- 74 --
+note: AllowSameSite on U-1 only
+in: https://www.google.com/url?q=https%3A%2F%2Fdocs.google.com%2Fdocument%2Fd%2F1%2Fedit
+want: https://docs.google.com/document/d/1/edit
+rules: linkclean/overlay:google-url
+-- 83 --
+note: WSJ K-1 (lowconf). With DisableTags:["lowconf"]: https://www.wsj.com/articles/x
+in: https://www.wsj.com/articles/x?st=abc123&reflink=desktopwebshare_permalink
+want: https://www.wsj.com/articles/x?st=abc123
+rules: linkclean/overlay:wsj-gift-st
+-- 83/nolowconf --
+note: row 83 with DisableTags lowconf: K-1 is off, Brave strips st
+config: {"DisableTags":["lowconf"]}
+in: https://www.wsj.com/articles/x?st=abc123&reflink=desktopwebshare_permalink
+want: https://www.wsj.com/articles/x
+-- 84 --
+note: Brave mod
+in: https://www.wsj.com/articles/x?mod=hp_lead_pos3
+want: https://www.wsj.com/articles/x
+-- 85 --
+note: ◆ affiliate unwrap (MA-5): debounce rule 16, classed affiliate (ShareASale, ID u = 2), so inert by default; under strip prepend_scheme: https supplies the scheme. Was "unchanged" under both while debounce was excluded.
+in: https://www.shareasale.com/r.cfm?b=1&u=2&m=3&urllink=www.example.com%2Fproduct&afftrack=
+want: unchanged
+want-strip: https://www.example.com/product
+-- 86 --
+note: ◆ affiliate unwrap, debounce rule 13 (Awin, ID awinaffid = 2)
+in: https://www.awin1.com/cread.php?awinmid=1&awinaffid=2&ued=https%3A%2F%2Fwww.example.com%2Fp
+want: unchanged
+want-strip: https://www.example.com/p
+-- 87 --
+note: whitespace unwrap: re-serialized
+in: https://l.facebook.com/l.php?u=https%3A%2F%2Fexample.net%2Fa%20b%3Fx%3D1&h=AT0
+want: https://example.net/a%20b?x=1
+rules: linkclean/overlay:facebook-l
+-- 88 --
+note: + stays literal
+in: https://l.facebook.com/l.php?u=https%3A%2F%2Fexample.net%2Fa+b%3Fx%3D1&h=AT0
+want: https://example.net/a+b?x=1
+rules: linkclean/overlay:facebook-l
+-- 89 --
+note: control byte unwrap: re-encoded
+in: https://l.facebook.com/l.php?u=https%3A%2F%2Fexample.net%2Fa%0Ab&h=AT0
+want: https://example.net/a%0Ab
+rules: linkclean/overlay:facebook-l
+-- 93 --
+note: IP-literal input: global rules only
+in: http://[2001:db8::1]/?utm_source=x&a=1
+want: http://[2001:db8::1]/?a=1
+-- 94 --
+note: IDN target emitted as punycode
+in: https://l.facebook.com/l.php?u=https%3A%2F%2F%D0%B0pple.com%2F&h=AT0
+want: https://xn--pple-43d.com/
+rules: linkclean/overlay:facebook-l
+-- 95 --
+note: archive unwrap target emitted uncleaned; idempotent
+in: https://l.facebook.com/l.php?u=https%3A%2F%2Fweb.archive.org%2Fweb%2F2024%2Fhttps%3A%2F%2Fexample.com%2F%3Ffbclid%3Dx&h=AT0
+want: https://web.archive.org/web/2024/https://example.com/?fbclid=x
+rules: linkclean/overlay:facebook-l
+-- 98 --
+note: M-9 prefix
+in: https://example.com/?utm_newthing=1&a=2
+want: https://example.com/?a=2
+-- 99 --
+note: DV-2 (corpus negatives-054)
+in: https://example.com/article?utm%5Fsource=newsletter&id=9
+want: https://example.com/article?id=9
+-- 100 --
+note: F-1
+in: https://www.independent.co.uk/a.html?utm_medium=Social&utm_source=Twitter#Echobox=1714658400
+want: https://www.independent.co.uk/a.html
+rules: linkclean/overlay:fragment-trackers
+-- 101 --
+note: F-1
+in: https://www.lemonde.fr/a.html#xtor=RSS-3208
+want: https://www.lemonde.fr/a.html
+rules: linkclean/overlay:fragment-trackers
+-- 104 --
+note: A-2
+in: https://music.apple.com/us/album/x/1?i=2&at=1000lAbC&ct=espresso_post&app=music&ls=1
+want: unchanged
+want-strip: https://music.apple.com/us/album/x/1?i=2&app=music&ls=1
+rules: linkclean/overlay:apple-affiliate-strip
+-- 105 --
+note: A-5
+in: https://www.aliexpress.com/item/1.html?aff_fcid=a&aff_fsk=b&aff_platform=portals-tool&sk=c&aff_trace_key=d&terminal_id=e&afSmartRedirect=y
+want: unchanged
+want-strip: https://www.aliexpress.com/item/1.html?afSmartRedirect=y
+rules: linkclean/overlay:aliexpress-affiliate-strip
+-- 106 --
+note: A-3 (lowconf)
+in: https://x.substack.com/p/y?r=2f8wkh&utm_campaign=post&utm_medium=web
+want: https://x.substack.com/p/y?r=2f8wkh
+want-strip: https://x.substack.com/p/y
+rules: linkclean/overlay:substack-referral-strip
+-- 107 --
+note: A-4
+in: https://shop.example.com/products/x?sca_ref=1.AbC&utm_source=uppromote&utm_medium=affiliate
+want: https://shop.example.com/products/x?sca_ref=1.AbC
+want-strip: https://shop.example.com/products/x
+rules: linkclean/overlay:uppromote-strip
+-- 108 --
+note: G-2
+in: https://shop.example.com/products/x?_pos=1&_sid=3f9&_ss=r&variant=4
+want: https://shop.example.com/products/x?variant=4
+rules: linkclean/overlay:shopify-search
+-- 110 --
+note: G-1
+in: https://forum.example.com/viewtopic.php?t=91234&start=40&sid=0f1e2d
+want: https://forum.example.com/viewtopic.php?t=91234&start=40
+rules: linkclean/overlay:phpbb-sid
+-- 111 --
+note: G-3
+in: https://docs.google.com/document/d/1/edit?usp=sharing
+want: https://docs.google.com/document/d/1/edit
+rules: linkclean/overlay:google-docs-usp
+-- 114 --
+note: U-7 + Brave si
+in: https://steamcommunity.com/linkfilter/?u=https%3A%2F%2Fwww.youtube.com%2Fwatch%3Fv%3Dabc%26si%3DXk3v
+want: https://www.youtube.com/watch?v=abc
+rules: linkclean/overlay:steam-linkfilter
+-- 115 --
+note: U-3
+in: https://l.instagram.com/?u=https%3A%2F%2Fwww.home-barista.com%2Fweekend-update.html%3Futm_source%3Dig%26utm_medium%3Dsocial&e=AT0kZ3s8
+want: https://www.home-barista.com/weekend-update.html
+rules: linkclean/overlay:instagram-l
+-- 116 --
+note: U-1: empty q → url
+in: https://www.google.com/url?sa=t&q=&url=https%3A%2F%2Fwww.example.com%2Fblog%2F%3Fs%3Dgrinder&ved=2ah
+want: https://www.example.com/blog/?s=grinder
+rules: linkclean/overlay:google-url
+-- 117 --
+note: U-10
+in: https://t.umblr.com/redirect?z=https%3A%2F%2Fwww.baristahustle.com%2Fblog%2Fwater%2F&t=ZmRl
+want: https://www.baristahustle.com/blog/water/
+rules: linkclean/overlay:tumblr-redirect
+-- 118 --
+note: U-12; since MA-5 also debounce rule 19 (unwrap), same output
+in: https://a1e0.engage.squarespace-mail.com/r?m=66&u=https%3A%2F%2Fwww.example-roastery.com%2Fshop%2Fp%2Fhouse-espresso
+want: https://www.example-roastery.com/shop/p/house-espresso
+-- 119 --
+note: smid kept
+in: https://www.amazon.co.uk/dp/B0BX1Q8Z4M/ref=olp-opf-redir?aod=1&smid=A3P5ROKL5A1OLE
+want: https://www.amazon.co.uk/dp/B0BX1Q8Z4M?aod=1&smid=A3P5ROKL5A1OLE
+rules: linkclean/overlay:amazon-ref-path
+-- 120 --
+note: affiliate after unwrap (U-5 + A-1)
+in: https://www.youtube.com/redirect?event=comments&redir_token=QUFF&q=https%3A%2F%2Fwww.amazon.com%2Fdp%2FB07ABCDEF1%3Ftag%3Dcoffeechan-20%26utm_source%3Dyoutube&html_redirect=1
+want: https://www.amazon.com/dp/B07ABCDEF1?tag=coffeechan-20
+want-strip: https://www.amazon.com/dp/B07ABCDEF1
+rules: linkclean/overlay:amazon-affiliate-keep linkclean/overlay:amazon-affiliate-strip linkclean/overlay:youtube-redirect
+-- 121 --
+note: fixed point: the round-1 keep trigger lived in a stripped value. DV-10: brave-core keeps mkt_tok here.
+in: https://example.com/landing?utm_campaign=unsubscribe-flow&mkt_tok=abc
+want: https://example.com/landing
+rules: linkclean/overlay:marketo-mkt_tok
+-- 122 --
+note: S-3
+in: https://www.tiktok.com/@u/video/1?is_from_webapp=1&sender_device=pc&web_id=7
+want: https://www.tiktok.com/@u/video/1
+rules: linkclean/overlay:tiktok
+-- 123 --
+note: R-6
+in: https://www.target.com/p/x/-/A-1?preselect=2#lnk=sametab
+want: https://www.target.com/p/x/-/A-1?preselect=2
+rules: linkclean/overlay:target-lnk
+-- 124 --
+note: S-2; q/f functional
+in: https://x.com/search?q=%23espresso&src=typed_query&f=live
+want: https://x.com/search?q=%23espresso&f=live
+rules: linkclean/overlay:x-src
+-- 125 --
+note: S-5
+in: https://www.twitch.tv/u/clip/C?filter=clips&range=30d&sort=time&tt_content=url&tt_medium=clips_web
+want: https://www.twitch.tv/u/clip/C?filter=clips&range=30d&sort=time
+rules: linkclean/overlay:twitch-tt
+-- 126 --
+note: ‡ idempotence: nested re-encode inside the round (§4.3). v2 emitted …?ck_subscriber_id=1&u=… and a second Clean dropped it. DV-10.
+in: https://example.com/?ck_subscriber_id=1&u=https://example.net/unsubscribe?utm_source=x
+want: https://example.com/?u=https%3A%2F%2Fexample.net%2Funsubscribe
+rules: linkclean/overlay:kit-unsubscribe
+-- 127 --
+note: ‡ same class, C-2. DV-10
+in: https://example.com/?h_sid=1&next=https://example.net/email/view?fbclid=x
+want: https://example.com/?next=https%3A%2F%2Fexample.net%2Femail%2Fview
+rules: linkclean/overlay:hive-email
+-- 130 --
+note: ‡ A-6 Impact (global)
+in: https://www.merchant.com/p/1?irclickid=abc&irgwc=1&utm_source=impact
+want: https://www.merchant.com/p/1?irclickid=abc&irgwc=1
+want-strip: https://www.merchant.com/p/1
+rules: linkclean/overlay:impact-keep linkclean/overlay:impact-strip
+-- 131 --
+note: ‡ A-7 CJ; Branch click_id is tracking
+in: https://shop.app.link/x?cjevent=abc&click_id=9
+want: https://shop.app.link/x?cjevent=abc
+want-strip: https://shop.app.link/x
+rules: linkclean/overlay:cj-applink-keep linkclean/overlay:cj-applink-strip
+-- 132 --
+note: ‡ A-9; Eventbrite ref is tracking
+in: https://www.eventbrite.com/e/x?aff=affcode&ref=estw
+want: https://www.eventbrite.com/e/x?aff=affcode
+want-strip: https://www.eventbrite.com/e/x
+rules: linkclean/overlay:eventbrite-aff-keep linkclean/overlay:eventbrite-aff-strip
+-- 134 --
+note: ‡ G-1 /forums/ prefix (commerce-056 shape)
+in: https://www.home-barista.com/forums/viewtopic.php?t=91234&start=40&sid=0f1e
+want: https://www.home-barista.com/forums/viewtopic.php?t=91234&start=40
+rules: linkclean/overlay:phpbb-sid
+-- 135 --
+note: ‡ A-1 SiteStripe shape (commerce-003)
+in: https://www.amazon.com/dp/B0BQ2N5NNQ?&linkCode=ll1&tag=espressoaf-20&linkId=3f9c&language=en_US&ref_=as_li_ss_tl
+want: https://www.amazon.com/dp/B0BQ2N5NNQ?linkCode=ll1&tag=espressoaf-20&linkId=3f9c&language=en_US
+want-strip: https://www.amazon.com/dp/B0BQ2N5NNQ?language=en_US
+rules: linkclean/overlay:amazon-affiliate-keep linkclean/overlay:amazon-affiliate-strip
+-- 136 --
+note: ‡ A-8; camefrom is tracking
+in: https://www.ticketweb.com/event/x?afsrc=1&impradid=2&impradname=p&camefrom=CFC
+want: https://www.ticketweb.com/event/x?afsrc=1&impradid=2&impradname=p
+want-strip: https://www.ticketweb.com/event/x
+rules: linkclean/overlay:ticketweb-affiliate-keep linkclean/overlay:ticketweb-affiliate-strip
+-- 137 --
+note: ‡ A-12, conditional on campid; row 42 (no campid) is still stripped
+in: https://www.ebay.com/itm/123?mkcid=1&mkrid=711-53200-19255-0&siteid=0&campid=5338000000&customid=&toolid=10001&mkevt=1
+want: unchanged
+want-strip: https://www.ebay.com/itm/123?siteid=0
+rules: linkclean/overlay:ebay-partner-network-keep linkclean/overlay:ebay-partner-network-strip
+-- 138 --
+note: ‡ AMZ covers Amazon Belgium (com.be is not a public suffix, §4.2). With *://*.amazon.*/* alone the default output was https://www.amazon.com.be/dp/B0X, against MD-3 (A.8)
+in: https://www.amazon.com.be/dp/B0X?tag=foo-21&linkCode=ll1&th=1&ref_=x
+want: https://www.amazon.com.be/dp/B0X?tag=foo-21&linkCode=ll1&th=1
+want-strip: https://www.amazon.com.be/dp/B0X?th=1
+rules: linkclean/overlay:amazon-affiliate-keep linkclean/overlay:amazon-affiliate-strip linkclean/overlay:amazon-th
+-- 139 --
+note: ◆ CJ wrapper (debounce rule 0, affiliate): inert by default, but the nested destination is still cleaned; unwrapped under strip
+in: https://www.anrdoezrs.net/click-1234567-13579?url=https%3A%2F%2Fwww.example.com%2Fp%3Futm_source%3Dcj
+want: https://www.anrdoezrs.net/click-1234567-13579?url=https%3A%2F%2Fwww.example.com%2Fp
+want-strip: https://www.example.com/p
+-- 140 --
+note: ◆ Impact click domain (rule 19); ID from the path
+in: https://example.sjv.io/c/1234/5678/9012?u=https%3A%2F%2Fwww.example-shop.net%2Fp
+want: unchanged
+want-strip: https://www.example-shop.net/p
+-- 141 --
+note: ◆ Skimlinks (rule 0)
+in: https://go.skimresources.com/?id=12345X678901&xs=1&url=https%3A%2F%2Fwww.example.net%2Fp
+want: unchanged
+want-strip: https://www.example.net/p
+-- 142 --
+note: ◆ Rakuten (rule 22)
+in: https://click.linksynergy.com/deeplink?id=AbC1dEf2GhI&mid=1234&murl=https%3A%2F%2Fwww.example.net%2Fp
+want: unchanged
+want-strip: https://www.example.net/p
+-- 143 --
+note: ◆ Mailchimp click tracker, classed unwrap: active under the default
+in: https://us1.mailchimp.com/mctx/clicks?url=https%3A%2F%2Fwww.example.net%2Fa%3Futm_source%3Dmc&xid=1
+want: https://www.example.net/a
+-- 145 --
+note: ◆ DV-13: value already has a scheme; brave-core would not apply the rule
+in: https://shareasale.com/r.cfm?u=2&m=3&urllink=https%3A%2F%2Fwww.example.com%2Fx
+want: unchanged
+want-strip: https://www.example.com/x
+-- 146 --
+note: ◆ affiliate in both forms: default keeps the wrapper and the nested tag (A-1) and drops nested ref_; strip removes both (E17 and R3)
+in: https://www.awin1.com/cread.php?awinmid=1&awinaffid=2&ued=https%3A%2F%2Fwww.amazon.de%2Fdp%2FB0%3Ftag%3Dx-21%26ref_%3Dy
+want: https://www.awin1.com/cread.php?awinmid=1&awinaffid=2&ued=https%3A%2F%2Fwww.amazon.de%2Fdp%2FB0%3Ftag%3Dx-21
+want-strip: https://www.amazon.de/dp/B0
+rules: linkclean/overlay:amazon-affiliate-keep linkclean/overlay:amazon-affiliate-strip
+-- E1 --
+note: E-row (row 63): CatPathSegment /ref (Value sr_1_3); CatTracker crid, keywords, qid, sr; CatAffiliate linkCode [Amazon Associates, ""]; CatAffiliate tag [Amazon Associates, aff-20]
+policy: strip
+in: https://www.amazon.com/Some-Title/dp/B0ABC/ref=sr_1_3?crid=X&keywords=k&qid=1&sr=8-3&linkCode=ll1&tag=aff-20
+want: https://www.amazon.com/Some-Title/dp/B0ABC
+rules: linkclean/overlay:amazon-affiliate-strip linkclean/overlay:amazon-ref-path linkclean/overlay:amazon-search
+hops: none
+removed: {"part":"path","category":"path","name":"/ref","value":"sr_1_3"}
+removed: {"part":"query","category":"tracker","name":"crid"}
+removed: {"part":"query","category":"tracker","name":"keywords"}
+removed: {"part":"query","category":"tracker","name":"qid"}
+removed: {"part":"query","category":"tracker","name":"sr"}
+removed: {"part":"query","category":"affiliate","name":"linkCode","network":"Amazon Associates","id":""}
+removed: {"part":"query","category":"affiliate","name":"tag","network":"Amazon Associates","id":"aff-20"}
+-- E2 --
+note: E-row (row 63): CatPathSegment /ref; CatTracker crid, keywords, qid, sr. (linkCode, tag are in Kept as KeptAffiliate.)
+policy: keep
+in: https://www.amazon.com/Some-Title/dp/B0ABC/ref=sr_1_3?crid=X&keywords=k&qid=1&sr=8-3&linkCode=ll1&tag=aff-20
+want: https://www.amazon.com/Some-Title/dp/B0ABC?linkCode=ll1&tag=aff-20
+rules: linkclean/overlay:amazon-affiliate-keep linkclean/overlay:amazon-ref-path linkclean/overlay:amazon-search
+hops: none
+removed: {"part":"path","category":"path","name":"/ref","value":"sr_1_3"}
+removed: {"part":"query","category":"tracker","name":"crid"}
+removed: {"part":"query","category":"tracker","name":"keywords"}
+removed: {"part":"query","category":"tracker","name":"qid"}
+removed: {"part":"query","category":"tracker","name":"sr"}
+kept: {"name":"linkCode","reason":"affiliate"}
+kept: {"name":"tag","reason":"affiliate"}
+-- E3 --
+note: E-row (row 85): —
+policy: strip
+in: https://www.shareasale.com/r.cfm?b=1&u=2&m=3&urllink=www.example.com%2Fproduct&afftrack=
+want: https://www.example.com/product
+hop: {"category":"affiliate","fromHost":"www.shareasale.com","network":"ShareASale","id":"2","rule":"brave/debounce:*://shareasale-analytics.com/r.cfm?*"}
+removed: none
+-- E4 --
+note: E-row (row 86): —
+policy: strip
+in: https://www.awin1.com/cread.php?awinmid=1&awinaffid=2&ued=https%3A%2F%2Fwww.example.com%2Fp
+want: https://www.example.com/p
+hop: {"category":"affiliate","fromHost":"www.awin1.com","network":"Awin","id":"2","rule":"brave/debounce:*://www.awin1.com/cread.php?*"}
+removed: none
+-- E5 --
+note: E-row (row 139): CatTracker utm_source
+policy: strip
+in: https://www.anrdoezrs.net/click-1234567-13579?url=https%3A%2F%2Fwww.example.com%2Fp%3Futm_source%3Dcj
+want: https://www.example.com/p
+hop: {"category":"affiliate","fromHost":"www.anrdoezrs.net","network":"CJ Affiliate","id":"1234567","rule":"brave/debounce:*://www.anrdoezrs.net/click-*"}
+removed: {"part":"query","category":"tracker","name":"utm_source"}
+-- E6 --
+note: E-row (row 139): CatTracker utm_source, PartNested, NestedIn url
+policy: keep
+in: https://www.anrdoezrs.net/click-1234567-13579?url=https%3A%2F%2Fwww.example.com%2Fp%3Futm_source%3Dcj
+want: https://www.anrdoezrs.net/click-1234567-13579?url=https%3A%2F%2Fwww.example.com%2Fp
+hops: none
+removed: {"part":"nested","category":"tracker","name":"utm_source","nestedIn":"url"}
+-- E7 --
+note: E-row (row 140): —
+policy: strip
+in: https://example.sjv.io/c/1234/5678/9012?u=https%3A%2F%2Fwww.example-shop.net%2Fp
+want: https://www.example-shop.net/p
+hop: {"category":"affiliate","fromHost":"example.sjv.io","network":"Impact","id":"1234","rule":"brave/debounce:*://*.3anx.net/c/*"}
+removed: none
+-- E8 --
+note: E-row (row 141): —
+policy: strip
+in: https://go.skimresources.com/?id=12345X678901&xs=1&url=https%3A%2F%2Fwww.example.net%2Fp
+want: https://www.example.net/p
+hop: {"category":"affiliate","fromHost":"go.skimresources.com","network":"Skimlinks","id":"12345X678901","rule":"brave/debounce:*://go.redirectingat.com/*"}
+removed: none
+-- E9 --
+note: E-row (row 142): —
+policy: strip
+in: https://click.linksynergy.com/deeplink?id=AbC1dEf2GhI&mid=1234&murl=https%3A%2F%2Fwww.example.net%2Fp
+want: https://www.example.net/p
+hop: {"category":"affiliate","fromHost":"click.linksynergy.com","network":"Rakuten Advertising","id":"AbC1dEf2GhI","rule":"brave/debounce:*://click.linksynergy.com/deeplink*"}
+removed: none
+-- E10 --
+note: E-row (row 143): CatTracker utm_source
+policy: keep
+in: https://us1.mailchimp.com/mctx/clicks?url=https%3A%2F%2Fwww.example.net%2Fa%3Futm_source%3Dmc&xid=1
+want: https://www.example.net/a
+hop: {"category":"redirect","fromHost":"us1.mailchimp.com","rule":"brave/debounce:*://*.mailchimp.com/mctx/clicks?*"}
+removed: {"part":"query","category":"tracker","name":"utm_source"}
+-- E11 --
+note: E-row (row 137): CatAffiliate mkcid, mkrid [eBay Partner Network, ""]; campid [eBay Partner Network, 5338000000]; customid, toolid, mkevt [eBay Partner Network, ""]
+policy: strip
+in: https://www.ebay.com/itm/123?mkcid=1&mkrid=711-53200-19255-0&siteid=0&campid=5338000000&customid=&toolid=10001&mkevt=1
+want: https://www.ebay.com/itm/123?siteid=0
+rules: linkclean/overlay:ebay-partner-network-strip
+hops: none
+removed: {"part":"query","category":"affiliate","name":"mkcid","network":"eBay Partner Network","id":""}
+removed: {"part":"query","category":"affiliate","name":"mkrid","network":"eBay Partner Network","id":""}
+removed: {"part":"query","category":"affiliate","name":"campid","network":"eBay Partner Network","id":"5338000000"}
+removed: {"part":"query","category":"affiliate","name":"customid","network":"eBay Partner Network","id":""}
+removed: {"part":"query","category":"affiliate","name":"toolid","network":"eBay Partner Network","id":""}
+removed: {"part":"query","category":"affiliate","name":"mkevt","network":"eBay Partner Network","id":""}
+-- E12 --
+note: E-row: CatAffiliate tag [Amazon Associates, "<@everyone>"]: the library passes the decoded ID through; display safety is the consumer's (R7)
+policy: strip
+in: https://www.amazon.com/dp/B0?tag=%3C%40everyone%3E
+want: https://www.amazon.com/dp/B0
+rules: linkclean/overlay:amazon-affiliate-strip
+hops: none
+removed: {"part":"query","category":"affiliate","name":"tag","value":"%3C%40everyone%3E","network":"Amazon Associates","id":"<@everyone>"}
+-- E13 --
+note: E-row (row 120): CatAffiliate tag [Amazon Associates, coffeechan-20]; CatTracker utm_source
+policy: strip
+in: https://www.youtube.com/redirect?event=comments&redir_token=QUFF&q=https%3A%2F%2Fwww.amazon.com%2Fdp%2FB07ABCDEF1%3Ftag%3Dcoffeechan-20%26utm_source%3Dyoutube&html_redirect=1
+want: https://www.amazon.com/dp/B07ABCDEF1
+rules: linkclean/overlay:amazon-affiliate-strip linkclean/overlay:youtube-redirect
+hop: {"category":"redirect","fromHost":"www.youtube.com","rule":"linkclean/overlay:youtube-redirect"}
+removed: {"part":"query","category":"affiliate","name":"tag","network":"Amazon Associates","id":"coffeechan-20"}
+removed: {"part":"query","category":"tracker","name":"utm_source"}
+-- E14 --
+note: E-row (row 104): CatAffiliate at [Apple Performance Partners, 1000lAbC]; CatAffiliate ct [Apple Performance Partners, ""]
+policy: strip
+in: https://music.apple.com/us/album/x/1?i=2&at=1000lAbC&ct=espresso_post&app=music&ls=1
+want: https://music.apple.com/us/album/x/1?i=2&app=music&ls=1
+rules: linkclean/overlay:apple-affiliate-strip
+hops: none
+removed: {"part":"query","category":"affiliate","name":"at","network":"Apple Performance Partners","id":"1000lAbC"}
+removed: {"part":"query","category":"affiliate","name":"ct","network":"Apple Performance Partners","id":""}
+-- E15 --
+note: E-row: CatAffiliate tag [Amazon Associates, nested-21] and CatTracker ref_, both PartNested, NestedIn u
+policy: strip
+in: https://www.example.com/?u=https%3A%2F%2Fwww.amazon.de%2Fdp%2FB0%3Ftag%3Dnested-21%26ref_%3Dx
+want: https://www.example.com/?u=https%3A%2F%2Fwww.amazon.de%2Fdp%2FB0
+rules: linkclean/overlay:amazon-affiliate-strip
+hops: none
+removed: {"part":"nested","category":"affiliate","name":"tag","nestedIn":"u","network":"Amazon Associates","id":"nested-21"}
+removed: {"part":"nested","category":"tracker","name":"ref_","nestedIn":"u"}
+-- E16 --
+note: E-row (row 126): CatTracker utm_source (PartNested, NestedIn u; round 1), then CatTracker ck_subscriber_id (PartQuery; round 2). Pins the per-round Removed order (§3)
+policy: keep
+in: https://example.com/?ck_subscriber_id=1&u=https://example.net/unsubscribe?utm_source=x
+want: https://example.com/?u=https%3A%2F%2Fexample.net%2Funsubscribe
+rules: linkclean/overlay:kit-unsubscribe
+hops: none
+removed: {"part":"nested","category":"tracker","name":"utm_source","nestedIn":"u"}
+removed: {"part":"query","category":"tracker","name":"ck_subscriber_id"}
+-- E17 --
+note: E-row (row 146): CatAffiliate tag [Amazon Associates, x-21], CatTracker ref_ (both PartQuery of the unwrapped destination). One link, two networks, one from each form (T3-1)
+policy: strip
+in: https://www.awin1.com/cread.php?awinmid=1&awinaffid=2&ued=https%3A%2F%2Fwww.amazon.de%2Fdp%2FB0%3Ftag%3Dx-21%26ref_%3Dy
+want: https://www.amazon.de/dp/B0
+rules: linkclean/overlay:amazon-affiliate-strip
+hop: {"category":"affiliate","fromHost":"www.awin1.com","network":"Awin","id":"2","rule":"brave/debounce:*://www.awin1.com/cread.php?*"}
+removed: {"part":"query","category":"affiliate","name":"tag","network":"Amazon Associates","id":"x-21"}
+removed: {"part":"query","category":"tracker","name":"ref_"}
+-- E18 --
+note: E-row: CatAffiliate tag [Amazon Associates, foo-20] (PartNested, NestedIn u, Value foo%2D20), CatTracker ref_. The ID is decoded once relative to the nested URL, so twice relative to the posted text: the ID the destination sees (SEMV-2)
+policy: strip
+in: https://www.example.com/?u=https%3A%2F%2Fwww.amazon.de%2Fdp%2FB0%3Ftag%3Dfoo%252D20%26ref_%3Dx
+want: https://www.example.com/?u=https%3A%2F%2Fwww.amazon.de%2Fdp%2FB0
+rules: linkclean/overlay:amazon-affiliate-strip
+hops: none
+removed: {"part":"nested","category":"affiliate","name":"tag","nestedIn":"u","value":"foo%2D20","network":"Amazon Associates","id":"foo-20"}
+removed: {"part":"nested","category":"tracker","name":"ref_","nestedIn":"u"}
+-- ov-squarespace-mail --
+note: synthetic (marketing-059 shape): with brave/debounce disabled U-12 alone unwraps, so the behaviour survives an upstream removal
+config: {"DisableTags":["debounce"]}
+in: https://a1e0.engage.squarespace-mail.com/r?m=66&u=https%3A%2F%2Fwww.example-roastery.com%2Fshop%2Fp%2Fhouse-espresso&w=5d
+want: https://www.example-roastery.com/shop/p/house-espresso
+rules: linkclean/overlay:squarespace-mail
+hop: {"category":"redirect","fromHost":"a1e0.engage.squarespace-mail.com","rule":"linkclean/overlay:squarespace-mail"}
+-- ov-aliexpress --
+note: synthetic (commerce-022 shape): R-3 spm
+in: https://www.aliexpress.com/w/wholesale-wdt-tool.html?page=2&SearchText=wdt+tool&spm=a2g0o.productlist.search.0
+want: https://www.aliexpress.com/w/wholesale-wdt-tool.html?page=2&SearchText=wdt+tool
+rules: linkclean/overlay:aliexpress
+-- ov-etsy --
+note: synthetic (commerce-023, commerce-025 shapes): R-4
+in: https://www.etsy.com/listing/1234567890/walnut-wdt-tool?click_key=8f2c1b3a%3A1234567890&click_sum=a1b2c3d4&ref=hp_rv-2&pro=1&sts=1&share_time=1728994000000
+want: https://www.etsy.com/listing/1234567890/walnut-wdt-tool
+rules: linkclean/overlay:etsy
+-- ov-youtube-shorts-feature --
+note: synthetic (social-006 shape): S-1; Brave strips feature only on /watch and youtu.be
+in: https://www.youtube.com/shorts/Qm8b2bW5c1E?feature=share
+want: https://www.youtube.com/shorts/Qm8b2bW5c1E
+rules: linkclean/overlay:youtube-shorts-feature
+-- ov-facebook-mibextid --
+note: synthetic (social-029 shape): S-4
+in: https://www.facebook.com/share/p/1AbCdEfGhJ/?mibextid=WC7FNe
+want: https://www.facebook.com/share/p/1AbCdEfGhJ/
+rules: linkclean/overlay:facebook-mibextid
+-- ov-soundcloud-si --
+note: synthetic (social-044 shape): S-6 on the apex host; in is functional
+in: https://soundcloud.com/coffee-podcast/ep-42?in=coffee-podcast/sets/season-3&si=0123456789abcdef
+want: https://soundcloud.com/coffee-podcast/ep-42?in=coffee-podcast/sets/season-3
+rules: linkclean/overlay:soundcloud-si
+-- ov-reddit-3p --
+note: synthetic (social-028 shape): S-7 matches %243p through canon (DV-2)
+in: https://www.reddit.com/r/espresso/comments/1c2d3e4/x/?%243p=e_as
+want: https://www.reddit.com/r/espresso/comments/1c2d3e4/x/
+rules: linkclean/overlay:reddit-3p
+-- ov-linkedin-insight --
+note: synthetic (marketing-012 shape): M-1, global
+in: https://www.lamarzoccohome.com/en-us/machines/linea-mini/?li_fat_id=9b2e4c1a&variant=2
+want: https://www.lamarzoccohome.com/en-us/machines/linea-mini/?variant=2
+rules: linkclean/overlay:linkedin-insight
+-- ov-wicked-reports --
+note: synthetic (marketing-023 shape): M-2 wickedsource; wickedid is Brave's
+in: https://www.cafelat.com/products/robot-barista?wickedid=EAIaIQob&wickedsource=google
+want: https://www.cafelat.com/products/robot-barista
+rules: linkclean/overlay:wicked-reports
+-- ov-at-internet-xtor --
+note: synthetic (marketing-047 shape): M-3; F-1 also names xtor and applies to the query, so it is disabled to isolate M-3
+config: {"DisableRules":["linkclean/overlay:fragment-trackers"]}
+in: https://www.lemonde.fr/a.html?xtor=RSS-3208&page=2
+want: https://www.lemonde.fr/a.html?page=2
+rules: linkclean/overlay:at-internet-xtor
+-- ov-bbc-at --
+note: synthetic (marketing-046 shape): M-4 at_[a-z_]+ catches at_bbc_team, which Brave's global at_ list lacks
+in: https://www.bbc.co.uk/news/business-68912345?at_medium=RSS&at_bbc_team=editorial
+want: https://www.bbc.co.uk/news/business-68912345
+rules: linkclean/overlay:bbc-at
+-- ov-nyt-smtyp --
+note: synthetic (marketing-035 shape): M-5 smtyp; smid is Brave's
+in: https://www.nytimes.com/2024/05/02/dining/espresso-martini.html?smid=tw-nytimes&smtyp=cur
+want: https://www.nytimes.com/2024/05/02/dining/espresso-martini.html
+rules: linkclean/overlay:nyt-smtyp
+-- ov-cnn-cid --
+note: synthetic (marketing-048 shape): M-6
+in: https://www.cnn.com/2024/05/02/business/coffee-prices-climate/index.html?cid=ios_app
+want: https://www.cnn.com/2024/05/02/business/coffee-prices-climate/index.html
+rules: linkclean/overlay:cnn-cid
+-- ov-mailchimp-archive --
+note: synthetic (marketing-017 shape): M-7 e; u and id are functional
+in: https://us12.campaign-archive.com/?e=8a7b6c5d4e&u=1a2b3c4d5e6f&id=9f8e7d6c5b
+want: https://us12.campaign-archive.com/?u=1a2b3c4d5e6f&id=9f8e7d6c5b
+rules: linkclean/overlay:mailchimp-archive
+-- ov-utm-prefix --
+note: synthetic: M-9 covers a utm_ name Brave does not list; F-1's identical regexp also applies to the query, so it is disabled to isolate M-9
+config: {"DisableRules":["linkclean/overlay:fragment-trackers"]}
+in: https://example.com/?utm_custom3=x&a=1
+want: https://example.com/?a=1
+rules: linkclean/overlay:utm-prefix
+-- ov-marketo-unsubscribe --
+note: synthetic (rows 24 and 72 are its negatives): C-3 keeps mkt_tok on a Marketo emailWebview page, against M-8; utm_source still goes
+in: https://info.example.com/emailWebview?mkt_tok=MTIzLUFCQy00NTY&utm_source=x
+want: https://info.example.com/emailWebview?mkt_tok=MTIzLUFCQy00NTY
+rules: linkclean/overlay:marketo-unsubscribe
+kept: {"name":"mkt_tok","reason":"rule"}
+-- ov-apple-affiliate-keep --
+note: synthetic (social-046 shape): no built-in rule strips A-2's names, so an Extra strip stands in for one; the Keep+Affiliate beats it under AffiliateKeep
+policy: keep
+config: {"Extra":[{"id":"strip-apple-names","action":"strip","include":["*://*/*"],"params":["at","ct","itscg","itsct"]}]}
+in: https://music.apple.com/us/album/x/1?i=2&at=1000lAbC&ct=espresso_post&app=music
+want: unchanged
+rules: linkclean/overlay:apple-affiliate-keep
+kept: {"name":"at","reason":"affiliate"}
+kept: {"name":"ct","reason":"affiliate"}
+-- ov-substack-referral-keep --
+note: synthetic (social-053 shape): an Extra strip stands in for a future strip of r; A-3's keep (lowconf) beats it
+policy: keep
+config: {"Extra":[{"id":"strip-substack-r","action":"strip","include":["*://*.substack.com/*"],"params":["r"]}]}
+in: https://x.substack.com/p/y?r=2f8wkh
+want: unchanged
+rules: linkclean/overlay:substack-referral-keep
+kept: {"name":"r","reason":"affiliate"}
+-- ov-uppromote-keep --
+note: synthetic (commerce-040 shape): an Extra strip stands in for a future strip of sca_ref; A-4's keep beats it
+policy: keep
+config: {"Extra":[{"id":"strip-sca-ref","action":"strip","include":["*://*/*"],"params":["sca_ref"]}]}
+in: https://shop.example.com/products/x?sca_ref=1.AbC
+want: unchanged
+rules: linkclean/overlay:uppromote-keep
+kept: {"name":"sca_ref","reason":"affiliate"}
+-- ov-aliexpress-affiliate-keep --
+note: synthetic (commerce-021 shape): an Extra strip stands in for a future strip of A-5's names; the keep beats it
+policy: keep
+config: {"Extra":[{"id":"strip-aliexpress-aff","action":"strip","include":["*://*.aliexpress.com/*"],"params":["aff_fcid","sk"]}]}
+in: https://www.aliexpress.com/item/1.html?aff_fcid=a&sk=c&afSmartRedirect=y
+want: unchanged
+rules: linkclean/overlay:aliexpress-affiliate-keep
+kept: {"name":"aff_fcid","reason":"affiliate"}
+kept: {"name":"sk","reason":"affiliate"}
+-- ov-axs-aff-keep --
+note: synthetic: A-10 keep beats Brave's AXS aff strip under AffiliateKeep
+policy: keep
+in: https://www.axs.com/events/12345/x-tickets?aff=pr1&utm_source=y
+want: https://www.axs.com/events/12345/x-tickets?aff=pr1
+rules: linkclean/overlay:axs-aff-keep
+kept: {"name":"aff","reason":"affiliate"}
+-- ov-axs-aff-strip --
+note: synthetic: under AffiliateStrip Brave and the A-10 twin both strip aff; the twin makes it an affiliate removal (network AXS, no locator)
+policy: strip
+in: https://www.axs.com/events/12345/x-tickets?aff=pr1&utm_source=y
+want: https://www.axs.com/events/12345/x-tickets
+rules: linkclean/overlay:axs-aff-strip
+removed: {"part":"query","category":"affiliate","name":"aff","network":"AXS","id":""}
+removed: {"part":"query","category":"tracker","name":"utm_source"}
+-- ov-gamefound-refcode-keep --
+note: synthetic: A-11 (lowconf) keeps refcode under AffiliateKeep; Brave's ref is tracking
+policy: keep
+in: https://gamefound.com/en/projects/x/y?refcode=AbC123&ref=gf_home
+want: https://gamefound.com/en/projects/x/y?refcode=AbC123
+rules: linkclean/overlay:gamefound-refcode-keep
+kept: {"name":"refcode","reason":"affiliate"}
+-- ov-gamefound-refcode-strip --
+note: synthetic: under AffiliateStrip refcode is an affiliate removal with its ID (Gamefound referrals, refcode)
+policy: strip
+in: https://gamefound.com/en/projects/x/y?refcode=AbC123&ref=gf_home
+want: https://gamefound.com/en/projects/x/y
+rules: linkclean/overlay:gamefound-refcode-strip
+removed: {"part":"query","category":"affiliate","name":"refcode","network":"Gamefound referrals","id":"AbC123"}
+removed: {"part":"query","category":"tracker","name":"ref"}

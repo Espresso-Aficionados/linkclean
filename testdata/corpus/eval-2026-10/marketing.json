@@ -1,0 +1,876 @@
+[
+  {
+    "id": "marketing-001",
+    "category": "ad-click/utm",
+    "input": "https://www.seriouseats.com/how-to-pull-espresso-shot-7484561?utm_source=newsletter&utm_medium=email&utm_campaign=se_weekly_20240501",
+    "expected": "https://www.seriouseats.com/how-to-pull-espresso-shot-7484561",
+    "tracking_params": [
+      "utm_source",
+      "utm_medium",
+      "utm_campaign"
+    ],
+    "functional_params": [],
+    "rationale": "Plain GA UTM set; whole query is tracking so '?' is dropped."
+  },
+  {
+    "id": "marketing-002",
+    "category": "ad-click/utm",
+    "input": "https://www.prima-coffee.com/equipment/niche/niche-zero?variant=41234567890123&utm_source=google&utm_medium=cpc&utm_campaign=grinders&utm_term=niche%20zero&utm_content=ad1&utm_id=987654&utm_source_platform=google_ads&utm_creative_format=text&utm_marketing_tactic=prospecting",
+    "expected": "https://www.prima-coffee.com/equipment/niche/niche-zero?variant=41234567890123",
+    "tracking_params": [
+      "utm_source",
+      "utm_medium",
+      "utm_campaign",
+      "utm_term",
+      "utm_content",
+      "utm_id",
+      "utm_source_platform",
+      "utm_creative_format",
+      "utm_marketing_tactic"
+    ],
+    "functional_params": [
+      "variant"
+    ],
+    "rationale": "Full GA4 UTM family incl. utm_id/utm_source_platform/utm_creative_format/utm_marketing_tactic (GA4 docs). variant= selects the product variant and must be kept."
+  },
+  {
+    "id": "marketing-003",
+    "category": "ad-click/google",
+    "input": "https://www.breville.com/us/en/products/espresso/bes882.html?gad_source=1&gad_campaignid=21034567890&gbraid=0AAAAADxyz12AbCdEfGhIjKlMnOp&gclid=Cj0KCQjw2uiwBhCXARIsACMvIU2xX7cB7fVb2kq3mJ9s5bQ6lR1hYkGQ5e0zF4o9yE3rHn0hT2VqVEaAuZ6EALw_wcB",
+    "expected": "https://www.breville.com/us/en/products/espresso/bes882.html",
+    "tracking_params": [
+      "gad_source",
+      "gad_campaignid",
+      "gbraid",
+      "gclid"
+    ],
+    "functional_params": [],
+    "rationale": "Google Ads auto-tagging. gad_source/gad_campaignid documented in Google Ads Help 'About gad_* URL parameters' (answer/16193746); gad_campaignid is newer (2025) and likely missing from older lists."
+  },
+  {
+    "id": "marketing-004",
+    "category": "ad-click/google",
+    "input": "https://www.wholelattelove.com/search?q=rocket+appartamento&wbraid=CjkKCQjw2uiwBhCXARIsACMvIU2xAbCdEf&gad_source=1",
+    "expected": "https://www.wholelattelove.com/search?q=rocket+appartamento",
+    "tracking_params": [
+      "wbraid",
+      "gad_source"
+    ],
+    "functional_params": [
+      "q"
+    ],
+    "rationale": "wbraid = iOS web-to-app aggregated click id (Google Ads). q= is the site search query and must survive."
+  },
+  {
+    "id": "marketing-005",
+    "category": "ad-click/google",
+    "input": "https://www.nespresso.com/us/en/order/machines/vertuo?dclid=COiS4q_N3oUDFUs5RAgdQ_oKjA&gclsrc=dc",
+    "expected": "https://www.nespresso.com/us/en/order/machines/vertuo",
+    "tracking_params": [
+      "dclid",
+      "gclsrc"
+    ],
+    "functional_params": [],
+    "rationale": "dclid = Campaign Manager/DV360 click id; gclsrc names the click-id source (aw.ds/dc). Both pure attribution."
+  },
+  {
+    "id": "marketing-006",
+    "category": "ad-click/google",
+    "input": "https://www.wholelattelove.com/products/profitec-go-espresso-machine?srsltid=AfmBOooH7W2gPZkbFxKz8m9WjTQe3sEj5x4rN3aY1uV7cL2pM8qX0zB",
+    "expected": "https://www.wholelattelove.com/products/profitec-go-espresso-machine",
+    "tracking_params": [
+      "srsltid"
+    ],
+    "functional_params": [],
+    "rationale": "srsltid = Google Merchant Center auto-tagging on organic shopping results (Search Engine Land coverage)."
+  },
+  {
+    "id": "marketing-007",
+    "category": "ad-click/meta",
+    "input": "https://www.theguardian.com/food/2024/may/03/coffee-prices-climate-change?fbclid=IwZXh0bgNhZW0CMTEAAR2xYzAbCdEfGhIjKlMnOpQrStUvWxYz_aem_AbCdEfGhIjKlMnOpQrStUv",
+    "expected": "https://www.theguardian.com/food/2024/may/03/coffee-prices-climate-change",
+    "tracking_params": [
+      "fbclid"
+    ],
+    "functional_params": [],
+    "rationale": "Facebook outbound click id (value includes _aem_ suffix inside the same param)."
+  },
+  {
+    "id": "marketing-008",
+    "category": "ad-click/microsoft",
+    "input": "https://www.seattlecoffeegear.com/products/la-marzocco-linea-micra?msclkid=8f3c2b1a9d4e1f6a7b8c9d0e1f2a3b4c&utm_source=bing&utm_medium=cpc&utm_campaign=Brand",
+    "expected": "https://www.seattlecoffeegear.com/products/la-marzocco-linea-micra",
+    "tracking_params": [
+      "msclkid",
+      "utm_source",
+      "utm_medium",
+      "utm_campaign"
+    ],
+    "functional_params": [],
+    "rationale": "Microsoft Advertising auto-tagging click id plus UTMs."
+  },
+  {
+    "id": "marketing-009",
+    "category": "ad-click/yandex",
+    "input": "https://market.yandex.ru/product--kofemashina-delonghi-magnifica-s/1234567?yclid=1234567890123456789",
+    "expected": "https://market.yandex.ru/product--kofemashina-delonghi-magnifica-s/1234567",
+    "tracking_params": [
+      "yclid"
+    ],
+    "functional_params": [],
+    "rationale": "Yandex Direct click id."
+  },
+  {
+    "id": "marketing-010",
+    "category": "ad-click/tiktok",
+    "input": "https://fellowproducts.com/products/opus-conical-burr-grinder?ttclid=E.C.P.CqgBAbCdEfGhIjKlMnOpQrStUvWxYz0123456789&utm_source=tiktok&utm_medium=paid",
+    "expected": "https://fellowproducts.com/products/opus-conical-burr-grinder",
+    "tracking_params": [
+      "ttclid",
+      "utm_source",
+      "utm_medium"
+    ],
+    "functional_params": [],
+    "rationale": "TikTok Ads click id."
+  },
+  {
+    "id": "marketing-011",
+    "category": "ad-click/x",
+    "input": "https://www.lamarzoccohome.com/en-us/machines/linea-micra/?twclid=2-4x9fk2m1lq3e7z0ab8yqs1t6w",
+    "expected": "https://www.lamarzoccohome.com/en-us/machines/linea-micra/",
+    "tracking_params": [
+      "twclid"
+    ],
+    "functional_params": [],
+    "rationale": "X/Twitter Ads click id. Trailing slash on path preserved."
+  },
+  {
+    "id": "marketing-012",
+    "category": "ad-click/linkedin",
+    "input": "https://www.lamarzoccohome.com/en-us/machines/linea-mini/?li_fat_id=9b2e4c1a-1234-4f6b-9a8c-0d1e2f3a4b5c&utm_source=linkedin&utm_medium=paid_social",
+    "expected": "https://www.lamarzoccohome.com/en-us/machines/linea-mini/",
+    "tracking_params": [
+      "li_fat_id",
+      "utm_source",
+      "utm_medium"
+    ],
+    "functional_params": [],
+    "rationale": "LinkedIn Insight Tag first-party ad tracking id."
+  },
+  {
+    "id": "marketing-013",
+    "category": "ad-click/hubspot-ads",
+    "input": "https://www.example-roastery.com/subscriptions?utm_source=adwords&utm_medium=ppc&utm_campaign=espresso_sub&hsa_acc=1234567890&hsa_cam=20123456789&hsa_grp=150123456789&hsa_ad=680123456789&hsa_src=g&hsa_tgt=kwd-301234567&hsa_kw=espresso%20subscription&hsa_mt=p&hsa_net=adwords&hsa_ver=3",
+    "expected": "https://www.example-roastery.com/subscriptions",
+    "tracking_params": [
+      "utm_source",
+      "utm_medium",
+      "utm_campaign",
+      "hsa_acc",
+      "hsa_cam",
+      "hsa_grp",
+      "hsa_ad",
+      "hsa_src",
+      "hsa_tgt",
+      "hsa_kw",
+      "hsa_mt",
+      "hsa_net",
+      "hsa_ver"
+    ],
+    "functional_params": [],
+    "rationale": "HubSpot Ads auto-tracking params (hsa_*), appended by HubSpot's ad integration. Often missing from rule lists. Host illustrative."
+  },
+  {
+    "id": "marketing-014",
+    "category": "ad-click/adobe",
+    "input": "https://www.delonghi.com/en-us/p/dedica-ec685m/0132126105?s_cid=EM-NL-0524-dedica",
+    "expected": "https://www.delonghi.com/en-us/p/dedica-ec685m/0132126105",
+    "tracking_params": [
+      "s_cid"
+    ],
+    "functional_params": [],
+    "rationale": "s_cid = Adobe Analytics campaign tracking code."
+  },
+  {
+    "id": "marketing-015",
+    "category": "ad-click/internal-campaign",
+    "input": "https://www.crateandbarrel.com/breville-barista-express-espresso-machine/s123456?ICID=hp_espresso_0524&cmpid=em_2024_05_espresso",
+    "expected": "https://www.crateandbarrel.com/breville-barista-express-espresso-machine/s123456",
+    "tracking_params": [
+      "ICID",
+      "cmpid"
+    ],
+    "functional_params": [],
+    "rationale": "ICID (internal campaign id, Adobe convention) and cmpid (campaign id). Note uppercase ICID: name matching must not assume lowercase. Host/path shape illustrative."
+  },
+  {
+    "id": "marketing-016",
+    "category": "esp/mailchimp",
+    "input": "https://www.baristahustle.com/blog/?page=2&mc_cid=a1b2c3d4e5&mc_eid=f6e5d4c3b2",
+    "expected": "https://www.baristahustle.com/blog/?page=2",
+    "tracking_params": [
+      "mc_cid",
+      "mc_eid"
+    ],
+    "functional_params": [
+      "page"
+    ],
+    "rationale": "Mailchimp campaign id + per-subscriber id (mc_eid identifies the recipient). page= is pagination."
+  },
+  {
+    "id": "marketing-017",
+    "category": "esp/mailchimp",
+    "input": "https://us12.campaign-archive.com/?e=8a7b6c5d4e&u=1a2b3c4d5e6f7a8b9c0d1e2f3&id=9f8e7d6c5b",
+    "expected": "https://us12.campaign-archive.com/?u=1a2b3c4d5e6f7a8b9c0d1e2f3&id=9f8e7d6c5b",
+    "tracking_params": [
+      "e"
+    ],
+    "functional_params": [
+      "u",
+      "id"
+    ],
+    "rationale": "Mailchimp *|ARCHIVE|* link: u=account, id=campaign select the issue; e= is the subscriber unique id. Near-negative: stripping u/id breaks the page; a single-letter param must only be stripped on this host."
+  },
+  {
+    "id": "marketing-018",
+    "category": "esp/hubspot",
+    "input": "https://blog.hubspot.com/marketing/email-newsletter-examples?utm_campaign=Marketing%20Blog%20Digest&utm_medium=email&_hsmi=301234567&_hsenc=p2ANqtz-9xYzAbCdEfGhIjKlMnOpQrStUvWx_yZ0123456789abcdefGhIjKl&utm_content=301234567&utm_source=hs_email",
+    "expected": "https://blog.hubspot.com/marketing/email-newsletter-examples",
+    "tracking_params": [
+      "utm_campaign",
+      "utm_medium",
+      "_hsmi",
+      "_hsenc",
+      "utm_content",
+      "utm_source"
+    ],
+    "functional_params": [],
+    "rationale": "Canonical HubSpot email link shape (_hsenc = encrypted contact id, _hsmi = message id) interleaved with UTMs."
+  },
+  {
+    "id": "marketing-019",
+    "category": "esp/hubspot",
+    "input": "https://offers.hubspot.com/email-marketing-planning-template?__hstc=20629287.a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6.1714500000000.1714600000000.1714700000000.3&__hssc=20629287.1.1714700000000&__hsfp=1234567890&hsCtaTracking=0a1b2c3d-4e5f-6789-abcd-ef0123456789%7C9f8e7d6c-5b4a-3210-fedc-ba9876543210",
+    "expected": "https://offers.hubspot.com/email-marketing-planning-template",
+    "tracking_params": [
+      "__hstc",
+      "__hssc",
+      "__hsfp",
+      "hsCtaTracking"
+    ],
+    "functional_params": [],
+    "rationale": "HubSpot cross-domain cookie passthrough (__hstc visitor, __hssc session, __hsfp fingerprint) + CTA click tracking. Mixed-case name hsCtaTracking."
+  },
+  {
+    "id": "marketing-020",
+    "category": "esp/klaviyo",
+    "input": "https://www.blackandwhiteroasters.com/products/the-classic?variant=40123456789012&utm_source=Klaviyo&utm_medium=email&utm_campaign=Spring%20Release&_kx=Qk3fGh7Lm_9pXyZaBcDeFgHiJkL.UVwXyZ",
+    "expected": "https://www.blackandwhiteroasters.com/products/the-classic?variant=40123456789012",
+    "tracking_params": [
+      "utm_source",
+      "utm_medium",
+      "utm_campaign",
+      "_kx"
+    ],
+    "functional_params": [
+      "variant"
+    ],
+    "rationale": "Klaviyo email-to-website tracking: _kx is an encrypted exchange id that identifies the clicker (Klaviyo help: 'Getting started with Klaviyo onsite tracking'). Shopify variant= kept."
+  },
+  {
+    "id": "marketing-021",
+    "category": "esp/marketo",
+    "input": "https://www.franke.com/us/en/cs/coffee-systems.html?mkt_tok=NzEwLVpNTi0xNzkAAAGTx2kYw9Lq3f8AbCdEfGhIjKlMnOpQrStUvWxYz0123456789",
+    "expected": "https://www.franke.com/us/en/cs/coffee-systems.html",
+    "tracking_params": [
+      "mkt_tok"
+    ],
+    "functional_params": [],
+    "rationale": "Marketo per-recipient email click token (prefix base64-encodes the Munchkin account id)."
+  },
+  {
+    "id": "marketing-022",
+    "category": "esp/omeda",
+    "input": "https://www.nrn.com/coffee/coffee-chains-raise-prices-again?oly_enc_id=1234A5678901B2C&oly_anon_id=9f8e7d6c-5b4a-3210-fedc-ba9876543210",
+    "expected": "https://www.nrn.com/coffee/coffee-chains-raise-prices-again",
+    "tracking_params": [
+      "oly_enc_id",
+      "oly_anon_id"
+    ],
+    "functional_params": [],
+    "rationale": "Omeda (Olytics) encrypted customer id / anon id used by B2B trade publishers. Path illustrative."
+  },
+  {
+    "id": "marketing-023",
+    "category": "esp/wicked-reports",
+    "input": "https://www.cafelat.com/products/robot-barista?wickedid=EAIaIQobChMI8b2c3d4e5f6&wickedsource=google",
+    "expected": "https://www.cafelat.com/products/robot-barista",
+    "tracking_params": [
+      "wickedid",
+      "wickedsource"
+    ],
+    "functional_params": [],
+    "rationale": "Wicked Reports attribution params. wickedsource is a sibling param (vendor setup guides append both); lists often only have wickedid."
+  },
+  {
+    "id": "marketing-024",
+    "category": "esp/convertkit",
+    "input": "https://www.espressoaf.com/guides/beginner.html?ck_subscriber_id=2087654321",
+    "expected": "https://www.espressoaf.com/guides/beginner.html",
+    "tracking_params": [
+      "ck_subscriber_id"
+    ],
+    "functional_params": [],
+    "rationale": "ConvertKit (Kit) 'add subscriber id to links' feature; identifies the subscriber."
+  },
+  {
+    "id": "marketing-025",
+    "category": "esp/squarespace",
+    "input": "https://www.example-roastery.com/shop/p/house-espresso?ss_source=sscampaigns&ss_campaign_id=6630f1a2b3c4d5e6f7a8b9c0&ss_email_id=6631a2b3c4d5e6f7a8b9c0d1&ss_campaign_name=May+Espresso+Drop&ss_campaign_sent_date=2024-05-01T15%3A00%3A00Z",
+    "expected": "https://www.example-roastery.com/shop/p/house-espresso",
+    "tracking_params": [
+      "ss_source",
+      "ss_campaign_id",
+      "ss_email_id",
+      "ss_campaign_name",
+      "ss_campaign_sent_date"
+    ],
+    "functional_params": [],
+    "rationale": "ss_* with ss_source=sscampaigns is Squarespace Email Campaigns, NOT Sailthru (captured real link in Hybrid Analysis report of a squarespace-mail.com click). Full family incl. ss_email_id/ss_campaign_name/ss_campaign_sent_date."
+  },
+  {
+    "id": "marketing-026",
+    "category": "esp/vero",
+    "input": "https://www.example-roastery.com/blog/dialing-in-light-roasts?vero_conv=AbCdEfGh1234567890IjKlMnOp&vero_id=12345",
+    "expected": "https://www.example-roastery.com/blog/dialing-in-light-roasts",
+    "tracking_params": [
+      "vero_conv",
+      "vero_id"
+    ],
+    "functional_params": [],
+    "rationale": "Vero email conversion token + user id."
+  },
+  {
+    "id": "marketing-027",
+    "category": "newsletter/beehiiv",
+    "input": "https://techcrunch.com/2024/05/02/espresso-startup-raises-series-a/?utm_source=coffeeweekly.beehiiv.com&utm_medium=newsletter&utm_campaign=coffee-weekly-42&_bhlid=1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b",
+    "expected": "https://techcrunch.com/2024/05/02/espresso-startup-raises-series-a/",
+    "tracking_params": [
+      "utm_source",
+      "utm_medium",
+      "utm_campaign",
+      "_bhlid"
+    ],
+    "functional_params": [],
+    "rationale": "beehiiv auto-UTMs plus _bhlid link id (brave-browser#40716, ClearURLs/Addon#507 request stripping it; no vendor doc)."
+  },
+  {
+    "id": "marketing-028",
+    "category": "newsletter/ghost",
+    "input": "https://www.home-barista.com/espresso-machines/rocket-appartamento-review-t12345.html?ref=espressonewsletter.ghost.io",
+    "expected": "https://www.home-barista.com/espresso-machines/rocket-appartamento-review-t12345.html",
+    "tracking_params": [
+      "ref"
+    ],
+    "functional_params": [],
+    "rationale": "Ghost 'outbound link tagging' appends ?ref=<site> to every external link (Ghost help: Disabling analytics). Contrast marketing-negative GitHub ref= item: generic 'ref' cannot be stripped globally."
+  },
+  {
+    "id": "marketing-029",
+    "category": "newsletter/substack",
+    "input": "https://espressonews.substack.com/p/the-state-of-home-espresso-2024?r=2x9k1q&utm_campaign=post&utm_medium=web",
+    "expected": "https://espressonews.substack.com/p/the-state-of-home-espresso-2024",
+    "tracking_params": [
+      "r",
+      "utm_campaign",
+      "utm_medium"
+    ],
+    "functional_params": [],
+    "rationale": "Substack share link: r= is the sharer's referral id (identity), plus fixed UTMs."
+  },
+  {
+    "id": "marketing-030",
+    "category": "newsletter/substack",
+    "input": "https://espressonews.substack.com/p/the-state-of-home-espresso-2024#%C2%A7grinders",
+    "expected": "https://espressonews.substack.com/p/the-state-of-home-espresso-2024#%C2%A7grinders",
+    "tracking_params": [],
+    "functional_params": [],
+    "rationale": "NEGATIVE: Substack heading anchor (#§heading, percent-encoded). Fragment is navigation, not tracking; encoding must be preserved byte-exact."
+  },
+  {
+    "id": "marketing-031",
+    "category": "newsletter/medium",
+    "input": "https://medium.com/@coffeenerd/dialing-in-espresso-a1b2c3d4e5f6?source=rss-1a2b3c4d5e6f------2",
+    "expected": "https://medium.com/@coffeenerd/dialing-in-espresso-a1b2c3d4e5f6",
+    "tracking_params": [
+      "source"
+    ],
+    "functional_params": [],
+    "rationale": "Medium source= (rss/feed/email origin) is attribution only."
+  },
+  {
+    "id": "marketing-032",
+    "category": "newsletter/medium",
+    "input": "https://medium.com/@coffeenerd/dialing-in-espresso-a1b2c3d4e5f6?sk=0123456789abcdef0123456789abcdef",
+    "expected": "https://medium.com/@coffeenerd/dialing-in-espresso-a1b2c3d4e5f6?sk=0123456789abcdef0123456789abcdef",
+    "tracking_params": [],
+    "functional_params": [
+      "sk"
+    ],
+    "rationale": "NEGATIVE: Medium Friend Link; sk= grants paywall-free access (Medium help 'About Friend Links'). Must be kept."
+  },
+  {
+    "id": "marketing-033",
+    "category": "newsletter/medium",
+    "input": "https://medium.com/@coffeenerd/dialing-in-espresso-a1b2c3d4e5f6?source=friends_link&sk=0123456789abcdef0123456789abcdef",
+    "expected": "https://medium.com/@coffeenerd/dialing-in-espresso-a1b2c3d4e5f6?sk=0123456789abcdef0123456789abcdef",
+    "tracking_params": [
+      "source"
+    ],
+    "functional_params": [
+      "sk"
+    ],
+    "rationale": "Near-negative: older friend-link shape; drop source=, keep sk= unlock key."
+  },
+  {
+    "id": "marketing-034",
+    "category": "news/nytimes",
+    "input": "https://www.nytimes.com/2024/05/02/dining/espresso-martini.html?smid=nytcore-ios-share&referringSource=articleShare&sgrp=c-cb",
+    "expected": "https://www.nytimes.com/2024/05/02/dining/espresso-martini.html",
+    "tracking_params": [
+      "smid",
+      "referringSource",
+      "sgrp"
+    ],
+    "functional_params": [],
+    "rationale": "NYT iOS share-sheet URL. smid = social media id; referringSource/sgrp only appear on share URLs (sgrp = share group, meaning undocumented; inferred)."
+  },
+  {
+    "id": "marketing-035",
+    "category": "news/nytimes",
+    "input": "https://www.nytimes.com/2024/05/02/dining/espresso-martini.html?smid=tw-nytimes&smtyp=cur",
+    "expected": "https://www.nytimes.com/2024/05/02/dining/espresso-martini.html",
+    "tracking_params": [
+      "smid",
+      "smtyp"
+    ],
+    "functional_params": [],
+    "rationale": "NYT social account posts: smid + smtyp (share type). ClearURLs nytimes provider only has smid."
+  },
+  {
+    "id": "marketing-036",
+    "category": "news/nytimes",
+    "input": "https://www.nytimes.com/2024/05/02/dining/espresso-martini.html?unlocked_article_code=1.pk0.6mXN.1lyxq7fF2qT0&smid=url-share",
+    "expected": "https://www.nytimes.com/2024/05/02/dining/espresso-martini.html?unlocked_article_code=1.pk0.6mXN.1lyxq7fF2qT0",
+    "tracking_params": [
+      "smid"
+    ],
+    "functional_params": [
+      "unlocked_article_code"
+    ],
+    "rationale": "Near-negative: NYT gift link. unlocked_article_code unlocks the paywall for non-subscribers (30-day validity); dropping it breaks the link."
+  },
+  {
+    "id": "marketing-037",
+    "category": "news/nytimes",
+    "input": "https://www.nytimes.com/search?query=caf%C3%A9+cr%C3%A8me&smid=url-share&sort=newest",
+    "expected": "https://www.nytimes.com/search?query=caf%C3%A9+cr%C3%A8me&sort=newest",
+    "tracking_params": [
+      "smid"
+    ],
+    "functional_params": [
+      "query",
+      "sort"
+    ],
+    "rationale": "Tracking param in the middle; remaining params keep order and original percent-encoding (no re-encoding of %C3%A9 or '+')."
+  },
+  {
+    "id": "marketing-038",
+    "category": "news/wsj",
+    "input": "https://www.wsj.com/business/retail/starbucks-coffee-prices-1a2b3c4d?mod=hp_lead_pos3",
+    "expected": "https://www.wsj.com/business/retail/starbucks-coffee-prices-1a2b3c4d",
+    "tracking_params": [
+      "mod"
+    ],
+    "functional_params": [],
+    "rationale": "WSJ mod= = internal module/placement tracking (homepage position)."
+  },
+  {
+    "id": "marketing-039",
+    "category": "news/wsj",
+    "input": "https://www.wsj.com/business/retail/starbucks-coffee-prices-1a2b3c4d?st=gd4ph2kbn5ztqfg&reflink=desktopwebshare_permalink",
+    "expected": "https://www.wsj.com/business/retail/starbucks-coffee-prices-1a2b3c4d?st=gd4ph2kbn5ztqfg",
+    "tracking_params": [
+      "reflink"
+    ],
+    "functional_params": [
+      "st"
+    ],
+    "rationale": "Near-negative: WSJ gift ('Gift unlocked article') link. st= is the share token that unlocks the article; reflink= only records the share surface. Observed in shared gift links (early-retirement.org thread, X posts); token semantics not vendor-documented. Brave's wsj.com rule strips st and would break gift links."
+  },
+  {
+    "id": "marketing-040",
+    "category": "news/washingtonpost",
+    "input": "https://www.washingtonpost.com/business/2026/10/14/prices-increased-september-last-inflation-report-ahead-elections/?pwapi_token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJyZWFzb24iOiJnaWZ0IiwibmJmIjoxNzkxOTUwNDAwLCJpc3MiOiJzdWJzY3JpcHRpb25zIiwiZXhwIjoxNzkzMzMyNzk5LCJpYXQiOjE3OTE5NTA0MDAsImp0aSI6ImQ0Y2E5YTI3LWVkMWQtNDFjOC04NGI1LTFmY2JmZThhNWQ0YyIsInVybCI6Imh0dHBzOi8vd3d3Lndhc2hpbmd0b25wb3N0LmNvbS9idXNpbmVzcy8yMDI2LzEwLzE0L3ByaWNlcy1pbmNyZWFzZWQtc2VwdGVtYmVyLWxhc3QtaW5mbGF0aW9uLXJlcG9ydC1haGVhZC1lbGVjdGlvbnMvIn0.PbvXpe3I5qXno4zt5iWwy-dcB8QV0lqEQTgmPTidFV0&itid=gfta",
+    "expected": "https://www.washingtonpost.com/business/2026/10/14/prices-increased-september-last-inflation-report-ahead-elections/?pwapi_token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJyZWFzb24iOiJnaWZ0IiwibmJmIjoxNzkxOTUwNDAwLCJpc3MiOiJzdWJzY3JpcHRpb25zIiwiZXhwIjoxNzkzMzMyNzk5LCJpYXQiOjE3OTE5NTA0MDAsImp0aSI6ImQ0Y2E5YTI3LWVkMWQtNDFjOC04NGI1LTFmY2JmZThhNWQ0YyIsInVybCI6Imh0dHBzOi8vd3d3Lndhc2hpbmd0b25wb3N0LmNvbS9idXNpbmVzcy8yMDI2LzEwLzE0L3ByaWNlcy1pbmNyZWFzZWQtc2VwdGVtYmVyLWxhc3QtaW5mbGF0aW9uLXJlcG9ydC1haGVhZC1lbGVjdGlvbnMvIn0.PbvXpe3I5qXno4zt5iWwy-dcB8QV0lqEQTgmPTidFV0",
+    "tracking_params": [
+      "itid"
+    ],
+    "functional_params": [
+      "pwapi_token"
+    ],
+    "rationale": "Near-negative, REAL URL from search results (Oct 2026). pwapi_token is a JWT with reason=gift (decoded) granting 14-day access (WaPo help 'What is a gift article?'); itid=gfta is internal tracking."
+  },
+  {
+    "id": "marketing-041",
+    "category": "news/bloomberg",
+    "input": "https://www.bloomberg.com/news/articles/2024-05-02/coffee-futures-surge-as-brazil-frost-threat-looms?accessToken=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzb3VyY2UiOiJTdWJzY3JpYmVyR2lmdGVkQXJ0aWNsZSIsImlhdCI6MTcxNDY1OTIwMCwiZXhwIjoxNzE1MjY0MDAwfQ.q3Xv8AbCdEfGhIjKlMnOpQrStUvWxYz012345&leadSource=uverify%20wall",
+    "expected": "https://www.bloomberg.com/news/articles/2024-05-02/coffee-futures-surge-as-brazil-frost-threat-looms?accessToken=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzb3VyY2UiOiJTdWJzY3JpYmVyR2lmdGVkQXJ0aWNsZSIsImlhdCI6MTcxNDY1OTIwMCwiZXhwIjoxNzE1MjY0MDAwfQ.q3Xv8AbCdEfGhIjKlMnOpQrStUvWxYz012345",
+    "tracking_params": [
+      "leadSource"
+    ],
+    "functional_params": [
+      "accessToken"
+    ],
+    "rationale": "Near-negative: Bloomberg subscriber gift link. accessToken (JWT, source=SubscriberGiftedArticle) unlocks; leadSource is paywall-funnel attribution (Brave lists leadSource for bloomberg.com). Token value synthetic, shape from memory of real gift links."
+  },
+  {
+    "id": "marketing-042",
+    "category": "news/theatlantic",
+    "input": "https://www.theatlantic.com/health/archive/2024/05/coffee-health-research/678234/?gift=Ab1CdEf2GhIj3KlMnO4pQrSt5UvWxYz6&utm_source=copy-link&utm_medium=social&utm_campaign=share",
+    "expected": "https://www.theatlantic.com/health/archive/2024/05/coffee-health-research/678234/?gift=Ab1CdEf2GhIj3KlMnO4pQrSt5UvWxYz6",
+    "tracking_params": [
+      "utm_source",
+      "utm_medium",
+      "utm_campaign"
+    ],
+    "functional_params": [
+      "gift"
+    ],
+    "rationale": "Near-negative: The Atlantic subscriber gift link; gift= unlocks the article. Exact param shape from memory (not confirmed by search); keep-unless-known-tracking policy applies."
+  },
+  {
+    "id": "marketing-043",
+    "category": "news/ft",
+    "input": "https://www.ft.com/content/3f2a1b0c-9d8e-4f7a-b6c5-d4e3f2a1b0c9?accessToken=zwAGEsfXy_AokdOGSKFm1n-ccpUBxdkm9RftWw.MEUCIQDxAbCdEfGhIjKlMnOpQrStUvWxYz0123456789AiBcDeFgHiJkLmNoPqRsTuVwXyZ&sharetype=gift",
+    "expected": "https://www.ft.com/content/3f2a1b0c-9d8e-4f7a-b6c5-d4e3f2a1b0c9?accessToken=zwAGEsfXy_AokdOGSKFm1n-ccpUBxdkm9RftWw.MEUCIQDxAbCdEfGhIjKlMnOpQrStUvWxYz0123456789AiBcDeFgHiJkLmNoPqRsTuVwXyZ&sharetype=gift",
+    "tracking_params": [],
+    "functional_params": [
+      "accessToken",
+      "sharetype"
+    ],
+    "rationale": "NEGATIVE: FT gift link. accessToken unlocks; sharetype=gift kept because its effect on rendering is unverified (conservative). Token synthetic."
+  },
+  {
+    "id": "marketing-044",
+    "category": "news/guardian",
+    "input": "https://www.theguardian.com/food/2024/may/03/coffee-prices-climate-change?CMP=Share_iOSApp_Other",
+    "expected": "https://www.theguardian.com/food/2024/may/03/coffee-prices-climate-change",
+    "tracking_params": [
+      "CMP"
+    ],
+    "functional_params": [],
+    "rationale": "Guardian CMP= campaign code (share source). Uppercase name."
+  },
+  {
+    "id": "marketing-045",
+    "category": "news/guardian",
+    "input": "https://www.theguardian.com/business/live/2024/may/02/coffee-prices-business-live?page=with:block-6633f0b98f08b8a1d2c3e4f5&CMP=share_btn_url#block-6633f0b98f08b8a1d2c3e4f5",
+    "expected": "https://www.theguardian.com/business/live/2024/may/02/coffee-prices-business-live?page=with:block-6633f0b98f08b8a1d2c3e4f5#block-6633f0b98f08b8a1d2c3e4f5",
+    "tracking_params": [
+      "CMP"
+    ],
+    "functional_params": [
+      "page"
+    ],
+    "rationale": "Near-negative: Guardian live-blog permalink; page=with:block-<id> loads the page containing that block and the fragment scrolls to it. Raw ':' must not be re-encoded."
+  },
+  {
+    "id": "marketing-046",
+    "category": "news/bbc",
+    "input": "https://www.bbc.com/news/articles/c0kv1dqe7j0o?at_medium=RSS&at_campaign=rss",
+    "expected": "https://www.bbc.com/news/articles/c0kv1dqe7j0o",
+    "tracking_params": [
+      "at_medium",
+      "at_campaign"
+    ],
+    "functional_params": [],
+    "rationale": "BBC RSS links carry AT Internet (Piano Analytics) at_* campaign params."
+  },
+  {
+    "id": "marketing-047",
+    "category": "news/bbc",
+    "input": "https://www.bbc.co.uk/news/business-68912345?xtor=AL-72-%5Bpartner%5D-%5Bbbc.news.twitter%5D-%5Bheadline%5D-%5Bnews%5D-%5Bbizdev%5D-%5Bisapi%5D",
+    "expected": "https://www.bbc.co.uk/news/business-68912345",
+    "tracking_params": [
+      "xtor"
+    ],
+    "functional_params": [],
+    "rationale": "AT Internet xtor= with BBC's bracketed partner-feed value (percent-encoded [])."
+  },
+  {
+    "id": "marketing-048",
+    "category": "news/cnn",
+    "input": "https://www.cnn.com/2024/05/02/business/coffee-prices-climate/index.html?cid=ios_app",
+    "expected": "https://www.cnn.com/2024/05/02/business/coffee-prices-climate/index.html",
+    "tracking_params": [
+      "cid"
+    ],
+    "functional_params": [],
+    "rationale": "CNN cid= share/app source. Contrast Google Maps cid= item where cid is the place id."
+  },
+  {
+    "id": "marketing-049",
+    "category": "news/arstechnica",
+    "input": "https://arstechnica.com/science/2024/05/the-chemistry-of-espresso-crema/?comments=1&utm_source=newsletter&utm_medium=email#comments",
+    "expected": "https://arstechnica.com/science/2024/05/the-chemistry-of-espresso-crema/?comments=1#comments",
+    "tracking_params": [
+      "utm_source",
+      "utm_medium"
+    ],
+    "functional_params": [
+      "comments"
+    ],
+    "rationale": "Near-negative: comments=1 switches to the comments view; #comments fragment kept."
+  },
+  {
+    "id": "marketing-050",
+    "category": "news/theverge",
+    "input": "https://www.theverge.com/2024/5/2/24147145/fellow-aiden-coffee-maker-review?utm_source=twitter&utm_source=newsletter&utm_medium=email",
+    "expected": "https://www.theverge.com/2024/5/2/24147145/fellow-aiden-coffee-maker-review",
+    "tracking_params": [
+      "utm_source",
+      "utm_medium"
+    ],
+    "functional_params": [],
+    "rationale": "Duplicate utm_source (double-tagged by share tool + newsletter); every occurrence must go."
+  },
+  {
+    "id": "marketing-051",
+    "category": "news/independent",
+    "input": "https://www.independent.co.uk/life-style/food-and-drink/coffee-espresso-study-b2539876.html?utm_medium=Social&utm_source=Twitter#Echobox=1714658400",
+    "expected": "https://www.independent.co.uk/life-style/food-and-drink/coffee-espresso-study-b2539876.html",
+    "tracking_params": [
+      "utm_medium",
+      "utm_source",
+      "Echobox"
+    ],
+    "functional_params": [],
+    "rationale": "Tracking in the FRAGMENT: Echobox social-scheduler timestamp (#Echobox=<unix>). Fragment is tracking so it is removed entirely (ClearURLs global rules include Echobox)."
+  },
+  {
+    "id": "marketing-052",
+    "category": "news/hackernews",
+    "input": "https://news.ycombinator.com/item?id=40234567&utm_source=hackernewsletter&utm_medium=email",
+    "expected": "https://news.ycombinator.com/item?id=40234567",
+    "tracking_params": [
+      "utm_source",
+      "utm_medium"
+    ],
+    "functional_params": [
+      "id"
+    ],
+    "rationale": "Near-negative: id= selects the item."
+  },
+  {
+    "id": "marketing-053",
+    "category": "aggregator/google-news",
+    "input": "https://news.google.com/rss/articles/CBMiWmh0dHBzOi8vd3d3LnNlcmlvdXNlYXRzLmNvbS9ob3ctdG8tcHVsbC1lc3ByZXNzby1zaG90LTc0ODQ1NjHSAQA?oc=5",
+    "expected": "https://news.google.com/rss/articles/CBMiWmh0dHBzOi8vd3d3LnNlcmlvdXNlYXRzLmNvbS9ob3ctdG8tcHVsbC1lc3ByZXNzby1zaG90LTc0ODQ1NjHSAQA?oc=5",
+    "tracking_params": [],
+    "functional_params": [
+      "oc"
+    ],
+    "rationale": "NEGATIVE: Google News RSS article link. The CBMi blob is a protobuf-encoded destination (newer ones are opaque and need a network call to resolve) - offline cleaner must not mangle it. oc= meaning undocumented; kept conservatively."
+  },
+  {
+    "id": "marketing-054",
+    "category": "aggregator/google-news",
+    "input": "https://news.google.com/articles/CBMiWmh0dHBzOi8vd3d3LnNlcmlvdXNlYXRzLmNvbS9ob3ctdG8tcHVsbC1lc3ByZXNzby1zaG90LTc0ODQ1NjHSAQA?hl=en-US&gl=US&ceid=US%3Aen",
+    "expected": "https://news.google.com/articles/CBMiWmh0dHBzOi8vd3d3LnNlcmlvdXNlYXRzLmNvbS9ob3ctdG8tcHVsbC1lc3ByZXNzby1zaG90LTc0ODQ1NjHSAQA?hl=en-US&gl=US&ceid=US%3Aen",
+    "tracking_params": [],
+    "functional_params": [
+      "hl",
+      "gl",
+      "ceid"
+    ],
+    "rationale": "NEGATIVE: hl/gl/ceid select Google News language/edition. A google-domain rule set that strips generic names must not touch these."
+  },
+  {
+    "id": "marketing-055",
+    "category": "aggregator/apple-news",
+    "input": "https://apple.news/AT6kNQslCQy6EE4bF8hAOoQ",
+    "expected": "https://apple.news/AT6kNQslCQy6EE4bF8hAOoQ",
+    "tracking_params": [],
+    "functional_params": [],
+    "rationale": "NEGATIVE: opaque Apple News short link; only resolvable via network (out of scope)."
+  },
+  {
+    "id": "marketing-056",
+    "category": "redirect/google",
+    "input": "https://www.google.com/url?q=https://www.nytimes.com/2024/05/02/dining/espresso-martini.html?smid%3Dnytcore-ios-share&sa=D&source=editors&ust=1714700000000000&usg=AOvVaw0AbCdEfGhIjKlMnOpQrStU",
+    "expected": "https://www.nytimes.com/2024/05/02/dining/espresso-martini.html",
+    "tracking_params": [
+      "sa",
+      "source",
+      "ust",
+      "usg",
+      "smid"
+    ],
+    "functional_params": [
+      "q"
+    ],
+    "rationale": "Google Docs/Gmail link wrapper: q= holds the destination with '?' raw but '=' encoded as %3D. Unwrap, decode once, then clean the NYT smid."
+  },
+  {
+    "id": "marketing-057",
+    "category": "redirect/google",
+    "input": "https://www.google.com/url?sa=t&rct=j&q=&esrc=s&source=web&cd=&ved=2ahUKEwiAbCdEfGhIjKlMnOpQrStUvWxYz&url=https%3A%2F%2Fwww.bbc.com%2Fnews%2Farticles%2Fc0kv1dqe7j0o%3Fat_medium%3DRSS%26at_campaign%3Drss&usg=AOvVaw1AbCdEfGhIjKlMnOpQrStU",
+    "expected": "https://www.bbc.com/news/articles/c0kv1dqe7j0o",
+    "tracking_params": [
+      "sa",
+      "rct",
+      "q",
+      "esrc",
+      "source",
+      "cd",
+      "ved",
+      "url",
+      "usg",
+      "at_medium",
+      "at_campaign"
+    ],
+    "functional_params": [],
+    "rationale": "Google Search result redirect: destination is in url= while q= is EMPTY. An unwrapper keyed only on q= produces an empty/invalid result. Inner BBC at_* stripped after decoding."
+  },
+  {
+    "id": "marketing-058",
+    "category": "redirect/facebook",
+    "input": "https://l.facebook.com/l.php?u=https%3A%2F%2Fwww.theguardian.com%2Ffood%2F2024%2Fmay%2F03%2Fcoffee-prices-climate-change%3Ffbclid%3DIwZXh0bgNhZW0CMTAAAR1aBcDeF_aem_AbCdEfGh&h=AT0aBcDeFgHiJkLmNoPqRsTuV",
+    "expected": "https://www.theguardian.com/food/2024/may/03/coffee-prices-climate-change",
+    "tracking_params": [
+      "u",
+      "h",
+      "fbclid"
+    ],
+    "functional_params": [],
+    "rationale": "Facebook link shim: unwrap u=, then strip the fbclid FB appended to the destination."
+  },
+  {
+    "id": "marketing-059",
+    "category": "redirect/squarespace",
+    "input": "https://a1e0.engage.squarespace-mail.com/r?m=6631a2b3c4d5e6f7a8b9c0d1&u=https%3A%2F%2Fwww.example-roastery.com%2Fshop%2Fp%2Fhouse-espresso%3Fss_source%3Dsscampaigns%26ss_campaign_id%3D6630f1a2b3c4d5e6f7a8b9c0%26ss_campaign_sent_date%3D2024-05-01T15%253A00%253A00Z&w=5defc96ded3f930de3c900dc&l=en-US&s=td-EzlcAm76pJAdCrKt4TLtW2H4%3D",
+    "expected": "https://www.example-roastery.com/shop/p/house-espresso",
+    "tracking_params": [
+      "m",
+      "u",
+      "w",
+      "l",
+      "s",
+      "ss_source",
+      "ss_campaign_id",
+      "ss_campaign_sent_date"
+    ],
+    "functional_params": [],
+    "rationale": "Squarespace Email Campaigns click tracker (shape from real captured link). Destination in u= is plaintext so it is unwrappable offline; note the double-encoded %253A inside. Neither candidate list is expected to handle this; tests wrapper coverage."
+  },
+  {
+    "id": "marketing-060",
+    "category": "near-negative/maps",
+    "input": "https://maps.google.com/?cid=4471218523153126553&utm_source=newsletter",
+    "expected": "https://maps.google.com/?cid=4471218523153126553",
+    "tracking_params": [
+      "utm_source"
+    ],
+    "functional_params": [
+      "cid"
+    ],
+    "rationale": "Near-negative: on Google Maps cid= is the place (customer) id - the whole link. A global cid rule (CNN-style) would break it."
+  },
+  {
+    "id": "marketing-061",
+    "category": "near-negative/github",
+    "input": "https://api.github.com/repos/home-assistant/core/contents/README.md?ref=dev",
+    "expected": "https://api.github.com/repos/home-assistant/core/contents/README.md?ref=dev",
+    "tracking_params": [],
+    "functional_params": [
+      "ref"
+    ],
+    "rationale": "NEGATIVE: GitHub contents API ref= selects the branch/tag (GitHub REST docs). Global ref= stripping changes content."
+  },
+  {
+    "id": "marketing-062",
+    "category": "near-negative/forum",
+    "input": "https://bbs.example.cn/forum.php?mod=viewthread&tid=123456&utm_source=wechat",
+    "expected": "https://bbs.example.cn/forum.php?mod=viewthread&tid=123456",
+    "tracking_params": [
+      "utm_source"
+    ],
+    "functional_params": [
+      "mod",
+      "tid"
+    ],
+    "rationale": "Near-negative: Discuz! forum routing uses mod= as the controller; a WSJ-style mod rule applied globally breaks every Discuz URL. Host illustrative, URL shape real."
+  },
+  {
+    "id": "marketing-063",
+    "category": "near-negative/print",
+    "input": "https://www.seriouseats.com/espresso-tonic-recipe-8412345?print&utm_source=",
+    "expected": "https://www.seriouseats.com/espresso-tonic-recipe-8412345?print",
+    "tracking_params": [
+      "utm_source"
+    ],
+    "functional_params": [
+      "print"
+    ],
+    "rationale": "Valueless functional flag (?print = Dotdash Meredith print view) must survive with no '=' added; empty-valued utm_source still removed."
+  },
+  {
+    "id": "marketing-064",
+    "category": "near-negative/youtube",
+    "input": "https://youtu.be/Wq0Fz1F2YKo?si=AbCdEfGh12345678&t=95",
+    "expected": "https://youtu.be/Wq0Fz1F2YKo?t=95",
+    "tracking_params": [
+      "si"
+    ],
+    "functional_params": [
+      "t"
+    ],
+    "rationale": "Newsletter-embedded video: si= is the share-session id; t= is the start timestamp and must survive."
+  },
+  {
+    "id": "marketing-065",
+    "category": "near-negative/presigned",
+    "input": "https://newsletter-assets.s3.amazonaws.com/issues/2024-05.pdf?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIAIOSFODNN7EXAMPLE%2F20240501%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20240501T120000Z&X-Amz-Expires=604800&X-Amz-SignedHeaders=host&X-Amz-Signature=fe5f80f77d5fa3beca038a248ff027d0445342fe2855ddc963176630326f1024",
+    "expected": "https://newsletter-assets.s3.amazonaws.com/issues/2024-05.pdf?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIAIOSFODNN7EXAMPLE%2F20240501%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20240501T120000Z&X-Amz-Expires=604800&X-Amz-SignedHeaders=host&X-Amz-Signature=fe5f80f77d5fa3beca038a248ff027d0445342fe2855ddc963176630326f1024",
+    "tracking_params": [],
+    "functional_params": [
+      "X-Amz-Algorithm",
+      "X-Amz-Credential",
+      "X-Amz-Date",
+      "X-Amz-Expires",
+      "X-Amz-SignedHeaders",
+      "X-Amz-Signature"
+    ],
+    "rationale": "NEGATIVE: SigV4 presigned URL (AWS docs example credential). Any change invalidates the signature."
+  },
+  {
+    "id": "marketing-066",
+    "category": "affiliate/amazon",
+    "input": "https://www.amazon.com/Breville-BES870XL-Barista-Express-Espresso/dp/B00CH9QWOU/ref=sr_1_3?crid=2ABCDEF1GHIJK&keywords=breville+espresso&qid=1714700000&sprefix=breville%2Caps%2C150&sr=8-3&tag=espressoaf-20",
+    "expected": "https://www.amazon.com/Breville-BES870XL-Barista-Express-Espresso/dp/B00CH9QWOU?tag=espressoaf-20",
+    "tracking_params": [
+      "ref",
+      "crid",
+      "keywords",
+      "qid",
+      "sprefix",
+      "sr"
+    ],
+    "functional_params": [],
+    "affiliate_params": [
+      "tag"
+    ],
+    "rationale": "Newsletter affiliate link: strip /ref=sr_1_3 PATH segment and search-context params (keywords on a /dp/ page doesn't change the product). tag= is affiliate: kept per undecided policy."
+  }
+]

@@ -1,0 +1,4 @@
+# Extra parameter names that must never be stripped by a new global-scope rule
+# (rules-risky, design §11.3), in addition to the built-in never-strip list and
+# every functional_params name of the eval corpus.
+# Format: one canonical name (percent-decoded, lowercase) per line; '#' starts a comment.

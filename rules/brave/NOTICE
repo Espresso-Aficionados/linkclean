@@ -1,0 +1,16 @@
+The files in this directory are copied verbatim from Brave's adblock-lists
+repository. They are licensed under the Mozilla Public License 2.0 (MPL-2.0);
+the upstream license text at the commit below is in LICENSE.
+
+Repository: https://github.com/brave/adblock-lists
+Commit:     8846788d578bf89696ad4ec5cdff845dfb170f1a
+Date:       2026-10-14T19:19:33-07:00
+Source:     https://github.com/brave/adblock-lists/tree/8846788d578bf89696ad4ec5cdff845dfb170f1a/brave-lists
+
+Files (upstream path, git blob sha1, sha256):
+brave-lists/clean-urls.json f09f1a442c9dee7bdb9bc23312b7d4bafad9806e c2664e019673f58dbefed33ed32f355dd5c8a781e395059918d87020a9e4dc05
+brave-lists/query-filter.json d31593d2932d18853c5fc633b0139da71c1eb48f c16168bb98ea4a615c178a71da6c6e9463114e24a59101c1caef80942735940e
+brave-lists/debounce.json e1e49260ea7b1187f4395d6de15170f3c696d34a fb2396985a78983c8f88ee701100c5cb4681731239ac6624e86da1212645dbf8
+LICENSE a612ad9813b006ce81d1ee438dd784da99a54007 1f256ecad192880510e84ad60474eab7589218784b9a50bc7ceee34c2b91f1d5
+
+This file is generated from rules.lock.json. Do not edit it by hand.

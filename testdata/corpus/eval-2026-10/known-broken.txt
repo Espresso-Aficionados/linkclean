@@ -1,0 +1,3 @@
+# Corpus items accepted as broken by rules-golden (b) (design §11.3).
+# Format: <corpus-id> # <reason>
+# Human-owned. Adding a line needs a reason and maintainer sign-off.

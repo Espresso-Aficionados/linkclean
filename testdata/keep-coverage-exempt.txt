@@ -1,0 +1,8 @@
+# (param, Brave include) pairs that no overlay Keep covers on purpose (design §4.4, §11.3 keep coverage).
+# Format: <param> <include> # <reason>
+linkId *://*.cbsnews.com/* # tracking, not affiliate: co-listed with CBS's own ftag/intcid campaign IDs; no affiliate program is known to pay on it
+linkId *://*.cbssports.com/* # tracking, not affiliate: co-listed with CBS's own ftag/intcid campaign IDs; no affiliate program is known to pay on it
+linkId *://*.cnet.com/* # tracking, not affiliate: co-listed with CBS's own ftag/intcid campaign IDs; no affiliate program is known to pay on it
+linkId *://*.gamespot.com/* # tracking, not affiliate: co-listed with CBS's own ftag/intcid campaign IDs; no affiliate program is known to pay on it
+linkId *://*.insideedition.com/* # tracking, not affiliate: co-listed with CBS's own ftag/intcid campaign IDs; no affiliate program is known to pay on it
+linkId *://*.paramountplus.com/* # tracking, not affiliate: co-listed with CBS's own ftag/intcid campaign IDs; no affiliate program is known to pay on it

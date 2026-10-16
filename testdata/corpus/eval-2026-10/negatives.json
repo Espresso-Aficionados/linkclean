@@ -1,0 +1,840 @@
+[
+  {
+    "id": "negatives-001",
+    "category": "signed-cdn/discord",
+    "input": "https://cdn.discordapp.com/attachments/1012345678901234567/1298765432109876543/IMG_4021.jpg?ex=6721b3f2&is=67206272&hm=3f9c1a7e2b5d4c6a8e0f1b2c3d4e5f60718293a4b5c6d7e8f9a0b1c2d3e4f5a6&",
+    "expected": "https://cdn.discordapp.com/attachments/1012345678901234567/1298765432109876543/IMG_4021.jpg?ex=6721b3f2&is=67206272&hm=3f9c1a7e2b5d4c6a8e0f1b2c3d4e5f60718293a4b5c6d7e8f9a0b1c2d3e4f5a6&",
+    "tracking_params": [],
+    "functional_params": [
+      "ex",
+      "is",
+      "hm"
+    ],
+    "rationale": "Discord signed attachment URL. Discord API reference ('Signed Attachment CDN URLs'): ex=hex expiry, is=hex issued-at, hm=signature; unsigned/expired requests 404. 'is' collides with Brave's YouTube list param name (scoped there, not here). Real Discord URLs end with a trailing '&' - must be preserved byte-exact.",
+    "near_negative": true
+  },
+  {
+    "id": "negatives-002",
+    "category": "signed-cdn/discord",
+    "input": "https://media.discordapp.net/attachments/1012345678901234567/1298765432109876543/IMG_4021.jpg?ex=6721b3f2&is=67206272&hm=3f9c1a7e2b5d4c6a8e0f1b2c3d4e5f60718293a4b5c6d7e8f9a0b1c2d3e4f5a6&=&format=webp&quality=lossless&width=550&height=413",
+    "expected": "https://media.discordapp.net/attachments/1012345678901234567/1298765432109876543/IMG_4021.jpg?ex=6721b3f2&is=67206272&hm=3f9c1a7e2b5d4c6a8e0f1b2c3d4e5f60718293a4b5c6d7e8f9a0b1c2d3e4f5a6&=&format=webp&quality=lossless&width=550&height=413",
+    "tracking_params": [],
+    "functional_params": [
+      "ex",
+      "is",
+      "hm",
+      "format",
+      "quality",
+      "width",
+      "height"
+    ],
+    "rationale": "Discord media proxy URL as produced by the client 'Copy Link'. Contains an empty-key pair '&=&' which a query re-serializer will drop or mangle; resize params are functional. Nothing to remove.",
+    "near_negative": true
+  },
+  {
+    "id": "negatives-003",
+    "category": "signed-storage/s3-sigv4",
+    "input": "https://espresso-shots.s3.us-west-2.amazonaws.com/uploads/shot-42.mp4?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIAIOSFODNN7EXAMPLE%2F20261015%2Fus-west-2%2Fs3%2Faws4_request&X-Amz-Date=20261015T120000Z&X-Amz-Expires=3600&X-Amz-SignedHeaders=host&X-Amz-Signature=fe5f80f77d5fa3beca038a248ff027d0445342fe2855ddc963176630326f1024",
+    "expected": "https://espresso-shots.s3.us-west-2.amazonaws.com/uploads/shot-42.mp4?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIAIOSFODNN7EXAMPLE%2F20261015%2Fus-west-2%2Fs3%2Faws4_request&X-Amz-Date=20261015T120000Z&X-Amz-Expires=3600&X-Amz-SignedHeaders=host&X-Amz-Signature=fe5f80f77d5fa3beca038a248ff027d0445342fe2855ddc963176630326f1024",
+    "tracking_params": [],
+    "functional_params": [
+      "X-Amz-Algorithm",
+      "X-Amz-Credential",
+      "X-Amz-Date",
+      "X-Amz-Expires",
+      "X-Amz-SignedHeaders",
+      "X-Amz-Signature"
+    ],
+    "rationale": "S3 SigV4 presigned GET (shape from AWS docs 'Authenticating Requests: Using Query Parameters', example key id). Re-encoding %2F in X-Amz-Credential also breaks it.",
+    "near_negative": true
+  },
+  {
+    "id": "negatives-004",
+    "category": "signed-storage/s3-sigv4",
+    "input": "https://espresso-shots.s3.us-west-2.amazonaws.com/uploads/shot-42.mp4?response-content-disposition=attachment%3B%20filename%3D%22shot-42.mp4%22&utm_source=newsletter&X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIAIOSFODNN7EXAMPLE%2F20261015%2Fus-west-2%2Fs3%2Faws4_request&X-Amz-Date=20261015T120000Z&X-Amz-Expires=3600&X-Amz-SignedHeaders=host&X-Amz-Signature=fe5f80f77d5fa3beca038a248ff027d0445342fe2855ddc963176630326f1024",
+    "expected": "https://espresso-shots.s3.us-west-2.amazonaws.com/uploads/shot-42.mp4?response-content-disposition=attachment%3B%20filename%3D%22shot-42.mp4%22&utm_source=newsletter&X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIAIOSFODNN7EXAMPLE%2F20261015%2Fus-west-2%2Fs3%2Faws4_request&X-Amz-Date=20261015T120000Z&X-Amz-Expires=3600&X-Amz-SignedHeaders=host&X-Amz-Signature=fe5f80f77d5fa3beca038a248ff027d0445342fe2855ddc963176630326f1024",
+    "tracking_params": [],
+    "functional_params": [
+      "utm_source",
+      "response-content-disposition",
+      "X-Amz-Algorithm",
+      "X-Amz-Credential",
+      "X-Amz-Date",
+      "X-Amz-Expires",
+      "X-Amz-SignedHeaders",
+      "X-Amz-Signature"
+    ],
+    "rationale": "KEY CASE: SigV4 CanonicalQueryString covers every query param except X-Amz-Signature (AWS SigV4 docs), so a utm_source present at signing time is signed; stripping it -> SignatureDoesNotMatch. Global utm rules in BOTH ClearURLs and Brave would break this. Engine needs a 'signed URL' guard (presence of X-Amz-Signature / X-Goog-Signature / sig+sv / Signature+Key-Pair-Id) that suppresses all stripping.",
+    "near_negative": true
+  },
+  {
+    "id": "negatives-005",
+    "category": "signed-storage/azure-sas",
+    "input": "https://espressoaficionados.blob.core.windows.net/media/grinder.jpg?sp=r&st=2026-10-15T08:00:00Z&se=2026-10-16T08:00:00Z&spr=https&sv=2022-11-02&sr=b&sig=Zk2kE0N0O2xqWvYb6m1r9pC4dTfJ3hLs8aUe5gQnVyM%3D",
+    "expected": "https://espressoaficionados.blob.core.windows.net/media/grinder.jpg?sp=r&st=2026-10-15T08:00:00Z&se=2026-10-16T08:00:00Z&spr=https&sv=2022-11-02&sr=b&sig=Zk2kE0N0O2xqWvYb6m1r9pC4dTfJ3hLs8aUe5gQnVyM%3D",
+    "tracking_params": [],
+    "functional_params": [
+      "sp",
+      "st",
+      "se",
+      "spr",
+      "sv",
+      "sr",
+      "sig"
+    ],
+    "rationale": "Azure Blob service SAS (Microsoft docs 'Create a service SAS'). Two-letter names (sr, st, sv) collide with site-scoped tracking names elsewhere (e.g. ClearURLs amazon 'srs?'); scoping must hold. Raw ':' in st/se must be preserved.",
+    "near_negative": true
+  },
+  {
+    "id": "negatives-006",
+    "category": "signed-cdn/cloudfront",
+    "input": "https://d111111abcdef8.cloudfront.net/videos/latte-art.mp4?Expires=1792065600&Signature=nitfHRCrtziwO2HwPfWw~yYDhUF5EwRunQA-j19DzZrvDh6hQ73lDx~-ar3UocvvRQVw6EkC~GdpGQyyOSKQim-TxAnW7d8F5Kkai9HVx0FIu-5jcQb0UEmatEXAMPLE3ReXySpLSMj0yCd3ZAB4UcBCAqEijkytL6f3fVYNGQI6&Key-Pair-Id=K2JCJMDEHXQW5F",
+    "expected": "https://d111111abcdef8.cloudfront.net/videos/latte-art.mp4?Expires=1792065600&Signature=nitfHRCrtziwO2HwPfWw~yYDhUF5EwRunQA-j19DzZrvDh6hQ73lDx~-ar3UocvvRQVw6EkC~GdpGQyyOSKQim-TxAnW7d8F5Kkai9HVx0FIu-5jcQb0UEmatEXAMPLE3ReXySpLSMj0yCd3ZAB4UcBCAqEijkytL6f3fVYNGQI6&Key-Pair-Id=K2JCJMDEHXQW5F",
+    "tracking_params": [],
+    "functional_params": [
+      "Expires",
+      "Signature",
+      "Key-Pair-Id"
+    ],
+    "rationale": "CloudFront canned-policy signed URL (shape/example values from AWS CloudFront docs). '~' is CloudFront's base64 substitute and must not be percent-encoded.",
+    "near_negative": true
+  },
+  {
+    "id": "negatives-007",
+    "category": "maps/google",
+    "input": "https://www.google.com/maps/place/Sightglass+Coffee/@37.7770425,-122.4085788,17z/data=!3m1!4b1!4m6!3m5!1s0x8085807e5b4c4b07:0x4f0f3a1b8f2d6c11!8m2!3d37.7770425!4d-122.4060039!16s%2Fg%2F1tf1g0ql?entry=ttu&g_ep=EgoyMDI0MTAwOS4wIKXMDSoASAFQAw%3D%3D",
+    "expected": "https://www.google.com/maps/place/Sightglass+Coffee/@37.7770425,-122.4085788,17z/data=!3m1!4b1!4m6!3m5!1s0x8085807e5b4c4b07:0x4f0f3a1b8f2d6c11!8m2!3d37.7770425!4d-122.4060039!16s%2Fg%2F1tf1g0ql",
+    "tracking_params": [
+      "entry",
+      "g_ep"
+    ],
+    "functional_params": [],
+    "rationale": "Path '@lat,lng,zoom' and 'data=!...' are PATH segments (protobuf-ish place state) and must be untouched; '@' in path trips naive userinfo regexes. entry=ttu / g_ep are client entry-point metadata (g_ep base64-decodes to an app build date). LOW CONFIDENCE: no Google doc defines them; inferred tracking; removal leaves the same place view. Neither ClearURLs nor Brave strips them.",
+    "near_negative": false
+  },
+  {
+    "id": "negatives-008",
+    "category": "maps/google-shortener",
+    "input": "https://maps.app.goo.gl/x7Qp9vRk2mNdLs4u6?g_st=ic",
+    "expected": "https://maps.app.goo.gl/x7Qp9vRk2mNdLs4u6",
+    "tracking_params": [
+      "g_st"
+    ],
+    "functional_params": [],
+    "rationale": "Shortener: offline cleaner must NOT unshorten. g_st records share surface (ic = iOS copy); AdGuard filter issue #241783 classifies it as tracking; not a Google-documented param (medium confidence). Short link resolves without it.",
+    "near_negative": false
+  },
+  {
+    "id": "negatives-009",
+    "category": "docs/google",
+    "input": "https://docs.google.com/document/d/1aBcDeFgHiJkLmNoPqRsTuVwXyZ0123456789AbCdEfG/edit?usp=sharing",
+    "expected": "https://docs.google.com/document/d/1aBcDeFgHiJkLmNoPqRsTuVwXyZ0123456789AbCdEfG/edit",
+    "tracking_params": [
+      "usp"
+    ],
+    "functional_params": [],
+    "rationale": "DECISION: strip usp. It records the share surface (sharing, drive_link, drive_web, embed_facebook) and has no effect on access or rendering; access is governed by the doc's ACL. ClearURLs explicitly EXCEPTS docs.google.com from its google provider and Brave has no rule, so both keep it - acceptable fallback if we choose not to override.",
+    "near_negative": false
+  },
+  {
+    "id": "negatives-010",
+    "category": "docs/google-drive",
+    "input": "https://drive.google.com/file/d/0B7xYzAbCdEfGhIjKlMnOpQrStUv/view?usp=sharing&resourcekey=0-AbCdEfGhIjKlMnOpQrStUv",
+    "expected": "https://drive.google.com/file/d/0B7xYzAbCdEfGhIjKlMnOpQrStUv/view?resourcekey=0-AbCdEfGhIjKlMnOpQrStUv",
+    "tracking_params": [
+      "usp"
+    ],
+    "functional_params": [
+      "resourcekey"
+    ],
+    "rationale": "resourcekey is REQUIRED for pre-2017 link-shared files after the 2021 Drive security update (Google Drive API guide 'Access link-shared files using resource keys': do not remove it). Looks like an opaque tracking token; isn't.",
+    "near_negative": true
+  },
+  {
+    "id": "negatives-011",
+    "category": "docs/google-sheets",
+    "input": "https://docs.google.com/spreadsheets/d/1XyZaBcDeFgHiJkLmNoPqRsTuVwXyZ0123456789AbC/edit?gid=1234567890#gid=1234567890",
+    "expected": "https://docs.google.com/spreadsheets/d/1XyZaBcDeFgHiJkLmNoPqRsTuVwXyZ0123456789AbC/edit?gid=1234567890#gid=1234567890",
+    "tracking_params": [],
+    "functional_params": [
+      "gid"
+    ],
+    "rationale": "gid selects the sheet tab (query and fragment duplicates are what Sheets currently emits). Fragment 'gid=' looks key=value like a fragment tracker but is functional.",
+    "near_negative": true
+  },
+  {
+    "id": "negatives-012",
+    "category": "dev/github",
+    "input": "https://github.com/golang/go/blob/master/src/net/url/url.go?plain=1#L10-L20",
+    "expected": "https://github.com/golang/go/blob/master/src/net/url/url.go?plain=1#L10-L20",
+    "tracking_params": [],
+    "functional_params": [
+      "plain"
+    ],
+    "rationale": "plain=1 shows source instead of rendered view (required for line anchors on Markdown files); #L10-L20 selects lines.",
+    "near_negative": true
+  },
+  {
+    "id": "negatives-013",
+    "category": "dev/github",
+    "input": "https://api.github.com/repos/golang/go/contents/README.md?ref=release-branch.go1.23",
+    "expected": "https://api.github.com/repos/golang/go/contents/README.md?ref=release-branch.go1.23",
+    "tracking_params": [],
+    "functional_params": [
+      "ref"
+    ],
+    "rationale": "GitHub REST 'Get repository content': ref selects branch/tag/commit (docs.github.com). ClearURLs' GLOBAL referralMarketing strips ref everywhere but has a global exception for *.github.com; Brave has no global ref rule.",
+    "near_negative": true
+  },
+  {
+    "id": "negatives-014",
+    "category": "dev/github",
+    "input": "https://github.com/golang/go/issues/12345?notification_referrer_id=NT_kwDOABcDeFgHiJkLmNoPqRsTuVwXyZ0123456789#issuecomment-2345678901",
+    "expected": "https://github.com/golang/go/issues/12345#issuecomment-2345678901",
+    "tracking_params": [
+      "notification_referrer_id"
+    ],
+    "functional_params": [],
+    "rationale": "Added when clicking from GitHub notifications/emails; in Brave clean-urls.json for *.github.com. ClearURLs misses it (github.com provider only has email_token/email_source and global rules are excepted for github). Keep the comment anchor.",
+    "near_negative": false
+  },
+  {
+    "id": "negatives-015",
+    "category": "dev/gitlab",
+    "input": "https://gitlab.com/gitlab-org/gitlab/-/blob/master/README.md?ref_type=heads",
+    "expected": "https://gitlab.com/gitlab-org/gitlab/-/blob/master/README.md?ref_type=heads",
+    "tracking_params": [],
+    "functional_params": [
+      "ref_type"
+    ],
+    "rationale": "GitLab 16+ adds ref_type=heads|tags to disambiguate same-named branch/tag. Prefix 'ref' must not match a 'ref.*' rule.",
+    "near_negative": true
+  },
+  {
+    "id": "negatives-016",
+    "category": "dev/stackoverflow",
+    "input": "https://stackoverflow.com/q/11227809/1048572",
+    "expected": "https://stackoverflow.com/q/11227809",
+    "tracking_params": [
+      "/q/{id}/{user_id} path segment"
+    ],
+    "functional_params": [],
+    "rationale": "Share link form: /q/<question>/<sharer user id>; the user id credits the sharer for Announcer/Booster/Publicist badges (stackoverflow.blog 2010-09-09). Share identity in the PATH -> strip segment. Neither list handles path segments here.",
+    "near_negative": false
+  },
+  {
+    "id": "negatives-017",
+    "category": "dev/stackoverflow",
+    "input": "https://stackoverflow.com/questions/11227809/why-is-processing-a-sorted-array-faster-than-processing-an-unsorted-array/11227902#11227902",
+    "expected": "https://stackoverflow.com/questions/11227809/why-is-processing-a-sorted-array-faster-than-processing-an-unsorted-array/11227902#11227902",
+    "tracking_params": [],
+    "functional_params": [],
+    "rationale": "Canonical answer permalink: trailing numeric segment is the ANSWER id, not a user id. A heuristic stripping '/<digits>' after a question path would break it. Only the /q/ and /a/ short forms carry a sharer id.",
+    "near_negative": true
+  },
+  {
+    "id": "negatives-018",
+    "category": "ref/wikipedia",
+    "input": "https://en.wikipedia.org/wiki/Espresso?wprov=sfti1#History",
+    "expected": "https://en.wikipedia.org/wiki/Espresso#History",
+    "tracking_params": [
+      "wprov"
+    ],
+    "functional_params": [],
+    "rationale": "wprov = Wikimedia provenance tag (wikitech.wikimedia.org/wiki/Provenance): feature+platform+version, e.g. sfti1 = Share-a-Fact iOS. Not in ClearURLs or Brave lists. Fragment is a section anchor - keep.",
+    "near_negative": false
+  },
+  {
+    "id": "negatives-019",
+    "category": "ref/wikipedia",
+    "input": "https://de.wikipedia.org/wiki/Café_Central?wprov=sfla1",
+    "expected": "https://de.wikipedia.org/wiki/Café_Central",
+    "tracking_params": [
+      "wprov"
+    ],
+    "functional_params": [],
+    "rationale": "Raw non-ASCII (IRI) path as pasted from mobile. Expected keeps 'é' unescaped: Go url.URL.String() would emit Caf%C3%A9 - an implementation must splice the original string, not re-serialize.",
+    "near_negative": false
+  },
+  {
+    "id": "negatives-020",
+    "category": "ref/wikipedia",
+    "input": "https://en.wikipedia.org/wiki/Crema_(coffee)#:~:text=crema%20is",
+    "expected": "https://en.wikipedia.org/wiki/Crema_(coffee)#:~:text=crema%20is",
+    "tracking_params": [],
+    "functional_params": [],
+    "rationale": "Text fragment directive (#:~:text=) is functional (scroll/highlight). Parens in path must stay literal.",
+    "near_negative": true
+  },
+  {
+    "id": "negatives-021",
+    "category": "video/youtube",
+    "input": "https://youtu.be/dQw4w9WgXcQ?si=Xk3vN2pQ8rT1yZ5a&t=42",
+    "expected": "https://youtu.be/dQw4w9WgXcQ?t=42",
+    "tracking_params": [
+      "si"
+    ],
+    "functional_params": [
+      "t"
+    ],
+    "rationale": "si = per-share identifier added by the YouTube share sheet (in both lists). t = start offset seconds - functional.",
+    "near_negative": true
+  },
+  {
+    "id": "negatives-022",
+    "category": "video/youtube",
+    "input": "https://www.youtube.com/watch?v=dQw4w9WgXcQ&list=PLFgquLnL59alCl_2TQvOiD5Vgm1hCaGSI&index=3&pp=iAQB",
+    "expected": "https://www.youtube.com/watch?v=dQw4w9WgXcQ&list=PLFgquLnL59alCl_2TQvOiD5Vgm1hCaGSI&index=3",
+    "tracking_params": [
+      "pp"
+    ],
+    "functional_params": [
+      "v",
+      "list",
+      "index"
+    ],
+    "rationale": "pp is an opaque base64 protobuf attached from search/feeds (both ClearURLs and Brave strip it). list/index define playlist context and position - functional.",
+    "near_negative": true
+  },
+  {
+    "id": "negatives-023",
+    "category": "redirect/youtube",
+    "input": "https://www.youtube.com/redirect?event=video_description&redir_token=QUFFLUhqbF9tcGx1ZXN0X3Rva2VuX2V4YW1wbGU&q=https%3A%2F%2Fwww.home-barista.com%2Fespresso-machines%2F%3Futm_source%3Dyoutube&v=dQw4w9WgXcQ",
+    "expected": "https://www.home-barista.com/espresso-machines/",
+    "tracking_params": [
+      "event",
+      "redir_token",
+      "v",
+      "utm_source"
+    ],
+    "functional_params": [],
+    "rationale": "Redirect wrapper: expected = decoded q destination, then cleaned (utm_source dropped, '?' dropped). ClearURLs youtube.redirections covers it; Brave clean-urls.json has no unwrap concept.",
+    "near_negative": false
+  },
+  {
+    "id": "negatives-024",
+    "category": "redirect/google",
+    "input": "https://www.google.com/url?sa=t&rct=j&q=&esrc=s&source=web&cd=&ved=2ahUKEwiExample0QFnoECAgQAQ&url=https%3A%2F%2Fwww.seattlecoffeegear.com%2Fblog%2F%3Fs%3Dgrinder%26utm_source%3Dgoogle&usg=AOvVaw0Example123&opi=89978449",
+    "expected": "https://www.seattlecoffeegear.com/blog/?s=grinder",
+    "tracking_params": [
+      "sa",
+      "rct",
+      "esrc",
+      "source",
+      "cd",
+      "ved",
+      "usg",
+      "opi",
+      "utm_source"
+    ],
+    "functional_params": [
+      "s"
+    ],
+    "rationale": "Trap: an EMPTY q= precedes url=; an unwrapper that takes the first of q/url gets ''. Destination keeps s=grinder (WordPress search), drops utm_source.",
+    "near_negative": true
+  },
+  {
+    "id": "negatives-025",
+    "category": "search/wordpress",
+    "input": "https://sprudge.com/?s=espresso",
+    "expected": "https://sprudge.com/?s=espresso",
+    "tracking_params": [],
+    "functional_params": [
+      "s"
+    ],
+    "rationale": "WordPress core search param is s= (developer.wordpress.org). s= is tracking ONLY on x.com/twitter.com; a global s rule breaks every WordPress search link.",
+    "near_negative": true
+  },
+  {
+    "id": "negatives-026",
+    "category": "social/x",
+    "input": "https://x.com/jameshoffmann/status/1846123456789012345?s=46&t=AbCdEfGhIjKlMnOpQrStUv",
+    "expected": "https://x.com/jameshoffmann/status/1846123456789012345",
+    "tracking_params": [
+      "s",
+      "t"
+    ],
+    "functional_params": [],
+    "rationale": "On X, s = share-surface code (46 = iOS) and t = share-session token. Brave covers *.x.com; ClearURLs' twitter urlPattern is twitter.com only and misses x.com.",
+    "near_negative": false
+  },
+  {
+    "id": "negatives-027",
+    "category": "social/reddit",
+    "input": "https://www.reddit.com/r/espresso/top/?t=year",
+    "expected": "https://www.reddit.com/r/espresso/top/?t=year",
+    "tracking_params": [],
+    "functional_params": [
+      "t"
+    ],
+    "rationale": "Reddit top-listing time window (hour/day/week/month/year/all). t= is tracking only on X.",
+    "near_negative": true
+  },
+  {
+    "id": "negatives-028",
+    "category": "search/google",
+    "input": "https://www.google.com/search?q=espresso+tamper+58mm&oq=espresso+tamper+58mm&gs_lcrp=EgZjaHJvbWUyBggAEEUYOTIHCAEQIRiPAjIHCAIQIRiPAtIBCDQ1NjFqMGo3qAIAsAIA&sourceid=chrome&ie=UTF-8",
+    "expected": "https://www.google.com/search?q=espresso+tamper+58mm&ie=UTF-8",
+    "tracking_params": [
+      "oq",
+      "gs_lcrp",
+      "sourceid"
+    ],
+    "functional_params": [
+      "q",
+      "ie"
+    ],
+    "rationale": "'+' in q must stay '+' (not %20). DECISION: keep ie (input encoding - can change how q is decoded); ClearURLs strips ie, Brave keeps it. oq/gs_lcrp/sourceid are omnibox attribution (both lists).",
+    "near_negative": true
+  },
+  {
+    "id": "negatives-029",
+    "category": "search/forum",
+    "input": "https://www.home-barista.com/search.php?keywords=flow+profiling&sr=topics&sf=titleonly",
+    "expected": "https://www.home-barista.com/search.php?keywords=flow+profiling&sr=topics&sf=titleonly",
+    "tracking_params": [],
+    "functional_params": [
+      "keywords",
+      "sr",
+      "sf"
+    ],
+    "rationale": "phpBB search: keywords/sr/sf are the query. ClearURLs strips keywords and sr - but only in its amazon provider; proves rules must be host-scoped.",
+    "near_negative": true
+  },
+  {
+    "id": "negatives-030",
+    "category": "search/api-source",
+    "input": "https://api.openverse.org/v1/images/?q=espresso&source=flickr",
+    "expected": "https://api.openverse.org/v1/images/?q=espresso&source=flickr",
+    "tracking_params": [],
+    "functional_params": [
+      "q",
+      "source"
+    ],
+    "rationale": "Openverse API filter by source (docs.openverse.org api-client). source= is tracking on medium.com/facebook.com (ClearURLs/Brave host-scoped rules) and functional here.",
+    "near_negative": true
+  },
+  {
+    "id": "negatives-031",
+    "category": "search/api-site",
+    "input": "https://api.stackexchange.com/2.3/questions?order=desc&sort=activity&tagged=espresso&site=coffee",
+    "expected": "https://api.stackexchange.com/2.3/questions?order=desc&sort=activity&tagged=espresso&site=coffee",
+    "tracking_params": [],
+    "functional_params": [
+      "order",
+      "sort",
+      "tagged",
+      "site"
+    ],
+    "rationale": "Stack Exchange API: site= is required and selects the network site (coffee.stackexchange.com). ClearURLs strips site only within its google provider.",
+    "near_negative": true
+  },
+  {
+    "id": "negatives-032",
+    "category": "search/generic-mc",
+    "input": "https://example.com/search?mc=1",
+    "expected": "https://example.com/search?mc=1",
+    "tracking_params": [],
+    "functional_params": [
+      "mc"
+    ],
+    "rationale": "Unknown site param 'mc' - no evidence it's tracking; keep. ClearURLs GLOBAL rule '(?:%3F)?[a-z]?mc' strips mc, amc, smc, ... on every host (false positive; real tracker is Mailchimp mc_cid/mc_eid). Brave only lists mc_cid.",
+    "near_negative": true
+  },
+  {
+    "id": "negatives-033",
+    "category": "search/encoded-amp",
+    "input": "https://example.com/search?q=milk%26sugar&utm_source=x",
+    "expected": "https://example.com/search?q=milk%26sugar",
+    "tracking_params": [
+      "utm_source"
+    ],
+    "functional_params": [
+      "q"
+    ],
+    "rationale": "Encoded '&' inside a value: split on raw '&' only, never on decoded text; keep %26 as-is.",
+    "near_negative": true
+  },
+  {
+    "id": "negatives-034",
+    "category": "meeting/zoom",
+    "input": "https://us06web.zoom.us/j/81234567890?pwd=bXlQa3JxVnBzT2xGcm9yZHVkNWJ6Zz09.1",
+    "expected": "https://us06web.zoom.us/j/81234567890?pwd=bXlQa3JxVnBzT2xGcm9yZHVkNWJ6Zz09.1",
+    "tracking_params": [],
+    "functional_params": [
+      "pwd"
+    ],
+    "rationale": "pwd = embedded meeting passcode (Zoom support 'passcode embedded in invite link'). Opaque base64 - looks like an id.",
+    "near_negative": true
+  },
+  {
+    "id": "negatives-035",
+    "category": "meeting/teams",
+    "input": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_NjE0ZjY2YzgtYjM1Ni00YTk5LWI0ZTQtZDk3NmE0OGE5ZjY1%40thread.v2/0?context=%7b%22Tid%22%3a%2272f988bf-86f1-41af-91ab-2d7cd011db47%22%2c%22Oid%22%3a%22c1e2d3f4-a5b6-4c7d-8e9f-0a1b2c3d4e5f%22%7d",
+    "expected": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_NjE0ZjY2YzgtYjM1Ni00YTk5LWI0ZTQtZDk3NmE0OGE5ZjY1%40thread.v2/0?context=%7b%22Tid%22%3a%2272f988bf-86f1-41af-91ab-2d7cd011db47%22%2c%22Oid%22%3a%22c1e2d3f4-a5b6-4c7d-8e9f-0a1b2c3d4e5f%22%7d",
+    "tracking_params": [],
+    "functional_params": [
+      "context"
+    ],
+    "rationale": "Teams join link: context JSON carries tenant (Tid) and organizer (Oid) needed to join. LOWERCASE percent-escapes (%3a, %7b) must survive byte-exact; normalizers uppercase them.",
+    "near_negative": true
+  },
+  {
+    "id": "negatives-036",
+    "category": "auth/oauth-authorize",
+    "input": "https://accounts.google.com/o/oauth2/v2/auth?client_id=1234567890-abc.apps.googleusercontent.com&redirect_uri=https%3A%2F%2Fsprobot.example%2Fcallback%3Fsource%3Ddiscord&response_type=code&scope=openid%20email&state=af0ifjsldkj&access_type=offline",
+    "expected": "https://accounts.google.com/o/oauth2/v2/auth?client_id=1234567890-abc.apps.googleusercontent.com&redirect_uri=https%3A%2F%2Fsprobot.example%2Fcallback%3Fsource%3Ddiscord&response_type=code&scope=openid%20email&state=af0ifjsldkj&access_type=offline",
+    "tracking_params": [],
+    "functional_params": [
+      "client_id",
+      "redirect_uri",
+      "response_type",
+      "scope",
+      "state",
+      "access_type"
+    ],
+    "rationale": "redirect_uri is NOT a redirect wrapper - unwrapping or cleaning its nested source= causes redirect_uri_mismatch (RFC 6749 3.1.2). ClearURLs has explicit exceptions for accounts.google.com/o/oauth2.",
+    "near_negative": true
+  },
+  {
+    "id": "negatives-037",
+    "category": "auth/discord-oauth",
+    "input": "https://discord.com/oauth2/authorize?client_id=1234567890123456789&permissions=274877975552&integration_type=0&scope=bot+applications.commands",
+    "expected": "https://discord.com/oauth2/authorize?client_id=1234567890123456789&permissions=274877975552&integration_type=0&scope=bot+applications.commands",
+    "tracking_params": [],
+    "functional_params": [
+      "client_id",
+      "permissions",
+      "integration_type",
+      "scope"
+    ],
+    "rationale": "Bot invite link (Discord docs, OAuth2 bot authorization flow) - very likely to be pasted in this server.",
+    "near_negative": true
+  },
+  {
+    "id": "negatives-038",
+    "category": "auth/magic-link",
+    "input": "https://app.example.com/auth/verify?token=eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjMifQ.dGVzdA&email=barista%40example.com&utm_source=email&utm_medium=magic_link",
+    "expected": "https://app.example.com/auth/verify?token=eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjMifQ.dGVzdA&email=barista%40example.com",
+    "tracking_params": [
+      "utm_source",
+      "utm_medium"
+    ],
+    "functional_params": [
+      "token",
+      "email"
+    ],
+    "rationale": "Near-negative: token/email are functional (token is a JWT, signed over its own claims, not the URL). utm_* still removable. Synthetic host.",
+    "near_negative": true
+  },
+  {
+    "id": "negatives-039",
+    "category": "email/unsubscribe",
+    "input": "https://espressoaficionados.us21.list-manage.com/unsubscribe?u=1a2b3c4d5e6f7a8b9c0d1e2f3&id=a1b2c3d4e5&e=f6a7b8c9d0&c=0123456789",
+    "expected": "https://espressoaficionados.us21.list-manage.com/unsubscribe?u=1a2b3c4d5e6f7a8b9c0d1e2f3&id=a1b2c3d4e5&e=f6a7b8c9d0&c=0123456789",
+    "tracking_params": [],
+    "functional_params": [
+      "u",
+      "id",
+      "e",
+      "c"
+    ],
+    "rationale": "Mailchimp unsubscribe: u=account, id=list, e=subscriber euid, c=campaign. e/c are the same values that appear as mc_eid/mc_cid trackers on landing pages, but here they identify WHO to unsubscribe.",
+    "near_negative": true
+  },
+  {
+    "id": "negatives-040",
+    "category": "shop/amazon",
+    "input": "https://www.amazon.com/Breville-BES870XL-Barista-Express-Espresso/dp/B00CH9QWOU/ref=sr_1_3?crid=2M7HGQ0Q1ZK5&keywords=barista+express&qid=1729000000&sprefix=barista+exp%2Caps%2C150&sr=8-3&th=1&psc=1&tag=espressoaf-20",
+    "expected": "https://www.amazon.com/Breville-BES870XL-Barista-Express-Espresso/dp/B00CH9QWOU?th=1&psc=1&tag=espressoaf-20",
+    "tracking_params": [
+      "/ref=sr_1_3 path segment",
+      "crid",
+      "keywords",
+      "qid",
+      "sprefix",
+      "sr"
+    ],
+    "functional_params": [
+      "th",
+      "psc"
+    ],
+    "rationale": "Path /ref=... is tracking (ClearURLs rawRules). DECISION (low confidence): keep th/psc - widely reported to pin the selected variation; no Amazon doc found; ClearURLs strips th. tag kept per undecided affiliate policy.",
+    "affiliate_params": [
+      "tag"
+    ],
+    "near_negative": true
+  },
+  {
+    "id": "negatives-041",
+    "category": "shop/instagram",
+    "input": "https://www.instagram.com/p/C9xYzAbCdEf/?img_index=3&igsh=MXJ0dGx4a2Fsb2Fxdw%3D%3D",
+    "expected": "https://www.instagram.com/p/C9xYzAbCdEf/?img_index=3",
+    "tracking_params": [
+      "igsh"
+    ],
+    "functional_params": [
+      "img_index"
+    ],
+    "rationale": "igsh = share id (both lists). img_index selects the carousel slide - observed in real share URLs, no Meta doc found (medium confidence).",
+    "near_negative": true
+  },
+  {
+    "id": "negatives-042",
+    "category": "redirect/steam",
+    "input": "https://steamcommunity.com/linkfilter/?u=https%3A%2F%2Fwww.youtube.com%2Fwatch%3Fv%3DdQw4w9WgXcQ%26si%3DXk3vN2pQ8rT1yZ5a",
+    "expected": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+    "tracking_params": [
+      "si"
+    ],
+    "functional_params": [
+      "v"
+    ],
+    "rationale": "Steam link-filter wrapper; current form uses u= (urlpurify PR #44 notes both u= and url=). ClearURLs' steamcommunity redirection regex only matches ?url= -> misses this. Destination then cleaned (si).",
+    "near_negative": true
+  },
+  {
+    "id": "negatives-043",
+    "category": "scheme/steam",
+    "input": "steam://openurl/https://store.steampowered.com/app/620/?snr=1_5_9__205",
+    "expected": "steam://openurl/https://store.steampowered.com/app/620/?snr=1_5_9__205",
+    "tracking_params": [],
+    "functional_params": [],
+    "rationale": "Non-http scheme: pass through untouched. A substring-regex engine (ClearURLs patterns are unanchored-ish on 'https?://...') could match the embedded https URL.",
+    "near_negative": true
+  },
+  {
+    "id": "negatives-044",
+    "category": "scheme/mailto",
+    "input": "mailto:orders@example.com?subject=Grinder%20order&body=https%3A%2F%2Fexample.com%2Fp%3Futm_source%3Dx",
+    "expected": "mailto:orders@example.com?subject=Grinder%20order&body=https%3A%2F%2Fexample.com%2Fp%3Futm_source%3Dx",
+    "tracking_params": [],
+    "functional_params": [
+      "subject",
+      "body"
+    ],
+    "rationale": "mailto: is out of scope; do not recurse into body. Leave byte-identical.",
+    "near_negative": true
+  },
+  {
+    "id": "negatives-045",
+    "category": "stream/twitch",
+    "input": "https://www.twitch.tv/lancehedrick/clip/BraveSillyCoffeeKappa-AbCdEfGhIjKlMnOp?filter=clips&range=30d&sort=time&tt_content=url&tt_medium=clips_web",
+    "expected": "https://www.twitch.tv/lancehedrick/clip/BraveSillyCoffeeKappa-AbCdEfGhIjKlMnOp?filter=clips&range=30d&sort=time",
+    "tracking_params": [
+      "tt_content",
+      "tt_medium"
+    ],
+    "functional_params": [
+      "filter",
+      "range",
+      "sort"
+    ],
+    "rationale": "tt_* are Twitch share attribution. ClearURLs twitch provider's urlPattern is twitch\\.com (not twitch.tv) so it never fires; Brave has no Twitch rule. filter/range/sort drive the clips sidebar - keep. Channel name illustrative.",
+    "near_negative": true
+  },
+  {
+    "id": "negatives-046",
+    "category": "archive/wayback",
+    "input": "https://web.archive.org/web/20240115083000/https://www.example.com/article?utm_source=twitter",
+    "expected": "https://web.archive.org/web/20240115083000/https://www.example.com/article?utm_source=twitter",
+    "tracking_params": [],
+    "functional_params": [
+      "utm_source"
+    ],
+    "rationale": "KEY CASE: the '?utm_source' belongs to the ARCHIVED target URL embedded in the path, but parses as web.archive.org's own query. Stripping changes which capture is looked up. Both lists' global utm rules would strip it; needs an explicit web.archive.org exclusion.",
+    "near_negative": true
+  },
+  {
+    "id": "negatives-047",
+    "category": "host/idn",
+    "input": "https://xn--caf-dma.example/men%C3%BC?utm_source=ig&dish=cortado",
+    "expected": "https://xn--caf-dma.example/men%C3%BC?dish=cortado",
+    "tracking_params": [
+      "utm_source"
+    ],
+    "functional_params": [
+      "dish"
+    ],
+    "rationale": "Punycode host (cafe with e-acute) must stay ASCII-encoded; path percent-encoding preserved.",
+    "near_negative": true
+  },
+  {
+    "id": "negatives-048",
+    "category": "host/uppercase",
+    "input": "HTTPS://WWW.YOUTUBE.COM/watch?v=dQw4w9WgXcQ&feature=youtu.be",
+    "expected": "HTTPS://WWW.YOUTUBE.COM/watch?v=dQw4w9WgXcQ",
+    "tracking_params": [
+      "feature"
+    ],
+    "functional_params": [
+      "v"
+    ],
+    "rationale": "Host/scheme matching must be case-insensitive (RFC 3986 3.1/3.2.2) so the YouTube rule fires; expected preserves the original casing (minimal edit). Go url.Parse lowercases the scheme -> splice, don't re-serialize.",
+    "near_negative": true
+  },
+  {
+    "id": "negatives-049",
+    "category": "host/port",
+    "input": "https://www.youtube.com:443/watch?v=dQw4w9WgXcQ&si=Xk3vN2pQ8rT1yZ5a",
+    "expected": "https://www.youtube.com:443/watch?v=dQw4w9WgXcQ",
+    "tracking_params": [
+      "si"
+    ],
+    "functional_params": [
+      "v"
+    ],
+    "rationale": "Explicit port must not defeat host rules (match patterns ignore port; ClearURLs regex '(youtube\\.com|youtu\\.be)' is unanchored on the right so it matches). Keep ':443' byte-exact.",
+    "near_negative": true
+  },
+  {
+    "id": "negatives-050",
+    "category": "host/userinfo-spoof",
+    "input": "https://www.youtube.com@evil.example/watch?v=dQw4w9WgXcQ&si=Xk3vN2pQ8rT1yZ5a",
+    "expected": "https://www.youtube.com@evil.example/watch?v=dQw4w9WgXcQ&si=Xk3vN2pQ8rT1yZ5a",
+    "tracking_params": [],
+    "functional_params": [
+      "si"
+    ],
+    "rationale": "KEY CASE: host is evil.example ('www.youtube.com' is userinfo). YouTube-scoped rules must NOT apply, so si stays. ClearURLs' youtube urlPattern '^https?://(?:[a-z0-9-]+\\.)*?(youtube\\.com|youtu\\.be)' is a prefix regex on the raw string and DOES match -> would strip. Engine must match on parsed hostname.",
+    "near_negative": true
+  },
+  {
+    "id": "negatives-051",
+    "category": "host/trailing-dot",
+    "input": "https://www.youtube.com./watch?v=dQw4w9WgXcQ&si=Xk3vN2pQ8rT1yZ5a",
+    "expected": "https://www.youtube.com./watch?v=dQw4w9WgXcQ",
+    "tracking_params": [
+      "si"
+    ],
+    "functional_params": [
+      "v"
+    ],
+    "rationale": "FQDN with trailing dot is the same host; rules should fire after trimming the dot for matching, while the output keeps the dot.",
+    "near_negative": true
+  },
+  {
+    "id": "negatives-052",
+    "category": "query/duplicates",
+    "input": "https://example.com/products?utm_source=a&color=black&utm_source=b&size=58mm&color=silver",
+    "expected": "https://example.com/products?color=black&size=58mm&color=silver",
+    "tracking_params": [
+      "utm_source"
+    ],
+    "functional_params": [
+      "color",
+      "size"
+    ],
+    "rationale": "Remove every occurrence of a tracking key; keep duplicate functional keys in original order.",
+    "near_negative": true
+  },
+  {
+    "id": "negatives-053",
+    "category": "query/no-equals",
+    "input": "https://example.com/guide?utm_source&print&id=7",
+    "expected": "https://example.com/guide?print&id=7",
+    "tracking_params": [
+      "utm_source"
+    ],
+    "functional_params": [
+      "print",
+      "id"
+    ],
+    "rationale": "Bare keys without '=': tracking bare key removed, functional flag 'print' kept without gaining '='.",
+    "near_negative": true
+  },
+  {
+    "id": "negatives-054",
+    "category": "query/encoded-name",
+    "input": "https://example.com/article?utm%5Fsource=newsletter&id=9",
+    "expected": "https://example.com/article?id=9",
+    "tracking_params": [
+      "utm%5Fsource (=utm_source)"
+    ],
+    "functional_params": [
+      "id"
+    ],
+    "rationale": "Servers decode keys, so utm%5Fsource == utm_source. Match on the decoded key, emit remaining pairs raw. Brave's list hard-codes encoded variants (e.g. '__cft__%5B0%5D'), implying raw-string comparison there.",
+    "near_negative": true
+  },
+  {
+    "id": "negatives-055",
+    "category": "query/empty-values",
+    "input": "https://example.com/search?q=&page=2&utm_campaign=",
+    "expected": "https://example.com/search?q=&page=2",
+    "tracking_params": [
+      "utm_campaign"
+    ],
+    "functional_params": [
+      "q",
+      "page"
+    ],
+    "rationale": "Empty-valued tracking key removed; empty functional q= kept exactly (not dropped, not '=' stripped).",
+    "near_negative": true
+  },
+  {
+    "id": "negatives-056",
+    "category": "query/becomes-empty",
+    "input": "https://example.com/post?utm_source=x&fbclid=IwAR0aBcDeFgHiJkLmNoPqRsTuVwXyZ#comments",
+    "expected": "https://example.com/post#comments",
+    "tracking_params": [
+      "utm_source",
+      "fbclid"
+    ],
+    "functional_params": [],
+    "rationale": "Query emptied -> drop '?' but keep the fragment.",
+    "near_negative": false
+  },
+  {
+    "id": "negatives-057",
+    "category": "query/empty-question-mark",
+    "input": "https://example.com/page?",
+    "expected": "https://example.com/page?",
+    "tracking_params": [],
+    "functional_params": [],
+    "rationale": "Nothing removed -> output must equal input byte-exact, including a dangling '?'. Only drop '?' when WE emptied it.",
+    "near_negative": true
+  },
+  {
+    "id": "negatives-058",
+    "category": "fragment/xtor",
+    "input": "https://www.lemonde.fr/economie/article/2026/10/14/le-prix-du-cafe-atteint-un-record_6345678_3234.html#xtor=RSS-3208",
+    "expected": "https://www.lemonde.fr/economie/article/2026/10/14/le-prix-du-cafe-atteint-un-record_6345678_3234.html",
+    "tracking_params": [
+      "xtor"
+    ],
+    "functional_params": [],
+    "rationale": "xtor = AT Internet (Piano Analytics) campaign marker, carried in the fragment by Le Monde RSS. Drop the whole fragment incl. '#'. Neither ClearURLs' global rules nor Brave lists xtor.",
+    "near_negative": false
+  },
+  {
+    "id": "negatives-059",
+    "category": "fragment/utm",
+    "input": "https://blog.example.com/2026/10/v60-recipe/#utm_source=feedly&utm_medium=rss",
+    "expected": "https://blog.example.com/2026/10/v60-recipe/",
+    "tracking_params": [
+      "utm_source",
+      "utm_medium"
+    ],
+    "functional_params": [],
+    "rationale": "Fragment-borne utm (Feedly/RSS). ClearURLs filters fragments with the same rules; Brave url_sanitizer only rewrites the query.",
+    "near_negative": false
+  },
+  {
+    "id": "negatives-060",
+    "category": "shop/ref-generic",
+    "input": "https://shop.example-roaster.com/products/ethiopia-guji?_pos=1&_sid=3f9a2b1c4&_ss=r&ref=espressoaficionados&variant=40123456789",
+    "expected": "https://shop.example-roaster.com/products/ethiopia-guji?variant=40123456789",
+    "tracking_params": [
+      "_pos",
+      "_sid",
+      "_ss",
+      "ref"
+    ],
+    "functional_params": [
+      "variant"
+    ],
+    "rationale": "Shopify search-result attribution (_pos=result position, _sid=search id, _ss=search source; neither list covers them). Plain ref= on a storefront is referral attribution (ClearURLs global referralMarketing 'ref_?'); contrast GitHub API ref= (functional) and GitLab ref_type=. variant selects the SKU (Shopify docs) - keep. If ref is later treated as affiliate, move it to affiliate_params.",
+    "near_negative": true
+  }
+]

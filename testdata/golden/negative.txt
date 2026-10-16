@@ -1,0 +1,85 @@
+# Golden negatives: Appendix C rows whose expectation is "unchanged" under
+# both AffiliateKeep and AffiliateStrip with the zero Config.
+# Format: <id> <url>, one case per line; '#' lines and blank lines are ignored.
+# Each URL must come back byte-identical under both policies.
+
+# empty name
+12 https://example.com/?=utm_source&a=1
+# DV-4 (Brave bug not reproduced)
+13 https://example.com/?=utm_source=x&a=1
+# ; is not a separator
+16 https://example.com/?foo;utm_source=x&a=1
+# DV-7
+18 https://example.com/?
+# ? in fragment fails the gate
+20 https://example.com/#a?utm_source=x
+# C-3 keep
+24 https://example.com/unsubscribe?mkt_tok=abc&x=1
+# plain negative
+25 https://example.com/?var=1&adid=2
+# U-13 x-redirect is capture-status (absent until a real URL is recorded), so the row's §-note expectation applies: unchanged, as row 28b
+28a https://x.com/i/redirect?url=https%3A%2F%2Fa.example.net%2F&t=abc&s=1
+# bytes kept
+55 https://www.example.com/?u=https%3A%2F%2Fexample.net%2F%3Fa%3D1
+# depth 1
+56 https://www.example.com/?u=https%3A%2F%2Fexample.net%2F%3Fv%3Dhttps%253A%252F%252Fexample.org%252F%253Futm_source%253Dx
+# scheme
+58 ftp://example.com/?utm_source=x
+# query is part of the path glob
+60 https://dev-pages.bravesoftware.com/clean-urls?brave_testing1=foo
+# signed guard
+66 https://bucket.s3.amazonaws.com/k.png?X-Amz-Signature=abc&X-Amz-Expires=60&utm_source=x
+# C-2 keep
+71 https://example.com/email/view?h_sid=1&x=1
+# C-3 keep
+72 https://www.marketo.example/unsubscribe?mkt_tok=abc
+# ref negative
+73 https://github.com/o/r/blob/main/x.go?ref=feature
+# hm signed
+75 https://cdn.discordapp.com/attachments/1/2/a.png?ex=6&is=6&hm=ab
+# SPA route never params
+76 https://example.com/#/route?utm_source=x
+# host scoping DV-1 (Brave strips si)
+77 https://evil.example/page?si=SHARE123&u=https://www.youtube.com/watch
+# host scoping DV-1
+78 https://evil.example/page?igsh=X#https://www.instagram.com/x
+# host scoping: userinfo is not the host (corpus negatives-050)
+79 https://www.youtube.com@evil.example/watch?v=dQw4w9WgXcQ&si=Xk3v
+# archive (negatives-046)
+80 https://web.archive.org/web/20240115083000/https://www.example.com/article?utm_source=twitter
+# archive
+81 https://archive.ph/2024.01.01/https://example.com/?fbclid=abc
+# archive guard, security rewriter (DV-9)
+82 https://urldefense.com/v3/__https://example.com/?utm_source=x__;!!AbC$
+# control byte in the target host: invalid target; nested value skipped
+90 https://l.facebook.com/l.php?u=https%3A%2F%2Fexa%0Ample.net%2F&h=AT0
+# IP-literal target rejected (DR-F6)
+91 https://l.facebook.com/l.php?u=http%3A%2F%2F10.0.0.1%2Fadmin&h=AT0
+# single-label target rejected
+92 https://l.facebook.com/l.php?u=https%3A%2F%2Fintranet%2Fsecret&h=AT0
+# amazon.github.io: ICANN-only label.* (DR-F7)
+96 https://amazon.github.io/docs/ref=abc?tag=x
+# http://t.co offline: Clean never touches the network; see N1
+97 http://t.co/abc
+# functional fragment
+102 https://docs.google.com/spreadsheets/d/1/edit?gid=1#gid=1
+# fragment all-or-nothing
+103 https://example.com/#utm_source=x&tab=2
+# G-2 needs _pos/_ss/_psq
+109 https://example.com/products/x?_sid=abc&_v=2
+# DV-7 (ER-F10)
+112 https://example.com/page?
+# Azure SAS: sig signed
+113 https://acct.blob.core.windows.net/c/b.jpg?sp=r&st=2026-10-15T08:00:00Z&se=2026-10-16T08:00:00Z&spr=https&sv=2022-11-02&sr=b&sig=Zk2&utm_source=x
+# ‡ % in host → SkipAmbiguous; v2 stripped utm_source (archive guard bypass). DV-11
+128 https://web.archiv%65.org/web/2024/https://example.com/?utm_source=x
+# ‡ % in host (net/url decodes this one). DV-11
+129 https://b%C3%BCcher.example/?utm_source=x
+# ‡ G-1 negative: query text cannot reach the glob (v2 stripped sid)
+133 https://login.example.com/auth?next=/viewtopic.php&sid=SESSION
+# ◆ Postmark regex-path rule: off in v1 (§4.5.3)
+144 https://click.pstmrk.it/3s/www.example.net%2Fa/abc/def
+# ◆ CJ host whose upstream pattern *://www.tkqlhce.com/click- has no *: inert (§4.4.1). Pins current behaviour so an upstream fix shows up as a red golden (V4-2)
+147 https://www.tkqlhce.com/click-1234567-13579?url=https%3A%2F%2Fwww.example.com%2Fp
+# ◆ Lever, classed unwrap, upstream pattern …/email-link? has no *: inert (§4.4.1)
+148 https://t.lever-analytics.com/email-link?dest=https%3A%2F%2Fjobs.example.net%2Fx&eid=1

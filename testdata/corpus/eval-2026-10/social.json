@@ -1,0 +1,787 @@
+[
+  {
+    "id": "social-001",
+    "category": "youtube",
+    "input": "https://www.youtube.com/watch?v=ldiJKDDnAo0&pp=ygUSZXNwcmVzc28gdHV0b3JpYWw%3D",
+    "expected": "https://www.youtube.com/watch?v=ldiJKDDnAo0",
+    "tracking_params": [
+      "pp"
+    ],
+    "functional_params": [
+      "v"
+    ],
+    "rationale": "pp= is base64 protobuf carrying the search term that led to the video (HN 28005638; AdGuard removeparam=pp). Both lists strip it."
+  },
+  {
+    "id": "social-002",
+    "category": "youtube",
+    "input": "https://youtu.be/ldiJKDDnAo0?si=Xk3vR9aQp0TzL2mB",
+    "expected": "https://youtu.be/ldiJKDDnAo0",
+    "tracking_params": [
+      "si"
+    ],
+    "functional_params": [],
+    "rationale": "si= is the per-share identifier added by the mobile/desktop Share button; links back to the sharing account."
+  },
+  {
+    "id": "social-003",
+    "category": "youtube",
+    "input": "https://youtu.be/ldiJKDDnAo0?si=Xk3vR9aQp0TzL2mB&t=754",
+    "expected": "https://youtu.be/ldiJKDDnAo0?t=754",
+    "tracking_params": [
+      "si"
+    ],
+    "functional_params": [
+      "t"
+    ],
+    "rationale": "Share-at-timestamp output. t= is the start offset and must survive; order preserved."
+  },
+  {
+    "id": "social-004",
+    "category": "youtube",
+    "input": "https://www.youtube.com/watch?v=ldiJKDDnAo0&t=1m30s",
+    "expected": "https://www.youtube.com/watch?v=ldiJKDDnAo0&t=1m30s",
+    "tracking_params": [],
+    "functional_params": [
+      "v",
+      "t"
+    ],
+    "rationale": "Negative: t= is a timestamp on YouTube (unlike X/Twitter where t= is a share token). Any global 't' rule breaks this."
+  },
+  {
+    "id": "social-005",
+    "category": "youtube",
+    "input": "https://www.youtube.com/watch?v=ldiJKDDnAo0&list=PLxLRoXCDIalcRS5Nb1I_HM_OzS10E6lqp&index=3&pp=iAQB",
+    "expected": "https://www.youtube.com/watch?v=ldiJKDDnAo0&list=PLxLRoXCDIalcRS5Nb1I_HM_OzS10E6lqp&index=3",
+    "tracking_params": [
+      "pp"
+    ],
+    "functional_params": [
+      "v",
+      "list",
+      "index"
+    ],
+    "rationale": "Near-negative: list/index select playlist context and position; only pp (feed-origin blob, here iAQB) goes."
+  },
+  {
+    "id": "social-006",
+    "category": "youtube",
+    "input": "https://www.youtube.com/shorts/Qm8b2bW5c1E?feature=share",
+    "expected": "https://www.youtube.com/shorts/Qm8b2bW5c1E",
+    "tracking_params": [
+      "feature"
+    ],
+    "functional_params": [],
+    "rationale": "Shorts path. Brave's include globs cover only youtu.be/* and *.youtube.com/watch?*, so /shorts/ is out of Brave's scope."
+  },
+  {
+    "id": "social-007",
+    "category": "youtube",
+    "input": "https://music.youtube.com/playlist?list=OLAK5uy_kDx6sT4OvUp0HyNmZ1GmlMkgqzq0K2s1E&si=0aBcDeFgHiJkLmNo",
+    "expected": "https://music.youtube.com/playlist?list=OLAK5uy_kDx6sT4OvUp0HyNmZ1GmlMkgqzq0K2s1E",
+    "tracking_params": [
+      "si"
+    ],
+    "functional_params": [
+      "list"
+    ],
+    "rationale": "Album/playlist share. Brave misses (/playlist not matched by its watch?* glob); list= must stay."
+  },
+  {
+    "id": "social-008",
+    "category": "youtube",
+    "input": "https://www.youtube.com/watch?v=ldiJKDDnAo0&ab_channel=JamesHoffmann",
+    "expected": "https://www.youtube.com/watch?v=ldiJKDDnAo0",
+    "tracking_params": [
+      "ab_channel"
+    ],
+    "functional_params": [
+      "v"
+    ],
+    "rationale": "LOW-CONFIDENCE: ab_channel is appended by the web UI (channel name), no playback effect, listed by some URL filters; not user-identifying. Neither candidate list strips it."
+  },
+  {
+    "id": "social-009",
+    "category": "youtube",
+    "input": "https://www.youtube.com/results?search_query=espresso+puck+prep&sp=EgIQAQ%253D%253D",
+    "expected": "https://www.youtube.com/results?search_query=espresso+puck+prep&sp=EgIQAQ%253D%253D",
+    "tracking_params": [],
+    "functional_params": [
+      "search_query",
+      "sp"
+    ],
+    "rationale": "Negative: sp= is the search filter blob (here 'Videos only'); double-encoded %253D must be byte-preserved."
+  },
+  {
+    "id": "social-010",
+    "category": "spotify",
+    "input": "https://open.spotify.com/track/4cOdK2wGLETKBW3PvgPWqT?si=5b4f2c1d8e9a4b7c",
+    "expected": "https://open.spotify.com/track/4cOdK2wGLETKBW3PvgPWqT",
+    "tracking_params": [
+      "si"
+    ],
+    "functional_params": [],
+    "rationale": "si= identifies the share/sharer; Spotify Messages (Aug-Sep 2025) used these to link sharers and recipients (Android Authority)."
+  },
+  {
+    "id": "social-011",
+    "category": "spotify",
+    "input": "https://open.spotify.com/album/6KDI8RJxxH4LC4PW1OooHA?go=1&sp_cid=d119925e35bb55f09791b9ba44080662&nd=1&dlsi=df6d002da20f401e",
+    "expected": "https://open.spotify.com/album/6KDI8RJxxH4LC4PW1OooHA?go=1&nd=1",
+    "tracking_params": [
+      "sp_cid",
+      "dlsi"
+    ],
+    "functional_params": [
+      "go",
+      "nd"
+    ],
+    "rationale": "LOW-CONFIDENCE: Real shape seen after spotify.link redirects. sp_cid (campaign/client id hash) and dlsi (deep-link session id) are per-session tracking (AdGuard URL Tracking strips both); go/nd are deep-link behaviour flags with no identity, kept conservatively. Neither ClearURLs nor Brave strips sp_cid/dlsi."
+  },
+  {
+    "id": "social-012",
+    "category": "spotify",
+    "input": "https://open.spotify.com/track/4cOdK2wGLETKBW3PvgPWqT?si=5b4f2c1d8e9a4b7c&context=spotify%3Aplaylist%3A37i9dQZF1DXcBWIGoYBM5M",
+    "expected": "https://open.spotify.com/track/4cOdK2wGLETKBW3PvgPWqT?context=spotify%3Aplaylist%3A37i9dQZF1DXcBWIGoYBM5M",
+    "tracking_params": [
+      "si"
+    ],
+    "functional_params": [
+      "context"
+    ],
+    "rationale": "LOW-CONFIDENCE: context= names the playback context (the playlist the track was shared from); it changes what plays next, so it stays. Exact semantics not vendor-documented."
+  },
+  {
+    "id": "social-013",
+    "category": "spotify",
+    "input": "https://open.spotify.com/episode/7makk4oTQel546B0PZlDM5?si=8c3a9e1f2b7d4e60&t=1234",
+    "expected": "https://open.spotify.com/episode/7makk4oTQel546B0PZlDM5?t=1234",
+    "tracking_params": [
+      "si"
+    ],
+    "functional_params": [
+      "t"
+    ],
+    "rationale": "Podcast 'share from timestamp': t= is the start offset in seconds and must stay."
+  },
+  {
+    "id": "social-014",
+    "category": "instagram",
+    "input": "https://www.instagram.com/reel/C8xYz12AbCd/?igsh=MWx0aGx2bHc1dGJ3cQ==",
+    "expected": "https://www.instagram.com/reel/C8xYz12AbCd/",
+    "tracking_params": [
+      "igsh"
+    ],
+    "functional_params": [],
+    "rationale": "igsh= is the share-session id that ties the link to the sharer. Trailing '/' preserved; '?' dropped once empty."
+  },
+  {
+    "id": "social-015",
+    "category": "instagram",
+    "input": "https://www.instagram.com/p/C7aBcDeFgHi/?utm_source=ig_web_copy_link&igshid=MzRlODBiNWFlZA==",
+    "expected": "https://www.instagram.com/p/C7aBcDeFgHi/",
+    "tracking_params": [
+      "utm_source",
+      "igshid"
+    ],
+    "functional_params": [],
+    "rationale": "Older web copy-link shape (igshid predecessor of igsh) plus utm_source."
+  },
+  {
+    "id": "social-016",
+    "category": "instagram",
+    "input": "https://www.instagram.com/p/C7aBcDeFgHi/?img_index=2&igsh=NTc4MTIwNjQ2YQ==",
+    "expected": "https://www.instagram.com/p/C7aBcDeFgHi/?img_index=2",
+    "tracking_params": [
+      "igsh"
+    ],
+    "functional_params": [
+      "img_index"
+    ],
+    "rationale": "Near-negative: strip igsh, keep img_index."
+  },
+  {
+    "id": "social-017",
+    "category": "instagram",
+    "input": "https://l.instagram.com/?u=https%3A%2F%2Fwww.home-barista.com%2Fweekend-update.html%3Futm_source%3Dig%26utm_medium%3Dsocial&e=AT0kZ3s8Yl9mQwR",
+    "expected": "https://www.home-barista.com/weekend-update.html",
+    "tracking_params": [
+      "u",
+      "e",
+      "utm_source",
+      "utm_medium"
+    ],
+    "functional_params": [],
+    "rationale": "Redirect wrapper (bio/story link): unwrap u=, then clean the destination's utm_*."
+  },
+  {
+    "id": "social-018",
+    "category": "x-twitter",
+    "input": "https://x.com/jameshoffmann/status/1798765432109876543?s=20",
+    "expected": "https://x.com/jameshoffmann/status/1798765432109876543",
+    "tracking_params": [
+      "s"
+    ],
+    "functional_params": [],
+    "rationale": "s= is the share-surface code (20 web, 46 iOS, 19 Android). ClearURLs' twitter urlPattern matches only twitter.com, so it misses x.com."
+  },
+  {
+    "id": "social-019",
+    "category": "x-twitter",
+    "input": "https://twitter.com/jameshoffmann/status/1798765432109876543?s=46&t=Hq7mXyZ1aBcDeFgHiJkLmN",
+    "expected": "https://twitter.com/jameshoffmann/status/1798765432109876543",
+    "tracking_params": [
+      "s",
+      "t"
+    ],
+    "functional_params": [],
+    "rationale": "t= is a per-sharer token on X/Twitter (not a timestamp here)."
+  },
+  {
+    "id": "social-020",
+    "category": "x-twitter",
+    "input": "https://twitter.com/jameshoffmann/status/1798765432109876543?ref_src=twsrc%5Etfw%7Ctwcamp%5Etweetembed%7Ctwterm%5E1798765432109876543%7Ctwgr%5E%7Ctwcon%5Es1_",
+    "expected": "https://twitter.com/jameshoffmann/status/1798765432109876543",
+    "tracking_params": [
+      "ref_src"
+    ],
+    "functional_params": [],
+    "rationale": "Embedded-tweet backlink; ref_src carries embedding-site attribution."
+  },
+  {
+    "id": "social-021",
+    "category": "x-twitter",
+    "input": "https://x.com/search?q=%23espresso&src=typed_query&f=live",
+    "expected": "https://x.com/search?q=%23espresso&f=live",
+    "tracking_params": [
+      "src"
+    ],
+    "functional_params": [
+      "q",
+      "f"
+    ],
+    "rationale": "Near-negative: q (query) and f (Latest tab) are functional; src is the UI-origin label. Encoded %23 preserved."
+  },
+  {
+    "id": "social-022",
+    "category": "tiktok",
+    "input": "https://www.tiktok.com/@baristahustle/video/7311234567890123456?is_from_webapp=1&sender_device=pc&web_id=7424229742373438981",
+    "expected": "https://www.tiktok.com/@baristahustle/video/7311234567890123456",
+    "tracking_params": [
+      "is_from_webapp",
+      "sender_device",
+      "web_id"
+    ],
+    "functional_params": [],
+    "rationale": "Web copy-link shape. web_id is a device id. Brave lists only _t/embed_source/refer/referer_*; ClearURLs lists none of these three."
+  },
+  {
+    "id": "social-023",
+    "category": "tiktok",
+    "input": "https://www.tiktok.com/@baristahustle/video/7311234567890123456?_t=8kXyZq1AbCd&_r=1",
+    "expected": "https://www.tiktok.com/@baristahustle/video/7311234567890123456",
+    "tracking_params": [
+      "_t",
+      "_r"
+    ],
+    "functional_params": [],
+    "rationale": "App copy-link shape: _t share token, _r reshare flag/counter."
+  },
+  {
+    "id": "social-024",
+    "category": "tiktok",
+    "input": "https://m.tiktok.com/v/6812345678901234567.html?u_code=dbk3e0h7c8f2a&preview_pb=0&language=en&timestamp=1587412345&utm_campaign=client_share&app=musically&utm_medium=ios&user_id=6801234567890123456&tt_from=copy&utm_source=copy&source=h5_m",
+    "expected": "https://m.tiktok.com/v/6812345678901234567.html?language=en",
+    "tracking_params": [
+      "u_code",
+      "preview_pb",
+      "timestamp",
+      "utm_campaign",
+      "app",
+      "utm_medium",
+      "user_id",
+      "tt_from",
+      "utm_source",
+      "source"
+    ],
+    "functional_params": [
+      "language"
+    ],
+    "rationale": "Legacy share format. user_id/u_code identify the sharer; language is UI and stays."
+  },
+  {
+    "id": "social-025",
+    "category": "reddit",
+    "input": "https://www.reddit.com/r/espresso/comments/1c2d3e4/finally_dialed_in_my_lagom_mini/?share_id=Xy7Kp2QmZr9AbCdEfGhIj&utm_content=1&utm_medium=android_app&utm_name=androidcss&utm_source=share&utm_term=1",
+    "expected": "https://www.reddit.com/r/espresso/comments/1c2d3e4/finally_dialed_in_my_lagom_mini/",
+    "tracking_params": [
+      "share_id",
+      "utm_content",
+      "utm_medium",
+      "utm_name",
+      "utm_source",
+      "utm_term"
+    ],
+    "functional_params": [],
+    "rationale": "Android app share. share_id ties the link to the sharer."
+  },
+  {
+    "id": "social-026",
+    "category": "reddit",
+    "input": "https://www.reddit.com/r/espresso/comments/1c2d3e4/comment/kz9x8y7/?context=3&utm_source=share&utm_medium=web3x&utm_name=web3xcss&utm_term=1&utm_content=share_button",
+    "expected": "https://www.reddit.com/r/espresso/comments/1c2d3e4/comment/kz9x8y7/?context=3",
+    "tracking_params": [
+      "utm_source",
+      "utm_medium",
+      "utm_name",
+      "utm_term",
+      "utm_content"
+    ],
+    "functional_params": [
+      "context"
+    ],
+    "rationale": "Near-negative: context=3 shows 3 parent comments."
+  },
+  {
+    "id": "social-027",
+    "category": "reddit",
+    "input": "https://old.reddit.com/r/espresso/top/?sort=top&t=all",
+    "expected": "https://old.reddit.com/r/espresso/top/?sort=top&t=all",
+    "tracking_params": [],
+    "functional_params": [
+      "sort",
+      "t"
+    ],
+    "rationale": "Negative: on Reddit, t= is the time window. A global 't' rule (X-style) breaks it."
+  },
+  {
+    "id": "social-028",
+    "category": "reddit",
+    "input": "https://www.reddit.com/r/espresso/comments/1c2d3e4/finally_dialed_in_my_lagom_mini/?%24deep_link=true&correlation_id=8f2e1d0c-1234-4abc-9def-0123456789ab&ref=email_digest&ref_campaign=email_digest&ref_source=email&%243p=e_as&_branch_match_id=1234567890123456789&utm_medium=Email+Amp&utm_source=Digest",
+    "expected": "https://www.reddit.com/r/espresso/comments/1c2d3e4/finally_dialed_in_my_lagom_mini/",
+    "tracking_params": [
+      "$deep_link",
+      "correlation_id",
+      "ref",
+      "ref_campaign",
+      "ref_source",
+      "$3p",
+      "_branch_match_id",
+      "utm_medium",
+      "utm_source"
+    ],
+    "functional_params": [],
+    "rationale": "Email-digest link. Param names arrive percent-encoded (%24 = '$'), so rules have to match encoded names."
+  },
+  {
+    "id": "social-029",
+    "category": "facebook",
+    "input": "https://www.facebook.com/share/p/1AbCdEfGhJ/?mibextid=WC7FNe",
+    "expected": "https://www.facebook.com/share/p/1AbCdEfGhJ/",
+    "tracking_params": [
+      "mibextid"
+    ],
+    "functional_params": [],
+    "rationale": "Near-negative: /share/p/ is an opaque share redirect and stays (can't resolve offline); only mibextid goes."
+  },
+  {
+    "id": "social-030",
+    "category": "facebook",
+    "input": "https://www.facebook.com/permalink.php?story_fbid=pfbid02AbCdEfGhIjKlMnOpQrStUvWxYz1234567890&id=100064123456789&__cft__%5B0%5D=AZV3xYz-AbCdEf&__tn__=%2CO%2CP-R",
+    "expected": "https://www.facebook.com/permalink.php?story_fbid=pfbid02AbCdEfGhIjKlMnOpQrStUvWxYz1234567890&id=100064123456789",
+    "tracking_params": [
+      "__cft__[0]",
+      "__tn__"
+    ],
+    "functional_params": [
+      "story_fbid",
+      "id"
+    ],
+    "rationale": "Near-negative: story_fbid+id address the post; __cft__ (click-feedback token) arrives percent-encoded as __cft__%5B0%5D."
+  },
+  {
+    "id": "social-031",
+    "category": "facebook",
+    "input": "https://www.facebook.com/events/1234567890123456/?acontext=%7B%22event_action_history%22%3A%5B%7B%22mechanism%22%3A%22search_results%22%2C%22surface%22%3A%22search%22%7D%5D%7D",
+    "expected": "https://www.facebook.com/events/1234567890123456/",
+    "tracking_params": [
+      "acontext"
+    ],
+    "functional_params": [],
+    "rationale": "acontext is URL-encoded JSON of the click path. Brave strips it; ClearURLs has no rule for acontext."
+  },
+  {
+    "id": "social-032",
+    "category": "facebook",
+    "input": "https://www.facebook.com/sharer/sharer.php?u=https%3A%2F%2Fwww.example.com%2Fespresso-guide",
+    "expected": "https://www.facebook.com/sharer/sharer.php?u=https%3A%2F%2Fwww.example.com%2Fespresso-guide",
+    "tracking_params": [],
+    "functional_params": [
+      "u"
+    ],
+    "rationale": "Negative: this is a share dialog, not a redirect wrapper. Unwrapping u= would change what the link does."
+  },
+  {
+    "id": "social-033",
+    "category": "facebook",
+    "input": "https://l.facebook.com/l.php?u=https%3A%2F%2Fyoutu.be%2FldiJKDDnAo0%3Fsi%3DXk3vR9aQp0TzL2mB%26t%3D42&h=AT0aBcDeFgHiJkLmNo",
+    "expected": "https://youtu.be/ldiJKDDnAo0?t=42",
+    "tracking_params": [
+      "u",
+      "h",
+      "si"
+    ],
+    "functional_params": [
+      "t"
+    ],
+    "rationale": "Nested: unwrap, then apply YouTube rules to the destination. Must keep t=42 and drop si."
+  },
+  {
+    "id": "social-034",
+    "category": "facebook",
+    "input": "https://www.seriouseats.com/how-to-make-espresso?fbclid=IwAR0aBcDeFgHiJkLmNoPqRsTuVwXyZ0123456789_aBcDeFgHiJ",
+    "expected": "https://www.seriouseats.com/how-to-make-espresso",
+    "tracking_params": [
+      "fbclid"
+    ],
+    "functional_params": [],
+    "rationale": "fbclid is appended to third-party destinations, so it needs a global rule. Brave handles it in query_filter (C++), not in clean-urls.json."
+  },
+  {
+    "id": "social-035",
+    "category": "linkedin",
+    "input": "https://www.linkedin.com/posts/janedoe_espresso-latteart-activity-7181234567890123456-AbCd?utm_source=share&utm_medium=member_desktop&rcm=ACoAAAbCdEfGhIjKlMnOpQrStUvWxYz0123456",
+    "expected": "https://www.linkedin.com/posts/janedoe_espresso-latteart-activity-7181234567890123456-AbCd",
+    "tracking_params": [
+      "utm_source",
+      "utm_medium",
+      "rcm"
+    ],
+    "functional_params": [],
+    "rationale": "rcm= encodes the sharer's member URN (ACoAA... prefix). Brave strips rcm on /posts/*; ClearURLs does not."
+  },
+  {
+    "id": "social-036",
+    "category": "linkedin",
+    "input": "https://www.linkedin.com/jobs/search/?currentJobId=3912345678&geoId=103644278&keywords=barista",
+    "expected": "https://www.linkedin.com/jobs/search/?currentJobId=3912345678&geoId=103644278&keywords=barista",
+    "tracking_params": [],
+    "functional_params": [
+      "currentJobId",
+      "geoId",
+      "keywords"
+    ],
+    "rationale": "Negative: job search state."
+  },
+  {
+    "id": "social-037",
+    "category": "linkedin",
+    "input": "https://www.linkedin.com/feed/update/urn:li:activity:7181234567890123456/?commentUrn=urn%3Ali%3Acomment%3A%28activity%3A7181234567890123456%2C7181299999999999999%29",
+    "expected": "https://www.linkedin.com/feed/update/urn:li:activity:7181234567890123456/?commentUrn=urn%3Ali%3Acomment%3A%28activity%3A7181234567890123456%2C7181299999999999999%29",
+    "tracking_params": [],
+    "functional_params": [
+      "commentUrn"
+    ],
+    "rationale": "Negative: commentUrn highlights a specific comment. Also checks byte-exact handling of literal ':' in the path."
+  },
+  {
+    "id": "social-038",
+    "category": "linkedin",
+    "input": "https://www.linkedin.com/learning/learning-python-14393370?u=2131553",
+    "expected": "https://www.linkedin.com/learning/learning-python-14393370?u=2131553",
+    "tracking_params": [],
+    "functional_params": [
+      "u"
+    ],
+    "rationale": "LOW-CONFIDENCE: Negative: on LinkedIn Learning, u= is the licensing organization id (library/enterprise SSO entry). ClearURLs' 'LinkedIn Learning' provider strips u, which would likely send org-licensed users to a paywall."
+  },
+  {
+    "id": "social-039",
+    "category": "threads",
+    "input": "https://www.threads.net/@baristahustle/post/C8aBcDeFgHi?xmt=AQGzKx9mQ1aBcDeFgHiJkLmNoPqRsTuVwXyZ",
+    "expected": "https://www.threads.net/@baristahustle/post/C8aBcDeFgHi",
+    "tracking_params": [
+      "xmt"
+    ],
+    "functional_params": [],
+    "rationale": "xmt is the share-attribution token added since Nov 2024 (ClearURLs/Rules#186, brave-browser#42345). Brave covers it; ClearURLs data.min.json does not yet."
+  },
+  {
+    "id": "social-040",
+    "category": "threads",
+    "input": "https://www.threads.com/@baristahustle/post/DUaqfqIEdSF?xmt=AQF0r2MWsVxVflbLbEHjGMlyQlYw8zQqvWgmb6IUSYSQKO0jPxb0VgstunCsmTWV21sXsNww&slof=1",
+    "expected": "https://www.threads.com/@baristahustle/post/DUaqfqIEdSF",
+    "tracking_params": [
+      "xmt",
+      "slof"
+    ],
+    "functional_params": [],
+    "rationale": "LOW-CONFIDENCE: threads.com domain plus slof=1. Only third parties call slof tracking; Meta doesn't document it, and neither list strips it."
+  },
+  {
+    "id": "social-041",
+    "category": "bluesky",
+    "input": "https://bsky.app/profile/jay.bsky.team/post/3kfjxyz2abc2q",
+    "expected": "https://bsky.app/profile/jay.bsky.team/post/3kfjxyz2abc2q",
+    "tracking_params": [],
+    "functional_params": [],
+    "rationale": "Negative: Bluesky share links carry no tracking params."
+  },
+  {
+    "id": "social-042",
+    "category": "twitch",
+    "input": "https://www.twitch.tv/videos/2123456789?t=1h23m45s",
+    "expected": "https://www.twitch.tv/videos/2123456789?t=1h23m45s",
+    "tracking_params": [],
+    "functional_params": [
+      "t"
+    ],
+    "rationale": "Negative: VOD timestamp."
+  },
+  {
+    "id": "social-043",
+    "category": "twitch",
+    "input": "https://www.twitch.tv/baristachamp?tt_content=text_link&tt_medium=live_embed",
+    "expected": "https://www.twitch.tv/baristachamp",
+    "tracking_params": [
+      "tt_content",
+      "tt_medium"
+    ],
+    "functional_params": [],
+    "rationale": "Backlink from an embedded player. ClearURLs' twitch provider matches twitch\\.com, not twitch.tv, so it never fires on real links."
+  },
+  {
+    "id": "social-044",
+    "category": "soundcloud",
+    "input": "https://soundcloud.com/coffee-podcast/ep-42-water-chemistry?in=coffee-podcast/sets/season-3&si=0123456789abcdef0123456789abcdef&utm_source=clipboard&utm_medium=text&utm_campaign=social_sharing",
+    "expected": "https://soundcloud.com/coffee-podcast/ep-42-water-chemistry?in=coffee-podcast/sets/season-3",
+    "tracking_params": [
+      "si",
+      "utm_source",
+      "utm_medium",
+      "utm_campaign"
+    ],
+    "functional_params": [
+      "in"
+    ],
+    "rationale": "Near-negative: in= sets playlist context (next track). The literal '/' in the value must be preserved."
+  },
+  {
+    "id": "social-045",
+    "category": "soundcloud",
+    "input": "https://soundcloud.com/coffee-podcast/ep-42-water-chemistry#t=12:34",
+    "expected": "https://soundcloud.com/coffee-podcast/ep-42-water-chemistry#t=12:34",
+    "tracking_params": [],
+    "functional_params": [],
+    "rationale": "Negative: the timestamp is a fragment and must stay."
+  },
+  {
+    "id": "social-046",
+    "category": "apple-music",
+    "input": "https://music.apple.com/us/album/blue-train/1440878989?i=1440879216&at=1000lAbC&ct=espresso_post&app=music&ls=1",
+    "expected": "https://music.apple.com/us/album/blue-train/1440878989?i=1440879216&at=1000lAbC&ct=espresso_post&app=music&ls=1",
+    "tracking_params": [],
+    "functional_params": [
+      "i",
+      "app",
+      "ls"
+    ],
+    "rationale": "Apple Performance Partners linking guide: at= is the affiliate token and ct= the campaign token (<=40 chars) used for affiliate reporting. app=music and ls=1 are part of Apple's documented link format, so they stay. ClearURLs strips app= on apple.com.",
+    "affiliate_params": [
+      "at",
+      "ct"
+    ]
+  },
+  {
+    "id": "social-047",
+    "category": "apple-music",
+    "input": "https://tv.apple.com/us/movie/barista/umc.cmc.1a2b3c4d5e6f7g8h9i0j?itscg=30200&itsct=atv_box_link",
+    "expected": "https://tv.apple.com/us/movie/barista/umc.cmc.1a2b3c4d5e6f7g8h9i0j?itscg=30200&itsct=atv_box_link",
+    "tracking_params": [],
+    "functional_params": [],
+    "rationale": "Apple TV toolbox: itscg is a group-level and itsct a partner-level Performance Partners token, so they're affiliate attribution and kept per undecided policy. Note ClearURLs only matches the 'ign-itsc*' variant.",
+    "affiliate_params": [
+      "itscg",
+      "itsct"
+    ]
+  },
+  {
+    "id": "social-048",
+    "category": "pinterest",
+    "input": "https://www.pinterest.com/pin/123456789012345678/?utm_source=dlvr.it&utm_medium=twitter",
+    "expected": "https://www.pinterest.com/pin/123456789012345678/",
+    "tracking_params": [
+      "utm_source",
+      "utm_medium"
+    ],
+    "functional_params": [],
+    "rationale": "Generic utm on a pin."
+  },
+  {
+    "id": "social-049",
+    "category": "pinterest",
+    "input": "https://www.pinterest.com/search/pins/?q=espresso%20bar%20design",
+    "expected": "https://www.pinterest.com/search/pins/?q=espresso%20bar%20design",
+    "tracking_params": [],
+    "functional_params": [
+      "q"
+    ],
+    "rationale": "Negative: search."
+  },
+  {
+    "id": "social-050",
+    "category": "tumblr",
+    "input": "https://www.tumblr.com/coffeeblog/745123456789012345/my-new-flat-burr-grinder?source=share",
+    "expected": "https://www.tumblr.com/coffeeblog/745123456789012345/my-new-flat-burr-grinder",
+    "tracking_params": [
+      "source"
+    ],
+    "functional_params": [],
+    "rationale": "Brave strips source on www.tumblr.com; ClearURLs has no tumblr provider."
+  },
+  {
+    "id": "social-051",
+    "category": "medium",
+    "input": "https://medium.com/@coffeewriter/why-your-espresso-is-sour-3f2a1b0c9d8e?sk=4f1e2d3c4b5a69788796a5b4c3d2e1f0",
+    "expected": "https://medium.com/@coffeewriter/why-your-espresso-is-sour-3f2a1b0c9d8e?sk=4f1e2d3c4b5a69788796a5b4c3d2e1f0",
+    "tracking_params": [],
+    "functional_params": [
+      "sk"
+    ],
+    "rationale": "Negative: sk= is the Friend Link key that unlocks a paywalled story for non-members (help.medium.com 'About Friend Links'). Stripping it re-paywalls the article."
+  },
+  {
+    "id": "social-052",
+    "category": "medium",
+    "input": "https://medium.com/@coffeewriter/why-your-espresso-is-sour-3f2a1b0c9d8e?source=friends_link&sk=4f1e2d3c4b5a69788796a5b4c3d2e1f0",
+    "expected": "https://medium.com/@coffeewriter/why-your-espresso-is-sour-3f2a1b0c9d8e?sk=4f1e2d3c4b5a69788796a5b4c3d2e1f0",
+    "tracking_params": [
+      "source"
+    ],
+    "functional_params": [
+      "sk"
+    ],
+    "rationale": "Near-negative: drop source, keep sk."
+  },
+  {
+    "id": "social-053",
+    "category": "substack",
+    "input": "https://coffeeletter.substack.com/p/the-case-for-lighter-roasts?r=2f8wkh&utm_campaign=post&utm_medium=web&showWelcomeOnShare=true",
+    "expected": "https://coffeeletter.substack.com/p/the-case-for-lighter-roasts?r=2f8wkh",
+    "tracking_params": [
+      "utm_campaign",
+      "utm_medium",
+      "showWelcomeOnShare"
+    ],
+    "functional_params": [],
+    "rationale": "LOW-CONFIDENCE: r= is the sharer's referral code (Substack referral rewards), so it's affiliate-like and kept per undecided policy, even though it also identifies the sharer. showWelcomeOnShare is added only by the share button and changes no content; treated as share noise.",
+    "affiliate_params": [
+      "r"
+    ]
+  },
+  {
+    "id": "social-054",
+    "category": "substack",
+    "input": "https://coffeeletter.substack.com/p/the-case-for-lighter-roasts?triedRedirect=true",
+    "expected": "https://coffeeletter.substack.com/p/the-case-for-lighter-roasts",
+    "tracking_params": [
+      "triedRedirect"
+    ],
+    "functional_params": [],
+    "rationale": "LOW-CONFIDENCE: triedRedirect is a redirect-attempt flag, not identity. AdGuard URL Tracking filter removes it (||substack.com$removeparam=triedRedirect), and removing it at worst triggers one extra redirect."
+  },
+  {
+    "id": "social-055",
+    "category": "redirect-wrapper",
+    "input": "https://www.google.com/url?sa=t&rct=j&q=&esrc=s&source=web&cd=&cad=rja&uact=8&ved=2ahUKEwiA1b2c3d4eAhXaBcDeHfGhIjKQFnoECBAQAQ&url=https%3A%2F%2Fwww.youtube.com%2Fwatch%3Fv%3DldiJKDDnAo0&usg=AOvVaw0aBcDeFgHiJkLmNoPqRsTu&opi=89978449",
+    "expected": "https://www.youtube.com/watch?v=ldiJKDDnAo0",
+    "tracking_params": [
+      "sa",
+      "rct",
+      "q",
+      "esrc",
+      "source",
+      "cd",
+      "cad",
+      "uact",
+      "ved",
+      "url",
+      "usg",
+      "opi"
+    ],
+    "functional_params": [],
+    "rationale": "Search-result click wrapper. The destination is in url=, and an EMPTY q= comes first, so an engine that takes q before url gets it wrong."
+  },
+  {
+    "id": "social-056",
+    "category": "redirect-wrapper",
+    "input": "https://www.google.com/url?q=https://www.youtube.com/watch?v%3DldiJKDDnAo0%26t%3D42s&sa=D&source=editors&ust=1729000000000000&usg=AOvVaw1aBcDeFgHiJkLmNoPqRsTu",
+    "expected": "https://www.youtube.com/watch?v=ldiJKDDnAo0&t=42s",
+    "tracking_params": [
+      "q",
+      "sa",
+      "source",
+      "ust",
+      "usg"
+    ],
+    "functional_params": [
+      "t"
+    ],
+    "rationale": "Google Docs/Sheets link shape: q= is only partly encoded (scheme and path raw, = and & as %3D/%26). Decode once, then clean; t=42s stays."
+  },
+  {
+    "id": "social-057",
+    "category": "redirect-wrapper",
+    "input": "https://www.google.com/search?q=decent+espresso+de1",
+    "expected": "https://www.google.com/search?q=decent+espresso+de1",
+    "tracking_params": [],
+    "functional_params": [
+      "q"
+    ],
+    "rationale": "Negative: on /search, q= is the query, not a redirect target."
+  },
+  {
+    "id": "social-058",
+    "category": "redirect-wrapper",
+    "input": "https://www.youtube.com/redirect?event=video_description&redir_token=QUFFLUhqbVZ4eU1hQmNEZUZnSGlKa0xtTm9QcVJzVHV8QUNybXNLbWFCY0RlRmc&q=https%3A%2F%2Fwww.decentespresso.com%2Fde1&v=ldiJKDDnAo0",
+    "expected": "https://www.decentespresso.com/de1",
+    "tracking_params": [
+      "event",
+      "redir_token",
+      "q",
+      "v"
+    ],
+    "functional_params": [],
+    "rationale": "Video-description link wrapper; destination in q=. Here v= belongs to the wrapper, not the destination."
+  },
+  {
+    "id": "social-059",
+    "category": "redirect-wrapper",
+    "input": "https://www.youtube.com/redirect?event=comments&redir_token=QUFFLUhqbTNaB2NkZUZnSGlKa0xtTm9QcQ&q=https%3A%2F%2Fwww.amazon.com%2Fdp%2FB07ABCDEF1%3Ftag%3Dcoffeechan-20%26utm_source%3Dyoutube&html_redirect=1",
+    "expected": "https://www.amazon.com/dp/B07ABCDEF1?tag=coffeechan-20",
+    "tracking_params": [
+      "event",
+      "redir_token",
+      "q",
+      "html_redirect",
+      "utm_source"
+    ],
+    "functional_params": [],
+    "rationale": "Nested: unwrap, then clean the destination. Amazon tag= is an affiliate tag and stays per undecided policy.",
+    "affiliate_params": [
+      "tag"
+    ]
+  },
+  {
+    "id": "social-060",
+    "category": "redirect-wrapper",
+    "input": "https://t.umblr.com/redirect?z=https%3A%2F%2Fwww.baristahustle.com%2Fblog%2Fwater%2F&t=ZmRlYjI3MDQ5ZjQ3YmFiZGY4YjBjYTc5NWIxMjM0NTY2Nzg5LEFiQ2RFZg%3D%3D",
+    "expected": "https://www.baristahustle.com/blog/water/",
+    "tracking_params": [
+      "z",
+      "t"
+    ],
+    "functional_params": [],
+    "rationale": "Tumblr outbound wrapper: destination in z=. Neither list unwraps it."
+  }
+]

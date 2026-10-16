@@ -1,0 +1,950 @@
+[
+  {
+    "id": "commerce-001",
+    "category": "amazon",
+    "kind": "positive",
+    "input": "https://www.amazon.com/Breville-BES870XL-Barista-Express-Espresso/dp/B00CH9QWOU/ref=sr_1_3?crid=2Z8Q3KX1VJ4LM&keywords=breville%2Bbarista%2Bexpress&qid=1697041234&sprefix=breville%2Bbarista%2Caps%2C163&sr=8-3",
+    "expected": "https://www.amazon.com/Breville-BES870XL-Barista-Express-Espresso/dp/B00CH9QWOU",
+    "tracking_params": [
+      "/ref=",
+      "crid",
+      "keywords",
+      "qid",
+      "sprefix",
+      "sr"
+    ],
+    "functional_params": [],
+    "rationale": "Search-result click: /ref=sr_* path segment plus search-session params (crid, qid, sprefix, sr, keywords) describe how the user found the item, not which item is shown. Path slug + /dp/ASIN must stay."
+  },
+  {
+    "id": "commerce-002",
+    "category": "amazon",
+    "kind": "positive",
+    "input": "https://www.amazon.com/dp/B07ZPMD8K7/?_encoding=UTF8&pd_rd_w=Qx7Lm&content-id=amzn1.sym.7dd77237-d2a5-4b8b-9c2b-0e4b2a2e4b3c&pf_rd_p=7dd77237-d2a5-4b8b-9c2b-0e4b2a2e4b3c&pf_rd_r=4K8Z1N3V9PQRS2TYXWAB&pd_rd_wg=hT5Ue&pd_rd_r=0c1d2e3f-4a5b-6c7d-8e9f-0a1b2c3d4e5f&ref_=pd_gw_ci_mcx_mr_hp_atf_m",
+    "expected": "https://www.amazon.com/dp/B07ZPMD8K7/",
+    "tracking_params": [
+      "_encoding",
+      "pd_rd_w",
+      "content-id",
+      "pf_rd_p",
+      "pf_rd_r",
+      "pd_rd_wg",
+      "pd_rd_r",
+      "ref_"
+    ],
+    "functional_params": [],
+    "rationale": "Homepage widget click. pd_rd_*/pf_rd_* are placement/recommendation-widget ids, content-id is the widget symbol, ref_ the click source. _encoding=UTF8 is a legacy charset marker with no content effect. Trailing slash after ASIN is preserved (only the query is removed)."
+  },
+  {
+    "id": "commerce-003",
+    "category": "amazon",
+    "kind": "near-negative",
+    "input": "https://www.amazon.com/dp/B0BQ2N5NNQ?&linkCode=ll1&tag=espressoaf-20&linkId=3f9c2b7e8a1d4c6e5b0a9f8e7d6c5b4a&language=en_US&ref_=as_li_ss_tl",
+    "expected": "https://www.amazon.com/dp/B0BQ2N5NNQ?tag=espressoaf-20&language=en_US",
+    "tracking_params": [
+      "linkCode",
+      "linkId",
+      "ref_"
+    ],
+    "functional_params": [
+      "language"
+    ],
+    "rationale": "Associates SiteStripe link (real shape starts with '?&'). tag= is the affiliate id (kept per undecided policy; commission keys on tag). linkCode/linkId are per-link analytics ids, not needed for attribution. language=en_US changes UI language -> keep. Leading empty query segment is dropped (alt keeps it).",
+    "affiliate_params": [
+      "tag"
+    ],
+    "alt_expected": [
+      "https://www.amazon.com/dp/B0BQ2N5NNQ?&tag=espressoaf-20&language=en_US",
+      "https://www.amazon.com/dp/B0BQ2N5NNQ?linkCode=ll1&tag=espressoaf-20&linkId=3f9c2b7e8a1d4c6e5b0a9f8e7d6c5b4a&language=en_US"
+    ]
+  },
+  {
+    "id": "commerce-004",
+    "category": "amazon",
+    "kind": "near-negative",
+    "input": "https://www.amazon.co.uk/gp/product/B08P3J5X7R/ref=ppx_yo_dt_b_asin_title_o02_s00?ie=UTF8&psc=1",
+    "expected": "https://www.amazon.co.uk/gp/product/B08P3J5X7R?psc=1",
+    "tracking_params": [
+      "/ref=",
+      "ie"
+    ],
+    "functional_params": [
+      "psc"
+    ],
+    "rationale": "Order-history link (ppx_yo = 'your orders'). ie=UTF8 is a charset marker (no content effect; alt keeps it). psc=1 is undocumented but tied to variation/offer preselection ('product selected child'); kept conservatively.",
+    "alt_expected": [
+      "https://www.amazon.co.uk/gp/product/B08P3J5X7R?ie=UTF8&psc=1"
+    ]
+  },
+  {
+    "id": "commerce-005",
+    "category": "amazon",
+    "kind": "negative",
+    "input": "https://www.amazon.com/dp/B0C6KKQ7ND?th=1&psc=1",
+    "expected": "https://www.amazon.com/dp/B0C6KKQ7ND?th=1&psc=1",
+    "tracking_params": [],
+    "functional_params": [
+      "th",
+      "psc"
+    ],
+    "rationale": "CONTESTED. th=1/psc=1 appear when a specific twister variation (size/colour) is selected; no Amazon doc exists (searches found only 'unknown purpose' write-ups). ClearURLs strips th. Ground truth keeps both conservatively; alt_expected accepts stripping.",
+    "alt_expected": [
+      "https://www.amazon.com/dp/B0C6KKQ7ND"
+    ]
+  },
+  {
+    "id": "commerce-006",
+    "category": "amazon",
+    "kind": "positive",
+    "input": "https://www.amazon.de/-/en/Sage-SES876BSS-Barista-Touch-Espresso/dp/B07MV41WMQ/ref=sr_1_5?crid=1ABCD2EFGH3IJ&dib=eyJ2IjoiMSJ9.Xx0aB1cD2eF3gH4iJ5kL6mN7oP8qR9sT.uV0wX1yZ2&dib_tag=se&keywords=sage+barista+touch&qid=1728993421&sprefix=sage+barista%2Caps%2C98&sr=8-5",
+    "expected": "https://www.amazon.de/-/en/Sage-SES876BSS-Barista-Touch-Espresso/dp/B07MV41WMQ",
+    "tracking_params": [
+      "/ref=",
+      "crid",
+      "dib",
+      "dib_tag",
+      "keywords",
+      "qid",
+      "sprefix",
+      "sr"
+    ],
+    "functional_params": [
+      "/-/en/"
+    ],
+    "rationale": "amazon.de with the /-/en/ English-UI path prefix, which must survive. dib/dib_tag are the 2024+ search-result attribution blobs."
+  },
+  {
+    "id": "commerce-007",
+    "category": "amazon",
+    "kind": "near-negative",
+    "input": "https://www.amazon.ca/s?k=58mm+bottomless+portafilter&i=kitchen&rh=n%3A2206275011%2Cp_72%3A11192170011&crid=3QW2ERT5YUIOP&qid=1728993500&rnid=11192169011&sprefix=58mm+bottomless%2Ckitchen%2C121&ref=sr_nr_p_72_1",
+    "expected": "https://www.amazon.ca/s?k=58mm+bottomless+portafilter&i=kitchen&rh=n%3A2206275011%2Cp_72%3A11192170011",
+    "tracking_params": [
+      "crid",
+      "qid",
+      "rnid",
+      "sprefix",
+      "ref"
+    ],
+    "functional_params": [
+      "k",
+      "i",
+      "rh"
+    ],
+    "rationale": "Search page: k (query), i (department) and rh (applied filters) define results and must stay. rnid is the refinement-node id of the click, redundant with rh. Note ClearURLs has an amazon.*/s? exception, so it leaves this untouched."
+  },
+  {
+    "id": "commerce-008",
+    "category": "amazon",
+    "kind": "negative",
+    "input": "https://www.amazon.com/s?me=A2L77EE7U53NWQ&marketplaceID=ATVPDKIKX0DER",
+    "expected": "https://www.amazon.com/s?me=A2L77EE7U53NWQ&marketplaceID=ATVPDKIKX0DER",
+    "tracking_params": [],
+    "functional_params": [
+      "me",
+      "marketplaceID"
+    ],
+    "rationale": "Seller storefront: me= selects the seller, marketplaceID the marketplace. Nothing to strip."
+  },
+  {
+    "id": "commerce-009",
+    "category": "amazon",
+    "kind": "positive",
+    "input": "https://www.amazon.com/hz/wishlist/ls/3KQ8XN0Z1Y2W4?ref_=wl_share",
+    "expected": "https://www.amazon.com/hz/wishlist/ls/3KQ8XN0Z1Y2W4",
+    "tracking_params": [
+      "ref_"
+    ],
+    "functional_params": [],
+    "rationale": "Wishlist share link; ref_=wl_share is share-source attribution."
+  },
+  {
+    "id": "commerce-010",
+    "category": "amazon",
+    "kind": "negative",
+    "input": "https://amzn.to/3Kx9QzT",
+    "expected": "https://amzn.to/3Kx9QzT",
+    "tracking_params": [],
+    "functional_params": [],
+    "rationale": "Amazon shortener (often affiliate). Pure/offline cleaner must not unshorten; leave as-is."
+  },
+  {
+    "id": "commerce-011",
+    "category": "amazon",
+    "kind": "negative",
+    "input": "https://a.co/d/7xYz1Ab",
+    "expected": "https://a.co/d/7xYz1Ab",
+    "tracking_params": [],
+    "functional_params": [],
+    "rationale": "Amazon app share shortlink; opaque path id. No offline cleaning possible."
+  },
+  {
+    "id": "commerce-012",
+    "category": "amazon",
+    "kind": "positive",
+    "input": "https://www.amazon.com/dp/B0CJ4BK2V6?ref=cm_sw_r_cso_cp_apin_dp_0X1Y2Z3A4B5C6D7E8F9G&ref_=cm_sw_r_cso_cp_apin_dp_0X1Y2Z3A4B5C6D7E8F9G&social_share=cm_sw_r_cso_cp_apin_dp_0X1Y2Z3A4B5C6D7E8F9G&starsLeft=1&skipTwisterOG=1",
+    "expected": "https://www.amazon.com/dp/B0CJ4BK2V6",
+    "tracking_params": [
+      "ref",
+      "ref_",
+      "social_share",
+      "starsLeft",
+      "skipTwisterOG"
+    ],
+    "functional_params": [],
+    "rationale": "Amazon app 'Copy link' shape. cm_sw_r_* tokens are per-sharer share ids (share-identity). starsLeft/skipTwisterOG only affect link-preview rendering."
+  },
+  {
+    "id": "commerce-013",
+    "category": "amazon",
+    "kind": "positive",
+    "input": "https://www.amazon.com/Normcore-Espresso-Tamper-Spring-Loaded/dp/B07RBQHT8D/ref=sxin_16_pa_sp_search_thematic_sspa?content-id=amzn1.sym.1c86ab1a-a73c-4131-85f1-15bd92ae152d%3Aamzn1.sym.1c86ab1a-a73c-4131-85f1-15bd92ae152d&crid=2WB7H1IHLFOEA&cv_ct_cx=espresso+tamper&keywords=espresso+tamper&pd_rd_i=B07RBQHT8D&pd_rd_r=8e1a2b3c-4d5e-6f70-8192-a3b4c5d6e7f8&pd_rd_w=Lx3oZ&pd_rd_wg=Nn4pQ&pf_rd_p=1c86ab1a-a73c-4131-85f1-15bd92ae152d&pf_rd_r=Z9Y8X7W6V5U4T3S2R1Q0&qid=1728993600&sbo=RZvfv%2F%2FHxDF%2BO5021pAnSA%3D%3D&sprefix=espresso+tamp%2Caps%2C140&sr=1-1-6024b2a3-78e4-4fed-8fed-e1613be3bcce-spons&sp_csd=d2lkZ2V0TmFtZT1zcF9zZWFyY2hfdGhlbWF0aWM&psc=1",
+    "expected": "https://www.amazon.com/Normcore-Espresso-Tamper-Spring-Loaded/dp/B07RBQHT8D?psc=1",
+    "tracking_params": [
+      "/ref=",
+      "content-id",
+      "crid",
+      "cv_ct_cx",
+      "keywords",
+      "pd_rd_i",
+      "pd_rd_r",
+      "pd_rd_w",
+      "pd_rd_wg",
+      "pf_rd_p",
+      "pf_rd_r",
+      "qid",
+      "sbo",
+      "sprefix",
+      "sr",
+      "sp_csd"
+    ],
+    "functional_params": [
+      "psc"
+    ],
+    "rationale": "Sponsored-products click (sspa). sp_csd (base64 'widgetName=sp_search_thematic') and sbo are ad click data. psc kept (see commerce-005)."
+  },
+  {
+    "id": "commerce-014",
+    "category": "amazon",
+    "kind": "near-negative",
+    "input": "https://www.amazon.co.uk/dp/B0BX1Q8Z4M/ref=olp-opf-redir?aod=1&smid=A3P5ROKL5A1OLE",
+    "expected": "https://www.amazon.co.uk/dp/B0BX1Q8Z4M?aod=1&smid=A3P5ROKL5A1OLE",
+    "tracking_params": [
+      "/ref="
+    ],
+    "functional_params": [
+      "aod",
+      "smid"
+    ],
+    "rationale": "CONTESTED. From the 'other sellers' panel: aod=1 opens the all-offers display; smid is the merchant id whose offer is preselected in the buy box (content-changing on offer pages; ClearURLs strips it globally). Kept conservatively; alt accepts dropping smid.",
+    "alt_expected": [
+      "https://www.amazon.co.uk/dp/B0BX1Q8Z4M?aod=1"
+    ]
+  },
+  {
+    "id": "commerce-015",
+    "category": "ebay",
+    "kind": "positive",
+    "input": "https://www.ebay.com/itm/266512345678?_trkparms=amclksrc%3DITM%26aid%3D1110006%26algo%3DHOMESPLICE.SIM%26ao%3D1%26asc%3D20201210111314%26meid%3Dc2f1a0b9e8d7%26pid%3D101195%26rk%3D1%26rkt%3D12%26sd%3D266512345678%26itm%3D266512345678%26pmt%3D1%26noa%3D0%26pg%3D2047675&_trksid=p2047675.c101195.m1851&itmprp=cksum%3A2665123456786d5e4f3a2b1c4d8e9f0a1b2c3d4e%7Cenc%3AAQAJAAAA%7Campid%3APL_CLK%7Cclp%3A2047675&amdata=enc%3AAQAJAAAA",
+    "expected": "https://www.ebay.com/itm/266512345678",
+    "tracking_params": [
+      "_trkparms",
+      "_trksid",
+      "itmprp",
+      "amdata"
+    ],
+    "functional_params": [],
+    "rationale": "'Similar items' recommendation click. _trkparms/_trksid are eBay click-tracking; itmprp/amdata are encoded placement/ad metadata."
+  },
+  {
+    "id": "commerce-016",
+    "category": "ebay",
+    "kind": "near-negative",
+    "input": "https://www.ebay.co.uk/itm/395123456789?mkcid=16&mkevt=1&mkrid=711-127632-2357-0&ssspo=Ab1Cd2Ef3Gh&sssrc=2047675&ssuid=xQ9z8YwVTlu&var=663456789012&widget_ver=artemis&media=COPY",
+    "expected": "https://www.ebay.co.uk/itm/395123456789?var=663456789012",
+    "tracking_params": [
+      "mkcid",
+      "mkevt",
+      "mkrid",
+      "ssspo",
+      "sssrc",
+      "ssuid",
+      "widget_ver",
+      "media"
+    ],
+    "functional_params": [
+      "var"
+    ],
+    "rationale": "eBay share-sheet link. eBay dev docs: mkevt=1 = click event, mkcid=16 = social channel, mkrid = rotation id. ssuid/ssspo are sharer ids. var= is the selected variation (size/colour) and must stay. Note: param is 'sssrc' (3 s); Brave lists 'ssrc' and omits mkrid."
+  },
+  {
+    "id": "commerce-017",
+    "category": "ebay",
+    "kind": "positive",
+    "input": "https://www.ebay.com/itm/Rancilio-Silvia-E-V6-Espresso-Machine/234512345678?hash=item369a1b2c3d:g:AbCAAOSw1a2b3c4d&_trksid=p2047675.m43663.l10137",
+    "expected": "https://www.ebay.com/itm/Rancilio-Silvia-E-V6-Espresso-Machine/234512345678",
+    "tracking_params": [
+      "hash",
+      "_trksid"
+    ],
+    "functional_params": [],
+    "rationale": "Legacy slugged item URL. hash=item<hex>:g:<imgid> is a gallery-image/listing hash; no effect on what is shown."
+  },
+  {
+    "id": "commerce-018",
+    "category": "ebay",
+    "kind": "near-negative",
+    "input": "https://www.ebay.com/sch/i.html?_from=R40&_trksid=p4432023.m570.l1313&_nkw=la+pavoni+europiccola&_sacat=0&LH_Sold=1&LH_Complete=1",
+    "expected": "https://www.ebay.com/sch/i.html?_nkw=la+pavoni+europiccola&_sacat=0&LH_Sold=1&LH_Complete=1",
+    "tracking_params": [
+      "_from",
+      "_trksid"
+    ],
+    "functional_params": [
+      "_nkw",
+      "_sacat",
+      "LH_Sold",
+      "LH_Complete"
+    ],
+    "rationale": "Sold-listings search (price research). _nkw query, _sacat category, LH_* filters define results. Brave's eBay rule is /itm/-only."
+  },
+  {
+    "id": "commerce-019",
+    "category": "ebay",
+    "kind": "negative",
+    "input": "https://www.ebay.de/itm/176123456789?var=476012345678",
+    "expected": "https://www.ebay.de/itm/176123456789?var=476012345678",
+    "tracking_params": [],
+    "functional_params": [
+      "var"
+    ],
+    "rationale": "Variation selector only; must not change."
+  },
+  {
+    "id": "commerce-020",
+    "category": "aliexpress",
+    "kind": "positive",
+    "input": "https://www.aliexpress.us/item/3256805123456789.html?spm=a2g0o.productlist.main.3.6b2f3c7aXyZ12a&algo_pvid=4a8b2c1d-9e7f-4a3b-8c2d-1e0f9a8b7c6d&algo_exp_id=4a8b2c1d-9e7f-4a3b-8c2d-1e0f9a8b7c6d-2&pdp_npi=4%40dis%21USD%2134.99%2117.49%21%21%2134.99%2117.49%21%402101e9d217289937001234567e1234%2112000034567890123%21sea%21US%210%21ABX&curPageLogUid=AbC1dEf2GhI3&utparam-url=scene%3Asearch%7Cquery_from%3A",
+    "expected": "https://www.aliexpress.us/item/3256805123456789.html",
+    "tracking_params": [
+      "spm",
+      "algo_pvid",
+      "algo_exp_id",
+      "pdp_npi",
+      "curPageLogUid",
+      "utparam-url"
+    ],
+    "functional_params": [],
+    "rationale": "Search-result click on the US storefront (aliexpress.us; Brave's include is *.aliexpress.com only). pdp_npi carries list-page price/sku/trace for price continuity; stripping it loses no content (Brave strips it too)."
+  },
+  {
+    "id": "commerce-021",
+    "category": "aliexpress",
+    "kind": "near-negative",
+    "input": "https://www.aliexpress.com/item/1005005123456789.html?aff_fcid=0f1e2d3c4b5a49788796a5b4c3d2e1f0-1728993800123-01234-_DlqF1Xx&aff_fsk=_DlqF1Xx&aff_platform=portals-tool&sk=_DlqF1Xx&aff_trace_key=0f1e2d3c4b5a49788796a5b4c3d2e1f0-1728993800123-01234-_DlqF1Xx&terminal_id=9a8b7c6d5e4f4a3b2c1d0e9f8a7b6c5d&afSmartRedirect=y",
+    "expected": "https://www.aliexpress.com/item/1005005123456789.html?aff_fcid=0f1e2d3c4b5a49788796a5b4c3d2e1f0-1728993800123-01234-_DlqF1Xx&aff_fsk=_DlqF1Xx&aff_platform=portals-tool&sk=_DlqF1Xx&aff_trace_key=0f1e2d3c4b5a49788796a5b4c3d2e1f0-1728993800123-01234-_DlqF1Xx&terminal_id=9a8b7c6d5e4f4a3b2c1d0e9f8a7b6c5d&afSmartRedirect=y",
+    "tracking_params": [],
+    "functional_params": [
+      "afSmartRedirect"
+    ],
+    "rationale": "AliExpress Portals affiliate link: aff_*, sk and terminal_id together form the affiliate attribution (kept per undecided affiliate policy). ClearURLs strips sk and terminal_id as plain rules, half-breaking attribution.",
+    "affiliate_params": [
+      "aff_fcid",
+      "aff_fsk",
+      "aff_platform",
+      "sk",
+      "aff_trace_key",
+      "terminal_id"
+    ]
+  },
+  {
+    "id": "commerce-022",
+    "category": "aliexpress",
+    "kind": "near-negative",
+    "input": "https://www.aliexpress.com/w/wholesale-wdt-tool.html?page=2&g=y&SearchText=wdt+tool&spm=a2g0o.productlist.search.0",
+    "expected": "https://www.aliexpress.com/w/wholesale-wdt-tool.html?page=2&g=y&SearchText=wdt+tool",
+    "tracking_params": [
+      "spm"
+    ],
+    "functional_params": [
+      "page",
+      "g",
+      "SearchText"
+    ],
+    "rationale": "Search results: page/SearchText define results, g=y is gallery layout (kept conservatively). spm is Alibaba's super-position-model click tracker."
+  },
+  {
+    "id": "commerce-023",
+    "category": "etsy",
+    "kind": "positive",
+    "input": "https://www.etsy.com/listing/1234567890/walnut-wdt-tool-espresso-distribution?click_key=8f2c1b3a4d5e6f708192a3b4c5d6e7f8091a2b3c%3A1234567890&click_sum=a1b2c3d4&ref=hp_rv-2&pro=1&sts=1",
+    "expected": "https://www.etsy.com/listing/1234567890/walnut-wdt-tool-espresso-distribution",
+    "tracking_params": [
+      "click_key",
+      "click_sum",
+      "ref",
+      "pro",
+      "sts"
+    ],
+    "functional_params": [],
+    "rationale": "Homepage 'recently viewed' click. click_key/click_sum are click-tracking hashes; ref is Etsy's placement code (used for its click reports). pro/sts are undocumented flags seen only on click-through URLs; listing content is identical without them. ClearURLs' Etsy rule only covers click_key/click_sum/organic_search_click."
+  },
+  {
+    "id": "commerce-024",
+    "category": "etsy",
+    "kind": "positive",
+    "input": "https://www.etsy.com/listing/987654321/espresso-knock-box-handmade-walnut?ga_order=most_relevant&ga_search_type=all&ga_view_type=gallery&ga_search_query=knock+box&ref=sr_gallery-1-12&frs=1&organic_search_click=1",
+    "expected": "https://www.etsy.com/listing/987654321/espresso-knock-box-handmade-walnut",
+    "tracking_params": [
+      "ga_order",
+      "ga_search_type",
+      "ga_view_type",
+      "ga_search_query",
+      "ref",
+      "frs",
+      "organic_search_click"
+    ],
+    "functional_params": [],
+    "rationale": "Search-result click: ga_* echo the search session, ref=sr_gallery-<page>-<pos> the position, organic_search_click the ad/organic flag."
+  },
+  {
+    "id": "commerce-025",
+    "category": "etsy",
+    "kind": "positive",
+    "input": "https://www.etsy.com/listing/1122334455/ceramic-espresso-cup-set-of-2?utm_source=Copy&utm_medium=ListingManager&utm_campaign=Share&utm_term=so.lmsm&share_time=1728994000000",
+    "expected": "https://www.etsy.com/listing/1122334455/ceramic-espresso-cup-set-of-2",
+    "tracking_params": [
+      "utm_source",
+      "utm_medium",
+      "utm_campaign",
+      "utm_term",
+      "share_time"
+    ],
+    "functional_params": [],
+    "rationale": "Etsy app/seller 'Copy link' share: utm_* + share_time timestamp."
+  },
+  {
+    "id": "commerce-026",
+    "category": "etsy",
+    "kind": "near-negative",
+    "input": "https://www.etsy.com/shop/WalnutBaristaCo?section_id=41234567&ref=shopsection_leftnav_3",
+    "expected": "https://www.etsy.com/shop/WalnutBaristaCo?section_id=41234567",
+    "tracking_params": [
+      "ref"
+    ],
+    "functional_params": [
+      "section_id"
+    ],
+    "rationale": "Shop section view: section_id filters the shop listings; ref is the nav placement."
+  },
+  {
+    "id": "commerce-027",
+    "category": "etsy",
+    "kind": "near-negative",
+    "input": "https://www.etsy.com/search?q=espresso+tamper&ref=search_bar&min=20&max=60",
+    "expected": "https://www.etsy.com/search?q=espresso+tamper&min=20&max=60",
+    "tracking_params": [
+      "ref"
+    ],
+    "functional_params": [
+      "q",
+      "min",
+      "max"
+    ],
+    "rationale": "Search with price filter; q/min/max define results."
+  },
+  {
+    "id": "commerce-028",
+    "category": "shopify",
+    "kind": "positive",
+    "input": "https://www.wholelattelove.com/products/lelit-steve-64mm-espresso-grinder?_pos=1&_sid=3f9a1c2b7&_ss=r",
+    "expected": "https://www.wholelattelove.com/products/lelit-steve-64mm-espresso-grinder",
+    "tracking_params": [
+      "_pos",
+      "_sid",
+      "_ss"
+    ],
+    "functional_params": [],
+    "rationale": "Shopify on-site search result click: _pos result position, _sid search session, _ss search source (Shopify Predictive Search API docs show these appended; Storefront API calls them trackingParameters)."
+  },
+  {
+    "id": "commerce-029",
+    "category": "shopify",
+    "kind": "near-negative",
+    "input": "https://weberworkshops.com/products/eg-1?variant=52085640233332&_pos=2&_psq=eg&_ss=e&_v=1.0",
+    "expected": "https://weberworkshops.com/products/eg-1?variant=52085640233332",
+    "tracking_params": [
+      "_pos",
+      "_psq",
+      "_ss",
+      "_v"
+    ],
+    "functional_params": [
+      "variant"
+    ],
+    "rationale": "Predictive-search click (_psq = partial typed query, _v = API version). variant= selects the SKU and MUST stay."
+  },
+  {
+    "id": "commerce-030",
+    "category": "shopify",
+    "kind": "near-negative",
+    "input": "https://onyxcoffeelab.com/products/geometry?variant=31862717677666&utm_source=klaviyo&utm_medium=email&utm_campaign=Geometry%20Restock%20(01JA2B3C4D)&_kx=Xy7AbC1dEf2GhI3jKl4mNo5pQ%3D%3D.UvW5xY",
+    "expected": "https://onyxcoffeelab.com/products/geometry?variant=31862717677666",
+    "tracking_params": [
+      "utm_source",
+      "utm_medium",
+      "utm_campaign",
+      "_kx"
+    ],
+    "functional_params": [
+      "variant"
+    ],
+    "rationale": "Klaviyo newsletter link. Klaviyo docs: _kx is the encrypted recipient exchange id used to identify the profile (personal identifier). Old-format _kx contains %3D%3D. variant (10oz bag) stays."
+  },
+  {
+    "id": "commerce-031",
+    "category": "shopify",
+    "kind": "positive",
+    "input": "https://www.seycoffee.com/products/2026-nicolas-medina-el-griasol-colombia?srsltid=AfmBOoq3Xh7bA9yZcV1nM2kL4jH5gF6dS8aP0oI9uY7tR6eW",
+    "expected": "https://www.seycoffee.com/products/2026-nicolas-medina-el-griasol-colombia",
+    "tracking_params": [
+      "srsltid"
+    ],
+    "functional_params": [],
+    "rationale": "Google organic-shopping/Merchant Center auto-tagging click id (srsltid)."
+  },
+  {
+    "id": "commerce-032",
+    "category": "shopify",
+    "kind": "near-negative",
+    "input": "https://www.nichecoffee.co.uk/products/niche-zero?variant=31208685174915&mc_cid=7a1b2c3d4e&mc_eid=9f8e7d6c5b",
+    "expected": "https://www.nichecoffee.co.uk/products/niche-zero?variant=31208685174915",
+    "tracking_params": [
+      "mc_cid",
+      "mc_eid"
+    ],
+    "functional_params": [
+      "variant"
+    ],
+    "rationale": "Mailchimp campaign id + per-subscriber email id (mc_eid identifies the recipient)."
+  },
+  {
+    "id": "commerce-033",
+    "category": "shopify",
+    "kind": "near-negative",
+    "input": "https://www.seattlecoffeegear.com/products/lelit-mara-x3-espresso-machine?variant=53213339681075&utm_source=facebook&utm_medium=paid&utm_campaign=lelit-fall&utm_content=carousel-2&fbclid=IwZXh0bgNhZW0BMABhZGlkAasT7Xz1AbCdAR2xYz_aem_AbCdEfGhIjKlMnOpQrStUv",
+    "expected": "https://www.seattlecoffeegear.com/products/lelit-mara-x3-espresso-machine?variant=53213339681075",
+    "tracking_params": [
+      "utm_source",
+      "utm_medium",
+      "utm_campaign",
+      "utm_content",
+      "fbclid"
+    ],
+    "functional_params": [
+      "variant"
+    ],
+    "rationale": "Meta ad click (new IwZXh0bgNhZW0 fbclid format)."
+  },
+  {
+    "id": "commerce-034",
+    "category": "shopify",
+    "kind": "near-negative",
+    "input": "https://fellowproducts.com/products/opus-2-conical-burr-grinder?variant=47932786868324&gad_source=1&gbraid=0AAAAADmB7q1aBcDeFgHiJkLmNoPqRsTuV&gclid=Cj0KCQjwvL-oBhCxARIsAHkOiu3aBcDeFgHiJkLmNoPqRsTuVwXyZ_EALw_wcB",
+    "expected": "https://fellowproducts.com/products/opus-2-conical-burr-grinder?variant=47932786868324",
+    "tracking_params": [
+      "gad_source",
+      "gbraid",
+      "gclid"
+    ],
+    "functional_params": [
+      "variant"
+    ],
+    "rationale": "Google Ads landing: gclid click id, gbraid (iOS app-to-web), gad_source ad-surface marker. Neither ClearURLs' global rules nor many lists cover gad_source/gbraid."
+  },
+  {
+    "id": "commerce-035",
+    "category": "shopify",
+    "kind": "positive",
+    "input": "https://fellowproducts.com/products/stagg-ekg-electric-pour-over-kettle?_gl=1*1x2y3z4*_ga*MTIzNDU2Nzg5MC4xNzI4OTk0MDAw*_ga_ABCDEF1234*MTcyODk5NDAwMC4xLjEuMTcyODk5NDAxMC4wLjAuMA..",
+    "expected": "https://fellowproducts.com/products/stagg-ekg-electric-pour-over-kettle",
+    "tracking_params": [
+      "_gl"
+    ],
+    "functional_params": [],
+    "rationale": "GA4 cross-domain linker (_gl) carries the client id; raw '*' separators unencoded as in real links."
+  },
+  {
+    "id": "commerce-036",
+    "category": "shopify",
+    "kind": "negative",
+    "input": "https://www.blackwhiteroasters.com/products/r-huver-castillo-blackberry-washed?variant=67650847408441&selling_plan=4123456789",
+    "expected": "https://www.blackwhiteroasters.com/products/r-huver-castillo-blackberry-washed?variant=67650847408441&selling_plan=4123456789",
+    "tracking_params": [],
+    "functional_params": [
+      "variant",
+      "selling_plan"
+    ],
+    "rationale": "Subscription link: selling_plan preselects the subscription plan (Shopify selling-plans URL param). Nothing to strip."
+  },
+  {
+    "id": "commerce-037",
+    "category": "shopify",
+    "kind": "negative",
+    "input": "https://weberworkshops.com/discount/AFICIONADO10?redirect=%2Fproducts%2Feg-1",
+    "expected": "https://weberworkshops.com/discount/AFICIONADO10?redirect=%2Fproducts%2Feg-1",
+    "tracking_params": [],
+    "functional_params": [
+      "redirect"
+    ],
+    "rationale": "Shopify shareable discount link: /discount/<code> applies the code, redirect= is the landing path. Stripping redirect breaks it; path is not a tracking segment."
+  },
+  {
+    "id": "commerce-038",
+    "category": "shopify",
+    "kind": "negative",
+    "input": "https://cdn.shopify.com/s/files/1/0270/5567/0985/files/eg-1-onyx.jpg?v=1712345678",
+    "expected": "https://cdn.shopify.com/s/files/1/0270/5567/0985/files/eg-1-onyx.jpg?v=1712345678",
+    "tracking_params": [],
+    "functional_params": [
+      "v"
+    ],
+    "rationale": "Shopify CDN asset version/cache key. Near-miss for '_v' (predictive-search tracking): v must stay."
+  },
+  {
+    "id": "commerce-039",
+    "category": "shopify",
+    "kind": "near-negative",
+    "input": "https://www.wholelattelove.com/collections/espresso-grinders?filter.p.vendor=Eureka&filter.v.price.gte=500&sort_by=price-ascending&page=2&srsltid=AfmBOop9Kx2Lm3Nn4Oo5Pp6Qq7Rr8Ss9Tt0Uu1Vv2Ww3Xx",
+    "expected": "https://www.wholelattelove.com/collections/espresso-grinders?filter.p.vendor=Eureka&filter.v.price.gte=500&sort_by=price-ascending&page=2",
+    "tracking_params": [
+      "srsltid"
+    ],
+    "functional_params": [
+      "filter.p.vendor",
+      "filter.v.price.gte",
+      "sort_by",
+      "page"
+    ],
+    "rationale": "Shopify storefront filtering (filter.p.*/filter.v.*), sort_by and page define the listing."
+  },
+  {
+    "id": "commerce-040",
+    "category": "shopify",
+    "kind": "near-negative",
+    "input": "https://www.nichecoffee.co.uk/products/niche-duo?sca_ref=4567890.AbCdEfGhIj&utm_source=uppromote&utm_medium=affiliate",
+    "expected": "https://www.nichecoffee.co.uk/products/niche-duo?sca_ref=4567890.AbCdEfGhIj",
+    "tracking_params": [
+      "utm_source",
+      "utm_medium"
+    ],
+    "functional_params": [],
+    "rationale": "UpPromote (Shopify affiliate app) referral link: sca_ref is the affiliate id (kept per policy); utm_* are analytics only.",
+    "affiliate_params": [
+      "sca_ref"
+    ]
+  },
+  {
+    "id": "commerce-041",
+    "category": "shopify",
+    "kind": "positive",
+    "input": "https://timwendelboe.no/products/tatmara?utm_source=ig&utm_medium=social&utm_content=link_in_bio&fbclid=PAZXh0bgNhZW0CMTEAAaZ1a2b3c4d5e6f7g8h9i0j_aem_Zx9Yw8Vu7Ts6Rq5Po4Nm",
+    "expected": "https://timwendelboe.no/products/tatmara",
+    "tracking_params": [
+      "utm_source",
+      "utm_medium",
+      "utm_content",
+      "fbclid"
+    ],
+    "functional_params": [],
+    "rationale": "Instagram link-in-bio click (PAZXh0bgNhZW0 fbclid variant)."
+  },
+  {
+    "id": "commerce-042",
+    "category": "shopify",
+    "kind": "near-negative",
+    "input": "https://www.wholelattelove.com/products/profitec-round-knock-box?srsltid=AfmBOoo1Aa2Bb3Cc4Dd5Ee6Ff7Gg8Hh9Ii0Jj#reviews",
+    "expected": "https://www.wholelattelove.com/products/profitec-round-knock-box#reviews",
+    "tracking_params": [
+      "srsltid"
+    ],
+    "functional_params": [
+      "#reviews"
+    ],
+    "rationale": "Fragment is a content anchor and must survive query removal."
+  },
+  {
+    "id": "commerce-043",
+    "category": "retailer",
+    "kind": "positive",
+    "input": "https://decentespresso.com/de1pro?mc_cid=5e4d3c2b1a&mc_eid=0a9b8c7d6e",
+    "expected": "https://decentespresso.com/de1pro",
+    "tracking_params": [
+      "mc_cid",
+      "mc_eid"
+    ],
+    "functional_params": [],
+    "rationale": "Mailchimp newsletter params on a non-Shopify brand site."
+  },
+  {
+    "id": "commerce-044",
+    "category": "retailer",
+    "kind": "near-negative",
+    "input": "https://home.lamarzoccousa.com/product/linea-micra/?attribute_pa_option=black&utm_source=google&utm_medium=cpc&utm_campaign=micra_brand&gad_source=1&gclid=EAIaIQobChMIq8vX0aBc6QIVxYzBAbCdEfGhEAAYASAAEgJ7_vD_BwE",
+    "expected": "https://home.lamarzoccousa.com/product/linea-micra/?attribute_pa_option=black",
+    "tracking_params": [
+      "utm_source",
+      "utm_medium",
+      "utm_campaign",
+      "gad_source",
+      "gclid"
+    ],
+    "functional_params": [
+      "attribute_pa_option"
+    ],
+    "rationale": "WooCommerce variation preselect: attribute_pa_option (values white/black/red/creme verified in the live page's data-product_variations). Trailing slash preserved."
+  },
+  {
+    "id": "commerce-045",
+    "category": "retailer",
+    "kind": "negative",
+    "input": "https://www.baratza.com/?s=burr&post_type=product",
+    "expected": "https://www.baratza.com/?s=burr&post_type=product",
+    "tracking_params": [],
+    "functional_params": [
+      "s",
+      "post_type"
+    ],
+    "rationale": "WordPress/WooCommerce search: s= is the query. Naive single-letter stripping (cf. Amazon's s=) would break it."
+  },
+  {
+    "id": "commerce-046",
+    "category": "retailer",
+    "kind": "near-negative",
+    "input": "https://prima-coffee.com/cafe/espresso-grinders?sort=pricedesc&page=2&msclkid=0a1b2c3d4e5f60718293a4b5c6d7e8f9",
+    "expected": "https://prima-coffee.com/cafe/espresso-grinders?sort=pricedesc&page=2",
+    "tracking_params": [
+      "msclkid"
+    ],
+    "functional_params": [
+      "sort",
+      "page"
+    ],
+    "rationale": "BigCommerce category (path verified on live site) with Microsoft Ads click id."
+  },
+  {
+    "id": "commerce-047",
+    "category": "bigbox",
+    "kind": "near-negative",
+    "input": "https://www.bestbuy.com/site/breville-the-barista-express-espresso-machine-brushed-stainless-steel/6189345.p?skuId=6189345&intl=nosplash&gclid=CjwKCAjw1aBcBhAbEiwAbCdEfGh123",
+    "expected": "https://www.bestbuy.com/site/breville-the-barista-express-espresso-machine-brushed-stainless-steel/6189345.p?skuId=6189345&intl=nosplash",
+    "tracking_params": [
+      "gclid"
+    ],
+    "functional_params": [
+      "skuId",
+      "intl"
+    ],
+    "rationale": "skuId selects the product; intl=nosplash suppresses Best Buy's international country-picker interstitial (relevant for non-US members) -> functional. ClearURLs' bestbuy rule strips intl."
+  },
+  {
+    "id": "commerce-048",
+    "category": "bigbox",
+    "kind": "near-negative",
+    "input": "https://www.walmart.com/ip/De-Longhi-Stilosa-Manual-Espresso-Machine-Latte-Cappuccino-Maker-EC260BK/604431163?classType=REGULAR&athbdg=L1600&from=/search",
+    "expected": "https://www.walmart.com/ip/De-Longhi-Stilosa-Manual-Espresso-Machine-Latte-Cappuccino-Maker-EC260BK/604431163?classType=REGULAR",
+    "tracking_params": [
+      "athbdg",
+      "from"
+    ],
+    "functional_params": [
+      "classType"
+    ],
+    "rationale": "Search-result click: athbdg is the badge shown at click time, from= the referring page (raw '/'). classType (REGULAR/VARIANT) is undocumented and may steer variant handling; kept conservatively, alt drops it.",
+    "alt_expected": [
+      "https://www.walmart.com/ip/De-Longhi-Stilosa-Manual-Espresso-Machine-Latte-Cappuccino-Maker-EC260BK/604431163"
+    ]
+  },
+  {
+    "id": "commerce-049",
+    "category": "bigbox",
+    "kind": "near-negative",
+    "input": "https://www.walmart.com/ip/Mr-Coffee-Espresso-and-Cappuccino-Machine-Black-ECM160/14899181?athcpid=14899181&athpgid=AthenaItempage&athcgid=null&athznid=si&athieid=v0&athstid=CS020&athguid=AbCdEfGhIjKlMnOp&athancid=null&athena=true&selectedSellerId=0",
+    "expected": "https://www.walmart.com/ip/Mr-Coffee-Espresso-and-Cappuccino-Machine-Black-ECM160/14899181?selectedSellerId=0",
+    "tracking_params": [
+      "athcpid",
+      "athpgid",
+      "athcgid",
+      "athznid",
+      "athieid",
+      "athstid",
+      "athguid",
+      "athancid",
+      "athena"
+    ],
+    "functional_params": [
+      "selectedSellerId"
+    ],
+    "rationale": "Walmart 'Athena' recommendation-carousel tracking (ath*). selectedSellerId picks the seller offer (0 = Walmart) -> keep."
+  },
+  {
+    "id": "commerce-050",
+    "category": "bigbox",
+    "kind": "near-negative",
+    "input": "https://www.target.com/p/nespresso-vertuo-pop-coffee-and-espresso-machine-by-de-longhi/-/A-88123456?preselect=87654321#lnk=sametab",
+    "expected": "https://www.target.com/p/nespresso-vertuo-pop-coffee-and-espresso-machine-by-de-longhi/-/A-88123456?preselect=87654321",
+    "tracking_params": [
+      "#lnk"
+    ],
+    "functional_params": [
+      "preselect"
+    ],
+    "rationale": "Target: preselect= selects the colour/variant child TCIN (functional). Fragment #lnk=sametab is Target's link-click analytics marker, not an anchor -> drop the fragment."
+  },
+  {
+    "id": "commerce-051",
+    "category": "bigbox",
+    "kind": "negative",
+    "input": "https://www.costco.com/CatalogSearch?dept=All&keyword=espresso+machine",
+    "expected": "https://www.costco.com/CatalogSearch?dept=All&keyword=espresso+machine",
+    "tracking_params": [],
+    "functional_params": [
+      "dept",
+      "keyword"
+    ],
+    "rationale": "Costco search; keyword= is the query. A global 'keywords'-style rule must not leak off Amazon."
+  },
+  {
+    "id": "commerce-052",
+    "category": "bigbox",
+    "kind": "positive",
+    "input": "https://www.ikea.com/us/en/p/metallisk-espresso-maker-for-stovetop-stainless-steel-00379435/?utm_source=pinterest&utm_medium=organic&utm_campaign=kitchen_fall",
+    "expected": "https://www.ikea.com/us/en/p/metallisk-espresso-maker-for-stovetop-stainless-steel-00379435/",
+    "tracking_params": [
+      "utm_source",
+      "utm_medium",
+      "utm_campaign"
+    ],
+    "functional_params": [],
+    "rationale": "IKEA product page (trailing slash kept) with social utm."
+  },
+  {
+    "id": "commerce-053",
+    "category": "kickstarter",
+    "kind": "positive",
+    "input": "https://www.kickstarter.com/projects/flairespresso/flair-58x-manual-espresso-maker?ref=discovery_category_newest&term=espresso",
+    "expected": "https://www.kickstarter.com/projects/flairespresso/flair-58x-manual-espresso-maker",
+    "tracking_params": [
+      "ref",
+      "term"
+    ],
+    "functional_params": [],
+    "rationale": "Kickstarter ref= tags are referral attribution shown in the creator dashboard's referrer table; term= echoes the discovery search. Project page content is identical without both."
+  },
+  {
+    "id": "commerce-054",
+    "category": "kickstarter",
+    "kind": "near-negative",
+    "input": "https://www.kickstarter.com/discover/advanced?term=espresso&category_id=307&sort=magic&ref=nav_search",
+    "expected": "https://www.kickstarter.com/discover/advanced?term=espresso&category_id=307&sort=magic",
+    "tracking_params": [
+      "ref"
+    ],
+    "functional_params": [
+      "term",
+      "category_id",
+      "sort"
+    ],
+    "rationale": "On /discover term= IS the query (contrast commerce-053): param semantics are path-dependent."
+  },
+  {
+    "id": "commerce-055",
+    "category": "forum",
+    "kind": "negative",
+    "input": "https://www.home-barista.com/espresso-machines/lelit-bianca-v3-long-term-review-t91234.html",
+    "expected": "https://www.home-barista.com/espresso-machines/lelit-bianca-v3-long-term-review-t91234.html",
+    "tracking_params": [],
+    "functional_params": [],
+    "rationale": "Clean SEO topic URL."
+  },
+  {
+    "id": "commerce-056",
+    "category": "forum",
+    "kind": "near-negative",
+    "input": "https://www.home-barista.com/forums/viewtopic.php?t=91234&start=40&sid=0f1e2d3c4b5a69788796a5b4c3d2e1f0",
+    "expected": "https://www.home-barista.com/forums/viewtopic.php?t=91234&start=40",
+    "tracking_params": [
+      "sid"
+    ],
+    "functional_params": [
+      "t",
+      "start"
+    ],
+    "rationale": "phpBB: t topic, start page offset; sid is the poster's session id (session identity leak)."
+  },
+  {
+    "id": "commerce-057",
+    "category": "forum",
+    "kind": "negative",
+    "input": "https://www.home-barista.com/forums/viewtopic.php?p=1012345#p1012345",
+    "expected": "https://www.home-barista.com/forums/viewtopic.php?p=1012345#p1012345",
+    "tracking_params": [],
+    "functional_params": [
+      "p",
+      "#p1012345"
+    ],
+    "rationale": "Post permalink; fragment is the post anchor."
+  },
+  {
+    "id": "commerce-058",
+    "category": "redirect-wrapper",
+    "kind": "positive",
+    "input": "https://www.google.com/url?sa=t&rct=j&q=&esrc=s&source=web&cd=&cad=rja&uact=8&ved=2ahUKEwiAbCdEfGhIjKlMnOpQrStUvWxYz0QFnoECBEQAQ&url=https%3A%2F%2Fwww.seattlecoffeegear.com%2Fproducts%2Ffellow-opus-gen-2-espresso-grinder%3Fsrsltid%3DAfmBOoqZx1Y2&usg=AOvVaw0AbCdEfGhIjKlMnOp",
+    "expected": "https://www.seattlecoffeegear.com/products/fellow-opus-gen-2-espresso-grinder",
+    "tracking_params": [
+      "srsltid"
+    ],
+    "functional_params": [],
+    "rationale": "Google search redirect (url= variant, fully encoded). Unwrap, decode, then clean the destination's srsltid."
+  },
+  {
+    "id": "commerce-059",
+    "category": "redirect-wrapper",
+    "kind": "positive",
+    "input": "https://www.google.com/url?q=https://www.etsy.com/listing/1234567890/walnut-wdt-tool-espresso-distribution?ref%3Dshop_home_active_1&sa=D&source=editors&ust=1729080400123456&usg=AOvVaw1AbCdEfGh",
+    "expected": "https://www.etsy.com/listing/1234567890/walnut-wdt-tool-espresso-distribution",
+    "tracking_params": [
+      "ref"
+    ],
+    "functional_params": [],
+    "rationale": "Google Docs/Sheets link wrapper: q= destination is only partially encoded (literal '?', '=' as %3D). Unwrap then strip Etsy ref."
+  },
+  {
+    "id": "commerce-060",
+    "category": "redirect-wrapper",
+    "kind": "near-negative",
+    "input": "https://l.facebook.com/l.php?u=https%3A%2F%2Fwww.wholelattelove.com%2Fproducts%2Flelit-steve-64mm-espresso-grinder%3Fvariant%3D48009075163190%26fbclid%3DIwAR2xYzAbCdEf&h=AT1aBcDeFgHiJkLmNoPq&__tn__=-UK-R&c[0]=AT0xYzWvU",
+    "expected": "https://www.wholelattelove.com/products/lelit-steve-64mm-espresso-grinder?variant=48009075163190",
+    "tracking_params": [
+      "fbclid"
+    ],
+    "functional_params": [
+      "variant"
+    ],
+    "rationale": "Facebook outbound wrapper: unwrap u=, then drop the fbclid appended to the destination but keep variant."
+  },
+  {
+    "id": "commerce-061",
+    "category": "click-tracker",
+    "kind": "negative",
+    "input": "https://onyxcoffeelab.us8.list-manage.com/track/click?u=a1b2c3d4e5f6a7b8c9d0e1f2a&id=1a2b3c4d5e&e=9f8e7d6c5b",
+    "expected": "https://onyxcoffeelab.us8.list-manage.com/track/click?u=a1b2c3d4e5f6a7b8c9d0e1f2a&id=1a2b3c4d5e&e=9f8e7d6c5b",
+    "tracking_params": [],
+    "functional_params": [
+      "u",
+      "id",
+      "e"
+    ],
+    "rationale": "Mailchimp click-tracking redirect: destination is server-side; u/id are required to resolve it. Offline cleaner must leave it alone (generic 'id'/'e' stripping would break it)."
+  }
+]

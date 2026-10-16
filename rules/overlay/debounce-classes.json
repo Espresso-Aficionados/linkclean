@@ -1,858 +1,187 @@
-{
- "patterns": {
-  "*://*.3anx.net/c/*": {
-   "class": "affiliate",
-   "idPath": "^/c/([0-9]+)/",
-   "network": "Impact"
-  },
-  "*://*.3uu8.net/c/*": {
-   "class": "affiliate",
-   "idPath": "^/c/([0-9]+)/",
-   "network": "Impact"
-  },
-  "*://*.58dp.net/c/*": {
-   "class": "affiliate",
-   "idPath": "^/c/([0-9]+)/",
-   "network": "Impact"
-  },
-  "*://*.5ad6.net/c/*": {
-   "class": "affiliate",
-   "idPath": "^/c/([0-9]+)/",
-   "network": "Impact"
-  },
-  "*://*.7eer.net/c/*": {
-   "class": "affiliate",
-   "idPath": "^/c/([0-9]+)/",
-   "network": "Impact"
-  },
-  "*://*.7tiv.net/c/*": {
-   "class": "affiliate",
-   "idPath": "^/c/([0-9]+)/",
-   "network": "Impact"
-  },
-  "*://*.8ocm68.net/c/*": {
-   "class": "affiliate",
-   "idPath": "^/c/([0-9]+)/",
-   "network": "Impact"
-  },
-  "*://*.a9yw.net/c/*": {
-   "class": "affiliate",
-   "idPath": "^/c/([0-9]+)/",
-   "network": "Impact"
-  },
-  "*://*.am3t9s.net/*": {
-   "class": "affiliate",
-   "idPath": "^/c/([0-9]+)/",
-   "network": "Impact"
-  },
-  "*://*.attfm2.net/c/*": {
-   "class": "affiliate",
-   "idPath": "^/c/([0-9]+)/",
-   "network": "Impact"
-  },
-  "*://*.avantlink.com/click.php?*": {
-   "class": "affiliate",
-   "idParam": "pw",
-   "network": "AvantLink"
-  },
-  "*://*.awstrack.me/L0/*": {
-   "class": "off",
-   "why": "action \"regex-path\" not supported in v1"
-  },
-  "*://*.bluelena.io/Prod/link-tracker?*": {
-   "class": "off",
-   "why": "action \"base64,redirect\" not supported in v1"
-  },
-  "*://*.c9ftyd.net/c/*": {
-   "class": "affiliate",
-   "idPath": "^/c/([0-9]+)/",
-   "network": "Impact"
-  },
-  "*://*.cdn.ampproject.org/c/s/*": {
-   "class": "off",
-   "why": "action \"regex-path\", pref brave.de_amp.enabled not supported in v1"
-  },
-  "*://*.demdex.net/*": {
-   "class": "unwrap",
-   "why": "Adobe Audience Manager redirect"
-  },
-  "*://*.dttq.net/c/*": {
-   "class": "affiliate",
-   "idPath": "^/c/([0-9]+)/",
-   "network": "Impact"
-  },
-  "*://*.engage.squarespace-mail.com/r?*": {
-   "class": "unwrap",
-   "why": "Squarespace email click tracker (also overlay U-12)"
-  },
-  "*://*.evyy.net/c/*": {
-   "class": "affiliate",
-   "idPath": "^/c/([0-9]+)/",
-   "network": "Impact"
-  },
-  "*://*.fziv.net/c/*": {
-   "class": "affiliate",
-   "idPath": "^/c/([0-9]+)/",
-   "network": "Impact"
-  },
-  "*://*.getprice.com.au/prodhits.aspx?*": {
-   "class": "affiliate",
-   "network": "GetPrice",
-   "noID": "paid-click comparison redirect"
-  },
-  "*://*.glg9ob.net/c/*": {
-   "class": "affiliate",
-   "idPath": "^/c/([0-9]+)/",
-   "network": "Impact"
-  },
-  "*://*.golfbacksolutions.com/Prod/link-tracker?*": {
-   "class": "off",
-   "why": "action \"base64,redirect\" not supported in v1"
-  },
-  "*://*.i114863.net/c/*": {
-   "class": "affiliate",
-   "idPath": "^/c/([0-9]+)/",
-   "network": "Impact"
-  },
-  "*://*.i182465.net/c/*": {
-   "class": "affiliate",
-   "idPath": "^/c/([0-9]+)/",
-   "network": "Impact"
-  },
-  "*://*.i254217.net/c/*": {
-   "class": "affiliate",
-   "idPath": "^/c/([0-9]+)/",
-   "network": "Impact"
-  },
-  "*://*.i308314.net/c/*": {
-   "class": "affiliate",
-   "idPath": "^/c/([0-9]+)/",
-   "network": "Impact"
-  },
-  "*://*.i312864.net/c/*": {
-   "class": "affiliate",
-   "idPath": "^/c/([0-9]+)/",
-   "network": "Impact"
-  },
-  "*://*.igs4ds.net/c/*": {
-   "class": "affiliate",
-   "idPath": "^/c/([0-9]+)/",
-   "network": "Impact"
-  },
-  "*://*.ioym.net/c/*": {
-   "class": "affiliate",
-   "idPath": "^/c/([0-9]+)/",
-   "network": "Impact"
-  },
-  "*://*.iyhh.net/c/*": {
-   "class": "affiliate",
-   "idPath": "^/c/([0-9]+)/",
-   "network": "Impact"
-  },
-  "*://*.lt.acemlna.com/Prod/link-tracker?*": {
-   "class": "off",
-   "why": "action \"base64,redirect\" not supported in v1"
-  },
-  "*://*.lt.acemlnb.com/Prod/link-tracker?*": {
-   "class": "off",
-   "why": "action \"base64,redirect\" not supported in v1"
-  },
-  "*://*.lt.acemlnc.com/Prod/link-tracker?*": {
-   "class": "off",
-   "why": "action \"base64,redirect\" not supported in v1"
-  },
-  "*://*.lt.acemlnd.com/Prod/link-tracker?*": {
-   "class": "off",
-   "why": "action \"base64,redirect\" not supported in v1"
-  },
-  "*://*.lt.emlnk.com/Prod/link-tracker?*": {
-   "class": "off",
-   "why": "action \"base64,redirect\" not supported in v1"
-  },
-  "*://*.lt.emlnk1.com/Prod/link-tracker?*": {
-   "class": "off",
-   "why": "action \"base64,redirect\" not supported in v1"
-  },
-  "*://*.lt.emlnk2.com/Prod/link-tracker?*": {
-   "class": "off",
-   "why": "action \"base64,redirect\" not supported in v1"
-  },
-  "*://*.lt.emlnk3.com/Prod/link-tracker?*": {
-   "class": "off",
-   "why": "action \"base64,redirect\" not supported in v1"
-  },
-  "*://*.lt.emlnk4.com/Prod/link-tracker?*": {
-   "class": "off",
-   "why": "action \"base64,redirect\" not supported in v1"
-  },
-  "*://*.lt.emlnk5.com/Prod/link-tracker?*": {
-   "class": "off",
-   "why": "action \"base64,redirect\" not supported in v1"
-  },
-  "*://*.lt.emlnk6.com/Prod/link-tracker?*": {
-   "class": "off",
-   "why": "action \"base64,redirect\" not supported in v1"
-  },
-  "*://*.lt.emlnk7.com/Prod/link-tracker?*": {
-   "class": "off",
-   "why": "action \"base64,redirect\" not supported in v1"
-  },
-  "*://*.lt.emlnk8.com/Prod/link-tracker?*": {
-   "class": "off",
-   "why": "action \"base64,redirect\" not supported in v1"
-  },
-  "*://*.lt.emlnk9.com/Prod/link-tracker?*": {
-   "class": "off",
-   "why": "action \"base64,redirect\" not supported in v1"
-  },
-  "*://*.lvuv.net/c/*": {
-   "class": "affiliate",
-   "idPath": "^/c/([0-9]+)/",
-   "network": "Impact"
-  },
-  "*://*.mailchimp.com/mctx/clicks?*": {
-   "class": "unwrap",
-   "why": "Mailchimp click tracker"
-  },
-  "*://*.mvvx.net/c/*": {
-   "class": "affiliate",
-   "idPath": "^/c/([0-9]+)/",
-   "network": "Impact"
-  },
-  "*://*.narrativ.com/api/v0/client_redirect/*": {
-   "class": "affiliate",
-   "network": "Narrativ",
-   "noID": "opaque click token"
-  },
-  "*://*.njih.net/c/*": {
-   "class": "affiliate",
-   "idPath": "^/c/([0-9]+)/",
-   "network": "Impact"
-  },
-  "*://*.nordstrom.com/Linkshare?*": {
-   "class": "affiliate",
-   "network": "Rakuten Advertising",
-   "noID": "inert in practice: the url destination is nordstrom.com, rejected by the same-site rule; no locator"
-  },
-  "*://*.ntaf.net/c/*": {
-   "class": "affiliate",
-   "idPath": "^/c/([0-9]+)/",
-   "network": "Impact"
-  },
-  "*://*.obak77.net/c/*": {
-   "class": "affiliate",
-   "idPath": "^/c/([0-9]+)/",
-   "network": "Impact"
-  },
-  "*://*.ouo.today/*": {
-   "class": "off",
-   "why": "base64,redirect not supported in v1 (monetized shortener; would be affiliate)"
-  },
-  "*://*.page.link/?*": {
-   "class": "unwrap",
-   "why": "Firebase Dynamic Links fallback (service shut down 2025-08)"
-  },
-  "*://*.pdy5.net/c/*": {
-   "class": "affiliate",
-   "idPath": "^/c/([0-9]+)/",
-   "network": "Impact"
-  },
-  "*://*.pfm4.net/c/*": {
-   "class": "affiliate",
-   "idPath": "^/c/([0-9]+)/",
-   "network": "Impact"
-  },
-  "*://*.pjatr.com/t/*": {
-   "class": "affiliate",
-   "network": "Pepperjam (Partnerize)",
-   "noID": "publisher is encoded in an opaque path token"
-  },
-  "*://*.prospect2.com/Prod/link-tracker?*": {
-   "class": "off",
-   "why": "action \"base64,redirect\" not supported in v1"
-  },
-  "*://*.prsm1.com/r?*": {
-   "class": "off",
-   "why": "purpose unverified"
-  },
-  "*://*.pxf.io/c/*": {
-   "class": "affiliate",
-   "idPath": "^/c/([0-9]+)/",
-   "network": "Impact"
-  },
-  "*://*.q77h.net/c/*": {
-   "class": "affiliate",
-   "idPath": "^/c/([0-9]+)/",
-   "network": "Impact"
-  },
-  "*://*.qflm.net/c/*": {
-   "class": "affiliate",
-   "idPath": "^/c/([0-9]+)/",
-   "network": "Impact"
-  },
-  "*://*.rfvk.net/c/*": {
-   "class": "affiliate",
-   "idPath": "^/c/([0-9]+)/",
-   "network": "Impact"
-  },
-  "*://*.rg35.net/*": {
-   "class": "affiliate",
-   "idPath": "^/c/([0-9]+)/",
-   "network": "Impact"
-  },
-  "*://*.rrmo.net/c/*": {
-   "class": "affiliate",
-   "idPath": "^/c/([0-9]+)/",
-   "network": "Impact"
-  },
-  "*://*.ryvx.net/c/*": {
-   "class": "affiliate",
-   "idPath": "^/c/([0-9]+)/",
-   "network": "Impact"
-  },
-  "*://*.sjv.io/c/*": {
-   "class": "affiliate",
-   "idPath": "^/c/([0-9]+)/",
-   "network": "Impact"
-  },
-  "*://*.streak-link.com/*": {
-   "class": "off",
-   "why": "action \"regex-path\" not supported in v1"
-  },
-  "*://*.tkjf.net/c/*": {
-   "class": "affiliate",
-   "idPath": "^/c/([0-9]+)/",
-   "network": "Impact"
-  },
-  "*://*.tmfhgn.net/c/*": {
-   "class": "affiliate",
-   "idPath": "^/c/([0-9]+)/",
-   "network": "Impact"
-  },
-  "*://*.tradedoubler.com/click?*": {
-   "class": "affiliate",
-   "idParam": "a",
-   "network": "Tradedoubler"
-  },
-  "*://*.turbopages.org/*/s/*": {
-   "class": "off",
-   "why": "action \"regex-path\", pref brave.de_amp.enabled not supported in v1"
-  },
-  "*://*.uikc.net/c/*": {
-   "class": "affiliate",
-   "idPath": "^/c/([0-9]+)/",
-   "network": "Impact"
-  },
-  "*://*.uqhv.net/c/*": {
-   "class": "affiliate",
-   "idPath": "^/c/([0-9]+)/",
-   "network": "Impact"
-  },
-  "*://*.uvwgb9.net/c/*": {
-   "class": "affiliate",
-   "idPath": "^/c/([0-9]+)/",
-   "network": "Impact"
-  },
-  "*://*.uxsi.net/c/*": {
-   "class": "affiliate",
-   "idPath": "^/c/([0-9]+)/",
-   "network": "Impact"
-  },
-  "*://*.valuecommerce.ne.jp/cgi-bin/*": {
-   "class": "affiliate",
-   "idParam": "sid",
-   "network": "ValueCommerce"
-  },
-  "*://*.vthnbx.net/c/*": {
-   "class": "affiliate",
-   "idPath": "^/c/([0-9]+)/",
-   "network": "Impact"
-  },
-  "*://*.vzew.net/c/*": {
-   "class": "affiliate",
-   "idPath": "^/c/([0-9]+)/",
-   "network": "Impact"
-  },
-  "*://*.xibx.net/c/*": {
-   "class": "affiliate",
-   "idPath": "^/c/([0-9]+)/",
-   "network": "Impact"
-  },
-  "*://*.xovt.net/c/*": {
-   "class": "affiliate",
-   "idPath": "^/c/([0-9]+)/",
-   "network": "Impact"
-  },
-  "*://*.xwrk.net/c/*": {
-   "class": "affiliate",
-   "idPath": "^/c/([0-9]+)/",
-   "network": "Impact"
-  },
-  "*://*.yvzx.net/c/*": {
-   "class": "affiliate",
-   "idPath": "^/c/([0-9]+)/",
-   "network": "Impact"
-  },
-  "*://*.zlwlj8.net/c/*": {
-   "class": "affiliate",
-   "idPath": "^/c/([0-9]+)/",
-   "network": "Impact"
-  },
-  "*://*.ztk5.net/*": {
-   "class": "affiliate",
-   "idPath": "^/c/([0-9]+)/",
-   "network": "Impact"
-  },
-  "*://ad.atdmt.com/s/go;*": {
-   "class": "unwrap",
-   "why": "Atlas ad-click redirect"
-  },
-  "*://api.bam-x.com/api/v1/clickmate/*": {
-   "class": "affiliate",
-   "network": "Narrativ",
-   "noID": "opaque click token"
-  },
-  "*://app.adjust.com/*": {
-   "class": "unwrap",
-   "why": "Adjust mobile attribution redirect"
-  },
-  "*://app.hive.co/email/elt/*": {
-   "class": "unwrap",
-   "why": "Hive email click tracker"
-  },
-  "*://atrrd.valuecommerce.com/resolve/*": {
-   "class": "affiliate",
-   "idParam": "sid",
-   "network": "ValueCommerce"
-  },
-  "*://backerkit.com/ahoy/messages/*/click?*": {
-   "class": "unwrap",
-   "why": "BackerKit email click tracker"
-  },
-  "*://c.pepperjamnetwork.com/click*": {
-   "class": "affiliate",
-   "network": "Pepperjam (Partnerize)",
-   "noID": "publisher is encoded in an opaque path token"
-  },
-  "*://c212.net/c/link/?*": {
-   "class": "unwrap",
-   "why": "Cision/PR Newswire click tracker"
-  },
-  "*://cat.criteo.com/beacon?*": {
-   "class": "unwrap",
-   "why": "Criteo ad-click beacon"
-  },
-  "*://cc.cnet.com/v1/otc/*": {
-   "class": "affiliate",
-   "network": "Ziff Davis commerce links",
-   "noID": "first-party publisher redirector; the beneficiary is the publishing site itself"
-  },
-  "*://cc.mashable.com/v1/*": {
-   "class": "affiliate",
-   "network": "Ziff Davis commerce links",
-   "noID": "first-party publisher redirector; the beneficiary is the publishing site itself"
-  },
-  "*://cc.techbargains.com/v1/otc/*": {
-   "class": "affiliate",
-   "network": "Ziff Davis commerce links",
-   "noID": "first-party publisher redirector; the beneficiary is the publishing site itself"
-  },
-  "*://cc.zdnet.com/v1/otc/*": {
-   "class": "affiliate",
-   "network": "Ziff Davis commerce links",
-   "noID": "first-party publisher redirector; the beneficiary is the publishing site itself"
-  },
-  "*://ck.jp.ap.valuecommerce.com/servlet/referral?*": {
-   "class": "affiliate",
-   "idParam": "sid",
-   "network": "ValueCommerce"
-  },
-  "*://click.icptrack.com/icp/relay.php*": {
-   "class": "unwrap",
-   "why": "iContact email click tracker"
-  },
-  "*://click.linksynergy.com/deeplink*": {
-   "class": "affiliate",
-   "idParam": "id",
-   "network": "Rakuten Advertising"
-  },
-  "*://click.pstmrk.it/2/*": {
-   "class": "off",
-   "why": "action \"regex-path\" not supported in v1"
-  },
-  "*://click.pstmrk.it/2m/*": {
-   "class": "off",
-   "why": "action \"regex-path\" not supported in v1"
-  },
-  "*://click.pstmrk.it/2s/*": {
-   "class": "off",
-   "why": "action \"regex-path\" not supported in v1"
-  },
-  "*://click.pstmrk.it/2sm/*": {
-   "class": "off",
-   "why": "action \"regex-path\" not supported in v1"
-  },
-  "*://click.pstmrk.it/2ts/*": {
-   "class": "off",
-   "why": "action \"regex-path\" not supported in v1"
-  },
-  "*://click.pstmrk.it/3/*": {
-   "class": "off",
-   "why": "action \"regex-path\" not supported in v1"
-  },
-  "*://click.pstmrk.it/3s/*": {
-   "class": "off",
-   "why": "action \"regex-path\" not supported in v1"
-  },
-  "*://click.pstmrk.it/3ts/*": {
-   "class": "off",
-   "why": "action \"regex-path\" not supported in v1"
-  },
-  "*://click.redditmail.com/*": {
-   "class": "off",
-   "why": "action \"regex-path\" not supported in v1"
-  },
-  "*://clicks.trx-hub.com/xid/*": {
-   "class": "off",
-   "why": "purpose unverified"
-  },
-  "*://d.agkn.com/pixel/*": {
-   "class": "unwrap",
-   "why": "Neustar ad pixel redirect"
-  },
-  "*://deeplink-bh.datafeedfile.com/sl/*": {
-   "class": "affiliate",
-   "network": "Datafeedfile",
-   "noID": "opaque link token"
-  },
-  "*://deeplink-bh.datafeedfile.com/sl?*": {
-   "class": "affiliate",
-   "network": "Datafeedfile",
-   "noID": "opaque link token"
-  },
-  "*://engage.squarespace-mail.com/r?*": {
-   "class": "unwrap",
-   "why": "Squarespace email click tracker"
-  },
-  "*://flake.creditcable.info/*": {
-   "class": "off",
-   "why": "purpose unverified"
-  },
-  "*://g-o-media.digidip.net/visit?*": {
-   "class": "affiliate",
-   "network": "digidip",
-   "noID": "publisher is the subdomain owner, not a parameter"
-  },
-  "*://go.redirectingat.com/*": {
-   "class": "affiliate",
-   "idParam": "id",
-   "network": "Skimlinks"
-  },
-  "*://go.skimresources.com/*": {
-   "class": "affiliate",
-   "idParam": "id",
-   "network": "Skimlinks"
-  },
-  "*://goto.carters.com/c/*": {
-   "class": "affiliate",
-   "idPath": "^/c/([0-9]+)/",
-   "network": "Impact"
-  },
-  "*://goto.target.com/c/*": {
-   "class": "affiliate",
-   "idPath": "^/c/([0-9]+)/",
-   "network": "Impact"
-  },
-  "*://goto.walmart.com/c/*": {
-   "class": "affiliate",
-   "idPath": "^/c/([0-9]+)/",
-   "network": "Impact"
-  },
-  "*://howl.me/link/?*": {
-   "class": "affiliate",
-   "network": "Howl (Narrativ)",
-   "noID": "opaque link token"
-  },
-  "*://jsv3.recruitics.com/redirect?*": {
-   "class": "unwrap",
-   "why": "recruitment ad click tracker"
-  },
-  "*://laylo.co/e/*": {
-   "class": "unwrap",
-   "why": "Laylo email redirector"
-  },
-  "*://lcmspubcontact.lc.ca.gov/PublicLCMS/LinkTracking.php?*": {
-   "class": "unwrap",
-   "why": "government newsletter link tracker"
-  },
-  "*://llo.to/e/*": {
-   "class": "unwrap",
-   "why": "Laylo email redirector"
-  },
-  "*://mcpedl.com/leaving/?*": {
-   "class": "unwrap",
-   "why": "site leaving interstitial"
-  },
-  "*://microsoft.msafflnk.net/c/*": {
-   "class": "affiliate",
-   "idPath": "^/c/([0-9]+)/",
-   "network": "Impact"
-  },
-  "*://pj.nutribullet.com/t/*": {
-   "class": "affiliate",
-   "network": "Pepperjam (Partnerize)",
-   "noID": "publisher is encoded in an opaque path token"
-  },
-  "*://pvn.mediamarkt.de/trck/eclick/*": {
-   "class": "affiliate",
-   "network": "MediaMarktSaturn partner programme",
-   "noID": "no publisher parameter"
-  },
-  "*://pvn.saturn.de/trck/eclick/*": {
-   "class": "affiliate",
-   "network": "MediaMarktSaturn partner programme",
-   "noID": "no publisher parameter"
-  },
-  "*://r.bttn.io/*": {
-   "class": "affiliate",
-   "idParam": "btn_ref",
-   "network": "Button"
-  },
-  "*://rd.bizrate.com/rd2?*": {
-   "class": "affiliate",
-   "network": "Connexity (Bizrate)",
-   "noID": "paid-click comparison redirect; no publisher parameter"
-  },
-  "*://rd.bizrate.com/rd?*": {
-   "class": "affiliate",
-   "network": "Connexity (Bizrate)",
-   "noID": "paid-click comparison redirect; no publisher parameter"
-  },
-  "*://rd.connexity.net/rd?*": {
-   "class": "affiliate",
-   "network": "Connexity (Bizrate)",
-   "noID": "paid-click comparison redirect; no publisher parameter"
-  },
-  "*://redir.tradedoubler.com/*": {
-   "class": "affiliate",
-   "network": "Tradedoubler",
-   "noID": "deep-link redirector carries no affiliate parameter"
-  },
-  "*://redirect.viglink.com/*": {
-   "class": "affiliate",
-   "idParam": "key",
-   "network": "Sovrn Commerce (VigLink)"
-  },
-  "*://search.app/?*": {
-   "class": "unwrap",
-   "why": "Google app share redirect"
-  },
-  "*://shareasale-analytics.com/r.cfm?*": {
-   "class": "affiliate",
-   "idParam": "u",
-   "network": "ShareASale"
-  },
-  "*://shareasale.com/r.cfm?*": {
-   "class": "affiliate",
-   "idParam": "u",
-   "network": "ShareASale"
-  },
-  "*://sherlock.scribblelive.com/r?*": {
-   "class": "unwrap",
-   "why": "ScribbleLive click tracker"
-  },
-  "*://shop-links.co/link*": {
-   "class": "affiliate",
-   "network": "Shop-Links",
-   "noID": "opaque link token"
-  },
-  "*://shopping.yahoo.com/rdlw?*": {
-   "class": "affiliate",
-   "network": "Yahoo Shopping",
-   "noID": "first-party commerce redirect; no publisher parameter"
-  },
-  "*://streaklinks.com/*": {
-   "class": "off",
-   "why": "action \"regex-path\" not supported in v1"
-  },
-  "*://t.cfjump.com/*": {
-   "class": "affiliate",
-   "idPath": "^/([0-9]+)/",
-   "network": "Commission Factory"
-  },
-  "*://t.lever-analytics.com/email-link?": {
-   "class": "unwrap",
-   "why": "Lever email click tracker"
-  },
-  "*://t.mailpgn.com/l/*": {
-   "class": "unwrap",
-   "why": "email click tracker"
-  },
-  "*://target.georiot.com/*": {
-   "class": "affiliate",
-   "idParam": "TSID",
-   "network": "Geniuslink"
-  },
-  "*://track.effiliation.com/servlet/effi.redir*": {
-   "class": "affiliate",
-   "network": "Effiliation",
-   "noID": "id_compteur is a per-link counter, not the publisher"
-  },
-  "*://track.flexlinks.com/a.ashx?*": {
-   "class": "affiliate",
-   "idParam": "foid",
-   "network": "FlexOffers"
-  },
-  "*://trk.pm-srv.co/v2/trk?*": {
-   "class": "off",
-   "why": "purpose unverified"
-  },
-  "*://trk.pmsrv.co/v2/trk?*": {
-   "class": "off",
-   "why": "purpose unverified"
-  },
-  "*://visit.ws/visit/*": {
-   "class": "off",
-   "why": "purpose unverified"
-  },
-  "*://www.anrdoezrs.net/click-*": {
-   "class": "affiliate",
-   "idPath": "^/click-([0-9]+)-",
-   "network": "CJ Affiliate"
-  },
-  "*://www.awin1.com/awclick.php?*": {
-   "class": "affiliate",
-   "idParam": "awinaffid",
-   "network": "Awin"
-  },
-  "*://www.awin1.com/cread.php?*": {
-   "class": "affiliate",
-   "idParam": "awinaffid",
-   "network": "Awin"
-  },
-  "*://www.clixgalore.com/Lead.aspx*": {
-   "class": "affiliate",
-   "idParam": "AfID",
-   "network": "clixGalore"
-  },
-  "*://www.dpbolvw.net/click-*": {
-   "class": "affiliate",
-   "idPath": "^/click-([0-9]+)-",
-   "network": "CJ Affiliate"
-  },
-  "*://www.forocoches.com/link.php?*": {
-   "class": "unwrap",
-   "why": "forum outbound-link interstitial"
-  },
-  "*://www.google.com/amp/s/*": {
-   "class": "off",
-   "why": "action \"regex-path\", pref brave.de_amp.enabled not supported in v1"
-  },
-  "*://www.googleadservices.com/pagead/aclk?*": {
-   "class": "unwrap",
-   "why": "Google Ads click redirect"
-  },
-  "*://www.gopjn.com/t/*": {
-   "class": "affiliate",
-   "network": "Pepperjam (Partnerize)",
-   "noID": "publisher is encoded in an opaque path token"
-  },
-  "*://www.jdoqocy.com/click-*": {
-   "class": "affiliate",
-   "idPath": "^/click-([0-9]+)-",
-   "network": "CJ Affiliate"
-  },
-  "*://www.kqzyfj.com/click-*": {
-   "class": "affiliate",
-   "idPath": "^/click-([0-9]+)-",
-   "network": "CJ Affiliate"
-  },
-  "*://www.ojrq.net/p/*": {
-   "class": "off",
-   "why": "purpose unverified"
-  },
-  "*://www.pjtra.com/t/*": {
-   "class": "affiliate",
-   "network": "Pepperjam (Partnerize)",
-   "noID": "publisher is encoded in an opaque path token"
-  },
-  "*://www.pntrac.com/t/*": {
-   "class": "affiliate",
-   "network": "Pepperjam (Partnerize)",
-   "noID": "publisher is encoded in an opaque path token"
-  },
-  "*://www.pntrs.com/t/*": {
-   "class": "affiliate",
-   "network": "Pepperjam (Partnerize)",
-   "noID": "publisher is encoded in an opaque path token"
-  },
-  "*://www.shareasale-analytics.com/r.cfm?*": {
-   "class": "affiliate",
-   "idParam": "u",
-   "network": "ShareASale"
-  },
-  "*://www.shareasale.com/r.cfm?*": {
-   "class": "affiliate",
-   "idParam": "u",
-   "network": "ShareASale"
-  },
-  "*://www.sopasti.com/anime.php?*": {
-   "class": "off",
-   "why": "purpose unverified"
-  },
-  "*://www.tkqlhce.com/click-": {
-   "class": "affiliate",
-   "idPath": "^/click-([0-9]+)-",
-   "network": "CJ Affiliate"
-  },
-  "*://www.wordseed.com/go/*": {
-   "class": "affiliate",
-   "network": "WordSeed",
-   "noID": "opaque link token"
-  },
-  "*://www.zenaps.com/rclick.php*": {
-   "class": "affiliate",
-   "network": "Zenaps",
-   "noID": "no documented publisher parameter"
-  },
-  "*://x.chip.de/linktrack/button/*": {
-   "class": "affiliate",
-   "network": "CHIP price comparison",
-   "noID": "first-party publisher redirector"
-  },
-  "*://y2u.be/*": {
-   "class": "off",
-   "why": "action \"regex-path-template\" not supported in v1"
-  },
-  "https://buy.geni.us/Proxy.ashx?*": {
-   "class": "affiliate",
-   "idParam": "TSID",
-   "network": "Geniuslink"
-  },
-  "https://dev-pages.brave.software/navigation-tracking/*": {
-   "class": "off",
-   "why": "Brave test fixture"
-  },
-  "https://dev-pages.brave.software/navigation-tracking/error.html?*": {
-   "class": "off",
-   "why": "Brave test fixture"
-  },
-  "https://dev-pages.brave.software/navigation-tracking/regex-multiple-capture-groups/*": {
-   "class": "off",
-   "why": "Brave test fixture"
-  },
-  "https://dev-pages.bravesoftware.com/navigation-tracking/*": {
-   "class": "off",
-   "why": "Brave test fixture"
-  },
-  "https://dev-pages.bravesoftware.com/navigation-tracking/error.html?*": {
-   "class": "off",
-   "why": "Brave test fixture"
-  },
-  "https://dev-pages.bravesoftware.com/navigation-tracking/regex-multiple-capture-groups/*": {
-   "class": "off",
-   "why": "Brave test fixture"
-  }
- },
- "schema": 1
-}
+{"schema": 1, "patterns": {
+  "*://*.3anx.net/c/*": {"class": "affiliate", "network": "Impact", "idPath": "^/c/([0-9]+)/", "ref": "design §4.4.1 (Impact, /c/<partner>/ path segment); vendor link-format doc pending (M1 exit, Q17)"},
+  "*://*.3uu8.net/c/*": {"class": "affiliate", "network": "Impact", "idPath": "^/c/([0-9]+)/", "ref": "design §4.4.1 (Impact, /c/<partner>/ path segment); vendor link-format doc pending (M1 exit, Q17)"},
+  "*://*.58dp.net/c/*": {"class": "affiliate", "network": "Impact", "idPath": "^/c/([0-9]+)/", "ref": "design §4.4.1 (Impact, /c/<partner>/ path segment); vendor link-format doc pending (M1 exit, Q17)"},
+  "*://*.5ad6.net/c/*": {"class": "affiliate", "network": "Impact", "idPath": "^/c/([0-9]+)/", "ref": "design §4.4.1 (Impact, /c/<partner>/ path segment); vendor link-format doc pending (M1 exit, Q17)"},
+  "*://*.7eer.net/c/*": {"class": "affiliate", "network": "Impact", "idPath": "^/c/([0-9]+)/", "ref": "design §4.4.1 (Impact, /c/<partner>/ path segment); vendor link-format doc pending (M1 exit, Q17)"},
+  "*://*.7tiv.net/c/*": {"class": "affiliate", "network": "Impact", "idPath": "^/c/([0-9]+)/", "ref": "design §4.4.1 (Impact, /c/<partner>/ path segment); vendor link-format doc pending (M1 exit, Q17)"},
+  "*://*.8ocm68.net/c/*": {"class": "affiliate", "network": "Impact", "idPath": "^/c/([0-9]+)/", "ref": "design §4.4.1 (Impact, /c/<partner>/ path segment); vendor link-format doc pending (M1 exit, Q17)"},
+  "*://*.a9yw.net/c/*": {"class": "affiliate", "network": "Impact", "idPath": "^/c/([0-9]+)/", "ref": "design §4.4.1 (Impact, /c/<partner>/ path segment); vendor link-format doc pending (M1 exit, Q17)"},
+  "*://*.am3t9s.net/*": {"class": "affiliate", "network": "Impact", "idPath": "^/c/([0-9]+)/", "ref": "design §4.4.1 (Impact, /c/<partner>/ path segment); vendor link-format doc pending (M1 exit, Q17)"},
+  "*://*.attfm2.net/c/*": {"class": "affiliate", "network": "Impact", "idPath": "^/c/([0-9]+)/", "ref": "design §4.4.1 (Impact, /c/<partner>/ path segment); vendor link-format doc pending (M1 exit, Q17)"},
+  "*://*.avantlink.com/click.php?*": {"class": "affiliate", "network": "AvantLink", "idParam": "pw", "ref": "design §4.4.1 (AvantLink, pw, the affiliate website ID of the numeric mi/pw form; the UUID website_id form shows no ID until verified); vendor link-format doc pending (M1 exit, Q17)"},
+  "*://*.awstrack.me/L0/*": {"class": "off", "why": "action \"regex-path\" not supported in v1"},
+  "*://*.bluelena.io/Prod/link-tracker?*": {"class": "off", "why": "action \"base64,redirect\" not supported in v1"},
+  "*://*.c9ftyd.net/c/*": {"class": "affiliate", "network": "Impact", "idPath": "^/c/([0-9]+)/", "ref": "design §4.4.1 (Impact, /c/<partner>/ path segment); vendor link-format doc pending (M1 exit, Q17)"},
+  "*://*.cdn.ampproject.org/c/s/*": {"class": "off", "why": "action \"regex-path\", pref brave.de_amp.enabled not supported in v1"},
+  "*://*.demdex.net/*": {"class": "unwrap", "why": "Adobe Audience Manager redirect"},
+  "*://*.dttq.net/c/*": {"class": "affiliate", "network": "Impact", "idPath": "^/c/([0-9]+)/", "ref": "design §4.4.1 (Impact, /c/<partner>/ path segment); vendor link-format doc pending (M1 exit, Q17)"},
+  "*://*.engage.squarespace-mail.com/r?*": {"class": "unwrap", "why": "Squarespace email click tracker (also overlay U-12)"},
+  "*://*.evyy.net/c/*": {"class": "affiliate", "network": "Impact", "idPath": "^/c/([0-9]+)/", "ref": "design §4.4.1 (Impact, /c/<partner>/ path segment); vendor link-format doc pending (M1 exit, Q17)"},
+  "*://*.fziv.net/c/*": {"class": "affiliate", "network": "Impact", "idPath": "^/c/([0-9]+)/", "ref": "design §4.4.1 (Impact, /c/<partner>/ path segment); vendor link-format doc pending (M1 exit, Q17)"},
+  "*://*.getprice.com.au/prodhits.aspx?*": {"class": "affiliate", "network": "GetPrice", "why": "paid-click comparison redirect"},
+  "*://*.glg9ob.net/c/*": {"class": "affiliate", "network": "Impact", "idPath": "^/c/([0-9]+)/", "ref": "design §4.4.1 (Impact, /c/<partner>/ path segment); vendor link-format doc pending (M1 exit, Q17)"},
+  "*://*.golfbacksolutions.com/Prod/link-tracker?*": {"class": "off", "why": "action \"base64,redirect\" not supported in v1"},
+  "*://*.i114863.net/c/*": {"class": "affiliate", "network": "Impact", "idPath": "^/c/([0-9]+)/", "ref": "design §4.4.1 (Impact, /c/<partner>/ path segment); vendor link-format doc pending (M1 exit, Q17)"},
+  "*://*.i182465.net/c/*": {"class": "affiliate", "network": "Impact", "idPath": "^/c/([0-9]+)/", "ref": "design §4.4.1 (Impact, /c/<partner>/ path segment); vendor link-format doc pending (M1 exit, Q17)"},
+  "*://*.i254217.net/c/*": {"class": "affiliate", "network": "Impact", "idPath": "^/c/([0-9]+)/", "ref": "design §4.4.1 (Impact, /c/<partner>/ path segment); vendor link-format doc pending (M1 exit, Q17)"},
+  "*://*.i308314.net/c/*": {"class": "affiliate", "network": "Impact", "idPath": "^/c/([0-9]+)/", "ref": "design §4.4.1 (Impact, /c/<partner>/ path segment); vendor link-format doc pending (M1 exit, Q17)"},
+  "*://*.i312864.net/c/*": {"class": "affiliate", "network": "Impact", "idPath": "^/c/([0-9]+)/", "ref": "design §4.4.1 (Impact, /c/<partner>/ path segment); vendor link-format doc pending (M1 exit, Q17)"},
+  "*://*.igs4ds.net/c/*": {"class": "affiliate", "network": "Impact", "idPath": "^/c/([0-9]+)/", "ref": "design §4.4.1 (Impact, /c/<partner>/ path segment); vendor link-format doc pending (M1 exit, Q17)"},
+  "*://*.ioym.net/c/*": {"class": "affiliate", "network": "Impact", "idPath": "^/c/([0-9]+)/", "ref": "design §4.4.1 (Impact, /c/<partner>/ path segment); vendor link-format doc pending (M1 exit, Q17)"},
+  "*://*.iyhh.net/c/*": {"class": "affiliate", "network": "Impact", "idPath": "^/c/([0-9]+)/", "ref": "design §4.4.1 (Impact, /c/<partner>/ path segment); vendor link-format doc pending (M1 exit, Q17)"},
+  "*://*.lt.acemlna.com/Prod/link-tracker?*": {"class": "off", "why": "action \"base64,redirect\" not supported in v1"},
+  "*://*.lt.acemlnb.com/Prod/link-tracker?*": {"class": "off", "why": "action \"base64,redirect\" not supported in v1"},
+  "*://*.lt.acemlnc.com/Prod/link-tracker?*": {"class": "off", "why": "action \"base64,redirect\" not supported in v1"},
+  "*://*.lt.acemlnd.com/Prod/link-tracker?*": {"class": "off", "why": "action \"base64,redirect\" not supported in v1"},
+  "*://*.lt.emlnk.com/Prod/link-tracker?*": {"class": "off", "why": "action \"base64,redirect\" not supported in v1"},
+  "*://*.lt.emlnk1.com/Prod/link-tracker?*": {"class": "off", "why": "action \"base64,redirect\" not supported in v1"},
+  "*://*.lt.emlnk2.com/Prod/link-tracker?*": {"class": "off", "why": "action \"base64,redirect\" not supported in v1"},
+  "*://*.lt.emlnk3.com/Prod/link-tracker?*": {"class": "off", "why": "action \"base64,redirect\" not supported in v1"},
+  "*://*.lt.emlnk4.com/Prod/link-tracker?*": {"class": "off", "why": "action \"base64,redirect\" not supported in v1"},
+  "*://*.lt.emlnk5.com/Prod/link-tracker?*": {"class": "off", "why": "action \"base64,redirect\" not supported in v1"},
+  "*://*.lt.emlnk6.com/Prod/link-tracker?*": {"class": "off", "why": "action \"base64,redirect\" not supported in v1"},
+  "*://*.lt.emlnk7.com/Prod/link-tracker?*": {"class": "off", "why": "action \"base64,redirect\" not supported in v1"},
+  "*://*.lt.emlnk8.com/Prod/link-tracker?*": {"class": "off", "why": "action \"base64,redirect\" not supported in v1"},
+  "*://*.lt.emlnk9.com/Prod/link-tracker?*": {"class": "off", "why": "action \"base64,redirect\" not supported in v1"},
+  "*://*.lvuv.net/c/*": {"class": "affiliate", "network": "Impact", "idPath": "^/c/([0-9]+)/", "ref": "design §4.4.1 (Impact, /c/<partner>/ path segment); vendor link-format doc pending (M1 exit, Q17)"},
+  "*://*.mailchimp.com/mctx/clicks?*": {"class": "unwrap", "why": "Mailchimp click tracker"},
+  "*://*.mvvx.net/c/*": {"class": "affiliate", "network": "Impact", "idPath": "^/c/([0-9]+)/", "ref": "design §4.4.1 (Impact, /c/<partner>/ path segment); vendor link-format doc pending (M1 exit, Q17)"},
+  "*://*.narrativ.com/api/v0/client_redirect/*": {"class": "affiliate", "network": "Narrativ", "why": "opaque click token"},
+  "*://*.njih.net/c/*": {"class": "affiliate", "network": "Impact", "idPath": "^/c/([0-9]+)/", "ref": "design §4.4.1 (Impact, /c/<partner>/ path segment); vendor link-format doc pending (M1 exit, Q17)"},
+  "*://*.nordstrom.com/Linkshare?*": {"class": "affiliate", "network": "Rakuten Advertising", "why": "inert in practice: the url destination is nordstrom.com, rejected by the same-site rule; no locator"},
+  "*://*.ntaf.net/c/*": {"class": "affiliate", "network": "Impact", "idPath": "^/c/([0-9]+)/", "ref": "design §4.4.1 (Impact, /c/<partner>/ path segment); vendor link-format doc pending (M1 exit, Q17)"},
+  "*://*.obak77.net/c/*": {"class": "affiliate", "network": "Impact", "idPath": "^/c/([0-9]+)/", "ref": "design §4.4.1 (Impact, /c/<partner>/ path segment); vendor link-format doc pending (M1 exit, Q17)"},
+  "*://*.ouo.today/*": {"class": "off", "why": "base64,redirect not supported in v1 (monetized shortener; would be affiliate)"},
+  "*://*.page.link/?*": {"class": "unwrap", "why": "Firebase Dynamic Links fallback (service shut down 2025-08)"},
+  "*://*.pdy5.net/c/*": {"class": "affiliate", "network": "Impact", "idPath": "^/c/([0-9]+)/", "ref": "design §4.4.1 (Impact, /c/<partner>/ path segment); vendor link-format doc pending (M1 exit, Q17)"},
+  "*://*.pfm4.net/c/*": {"class": "affiliate", "network": "Impact", "idPath": "^/c/([0-9]+)/", "ref": "design §4.4.1 (Impact, /c/<partner>/ path segment); vendor link-format doc pending (M1 exit, Q17)"},
+  "*://*.pjatr.com/t/*": {"class": "affiliate", "network": "Pepperjam (Partnerize)", "why": "publisher is encoded in an opaque path token"},
+  "*://*.prospect2.com/Prod/link-tracker?*": {"class": "off", "why": "action \"base64,redirect\" not supported in v1"},
+  "*://*.prsm1.com/r?*": {"class": "off", "why": "purpose unverified"},
+  "*://*.pxf.io/c/*": {"class": "affiliate", "network": "Impact", "idPath": "^/c/([0-9]+)/", "ref": "design §4.4.1 (Impact, /c/<partner>/ path segment); vendor link-format doc pending (M1 exit, Q17)"},
+  "*://*.q77h.net/c/*": {"class": "affiliate", "network": "Impact", "idPath": "^/c/([0-9]+)/", "ref": "design §4.4.1 (Impact, /c/<partner>/ path segment); vendor link-format doc pending (M1 exit, Q17)"},
+  "*://*.qflm.net/c/*": {"class": "affiliate", "network": "Impact", "idPath": "^/c/([0-9]+)/", "ref": "design §4.4.1 (Impact, /c/<partner>/ path segment); vendor link-format doc pending (M1 exit, Q17)"},
+  "*://*.rfvk.net/c/*": {"class": "affiliate", "network": "Impact", "idPath": "^/c/([0-9]+)/", "ref": "design §4.4.1 (Impact, /c/<partner>/ path segment); vendor link-format doc pending (M1 exit, Q17)"},
+  "*://*.rg35.net/*": {"class": "affiliate", "network": "Impact", "idPath": "^/c/([0-9]+)/", "ref": "design §4.4.1 (Impact, /c/<partner>/ path segment); vendor link-format doc pending (M1 exit, Q17)"},
+  "*://*.rrmo.net/c/*": {"class": "affiliate", "network": "Impact", "idPath": "^/c/([0-9]+)/", "ref": "design §4.4.1 (Impact, /c/<partner>/ path segment); vendor link-format doc pending (M1 exit, Q17)"},
+  "*://*.ryvx.net/c/*": {"class": "affiliate", "network": "Impact", "idPath": "^/c/([0-9]+)/", "ref": "design §4.4.1 (Impact, /c/<partner>/ path segment); vendor link-format doc pending (M1 exit, Q17)"},
+  "*://*.sjv.io/c/*": {"class": "affiliate", "network": "Impact", "idPath": "^/c/([0-9]+)/", "ref": "design §4.4.1 (Impact, /c/<partner>/ path segment); vendor link-format doc pending (M1 exit, Q17)"},
+  "*://*.streak-link.com/*": {"class": "off", "why": "action \"regex-path\" not supported in v1"},
+  "*://*.tkjf.net/c/*": {"class": "affiliate", "network": "Impact", "idPath": "^/c/([0-9]+)/", "ref": "design §4.4.1 (Impact, /c/<partner>/ path segment); vendor link-format doc pending (M1 exit, Q17)"},
+  "*://*.tmfhgn.net/c/*": {"class": "affiliate", "network": "Impact", "idPath": "^/c/([0-9]+)/", "ref": "design §4.4.1 (Impact, /c/<partner>/ path segment); vendor link-format doc pending (M1 exit, Q17)"},
+  "*://*.tradedoubler.com/click?*": {"class": "affiliate", "network": "Tradedoubler", "idParam": "a", "ref": "design §4.4.1 (Tradedoubler, a on *.tradedoubler.com/click); vendor link-format doc pending (M1 exit, Q17)"},
+  "*://*.turbopages.org/*/s/*": {"class": "off", "why": "action \"regex-path\", pref brave.de_amp.enabled not supported in v1"},
+  "*://*.uikc.net/c/*": {"class": "affiliate", "network": "Impact", "idPath": "^/c/([0-9]+)/", "ref": "design §4.4.1 (Impact, /c/<partner>/ path segment); vendor link-format doc pending (M1 exit, Q17)"},
+  "*://*.uqhv.net/c/*": {"class": "affiliate", "network": "Impact", "idPath": "^/c/([0-9]+)/", "ref": "design §4.4.1 (Impact, /c/<partner>/ path segment); vendor link-format doc pending (M1 exit, Q17)"},
+  "*://*.uvwgb9.net/c/*": {"class": "affiliate", "network": "Impact", "idPath": "^/c/([0-9]+)/", "ref": "design §4.4.1 (Impact, /c/<partner>/ path segment); vendor link-format doc pending (M1 exit, Q17)"},
+  "*://*.uxsi.net/c/*": {"class": "affiliate", "network": "Impact", "idPath": "^/c/([0-9]+)/", "ref": "design §4.4.1 (Impact, /c/<partner>/ path segment); vendor link-format doc pending (M1 exit, Q17)"},
+  "*://*.valuecommerce.ne.jp/cgi-bin/*": {"class": "affiliate", "network": "ValueCommerce", "idParam": "sid", "ref": "design §4.4.1 (ValueCommerce, sid, the site ID); vendor link-format doc pending (M1 exit, Q17)"},
+  "*://*.vthnbx.net/c/*": {"class": "affiliate", "network": "Impact", "idPath": "^/c/([0-9]+)/", "ref": "design §4.4.1 (Impact, /c/<partner>/ path segment); vendor link-format doc pending (M1 exit, Q17)"},
+  "*://*.vzew.net/c/*": {"class": "affiliate", "network": "Impact", "idPath": "^/c/([0-9]+)/", "ref": "design §4.4.1 (Impact, /c/<partner>/ path segment); vendor link-format doc pending (M1 exit, Q17)"},
+  "*://*.xibx.net/c/*": {"class": "affiliate", "network": "Impact", "idPath": "^/c/([0-9]+)/", "ref": "design §4.4.1 (Impact, /c/<partner>/ path segment); vendor link-format doc pending (M1 exit, Q17)"},
+  "*://*.xovt.net/c/*": {"class": "affiliate", "network": "Impact", "idPath": "^/c/([0-9]+)/", "ref": "design §4.4.1 (Impact, /c/<partner>/ path segment); vendor link-format doc pending (M1 exit, Q17)"},
+  "*://*.xwrk.net/c/*": {"class": "affiliate", "network": "Impact", "idPath": "^/c/([0-9]+)/", "ref": "design §4.4.1 (Impact, /c/<partner>/ path segment); vendor link-format doc pending (M1 exit, Q17)"},
+  "*://*.yvzx.net/c/*": {"class": "affiliate", "network": "Impact", "idPath": "^/c/([0-9]+)/", "ref": "design §4.4.1 (Impact, /c/<partner>/ path segment); vendor link-format doc pending (M1 exit, Q17)"},
+  "*://*.zlwlj8.net/c/*": {"class": "affiliate", "network": "Impact", "idPath": "^/c/([0-9]+)/", "ref": "design §4.4.1 (Impact, /c/<partner>/ path segment); vendor link-format doc pending (M1 exit, Q17)"},
+  "*://*.ztk5.net/*": {"class": "affiliate", "network": "Impact", "idPath": "^/c/([0-9]+)/", "ref": "design §4.4.1 (Impact, /c/<partner>/ path segment); vendor link-format doc pending (M1 exit, Q17)"},
+  "*://ad.atdmt.com/s/go;*": {"class": "unwrap", "why": "Atlas ad-click redirect"},
+  "*://api.bam-x.com/api/v1/clickmate/*": {"class": "affiliate", "network": "Narrativ", "why": "opaque click token"},
+  "*://app.adjust.com/*": {"class": "unwrap", "why": "Adjust mobile attribution redirect"},
+  "*://app.hive.co/email/elt/*": {"class": "unwrap", "why": "Hive email click tracker"},
+  "*://atrrd.valuecommerce.com/resolve/*": {"class": "affiliate", "network": "ValueCommerce", "idParam": "sid", "ref": "design §4.4.1 (ValueCommerce, sid, the site ID); vendor link-format doc pending (M1 exit, Q17)"},
+  "*://backerkit.com/ahoy/messages/*/click?*": {"class": "unwrap", "why": "BackerKit email click tracker"},
+  "*://c.pepperjamnetwork.com/click*": {"class": "affiliate", "network": "Pepperjam (Partnerize)", "why": "publisher is encoded in an opaque path token"},
+  "*://c212.net/c/link/?*": {"class": "unwrap", "why": "Cision/PR Newswire click tracker"},
+  "*://cat.criteo.com/beacon?*": {"class": "unwrap", "why": "Criteo ad-click beacon"},
+  "*://cc.cnet.com/v1/otc/*": {"class": "affiliate", "network": "Ziff Davis commerce links", "why": "first-party publisher redirector; the beneficiary is the publishing site itself"},
+  "*://cc.mashable.com/v1/*": {"class": "affiliate", "network": "Ziff Davis commerce links", "why": "first-party publisher redirector; the beneficiary is the publishing site itself"},
+  "*://cc.techbargains.com/v1/otc/*": {"class": "affiliate", "network": "Ziff Davis commerce links", "why": "first-party publisher redirector; the beneficiary is the publishing site itself"},
+  "*://cc.zdnet.com/v1/otc/*": {"class": "affiliate", "network": "Ziff Davis commerce links", "why": "first-party publisher redirector; the beneficiary is the publishing site itself"},
+  "*://ck.jp.ap.valuecommerce.com/servlet/referral?*": {"class": "affiliate", "network": "ValueCommerce", "idParam": "sid", "ref": "design §4.4.1 (ValueCommerce, sid, the site ID); vendor link-format doc pending (M1 exit, Q17)"},
+  "*://click.icptrack.com/icp/relay.php*": {"class": "unwrap", "why": "iContact email click tracker"},
+  "*://click.linksynergy.com/deeplink*": {"class": "affiliate", "network": "Rakuten Advertising", "idParam": "id", "ref": "design §4.4.1 (Rakuten Advertising, id, the encrypted publisher token); vendor link-format doc pending (M1 exit, Q17)"},
+  "*://click.pstmrk.it/2/*": {"class": "off", "why": "action \"regex-path\" not supported in v1"},
+  "*://click.pstmrk.it/2m/*": {"class": "off", "why": "action \"regex-path\" not supported in v1"},
+  "*://click.pstmrk.it/2s/*": {"class": "off", "why": "action \"regex-path\" not supported in v1"},
+  "*://click.pstmrk.it/2sm/*": {"class": "off", "why": "action \"regex-path\" not supported in v1"},
+  "*://click.pstmrk.it/2ts/*": {"class": "off", "why": "action \"regex-path\" not supported in v1"},
+  "*://click.pstmrk.it/3/*": {"class": "off", "why": "action \"regex-path\" not supported in v1"},
+  "*://click.pstmrk.it/3s/*": {"class": "off", "why": "action \"regex-path\" not supported in v1"},
+  "*://click.pstmrk.it/3ts/*": {"class": "off", "why": "action \"regex-path\" not supported in v1"},
+  "*://click.redditmail.com/*": {"class": "off", "why": "action \"regex-path\" not supported in v1"},
+  "*://clicks.trx-hub.com/xid/*": {"class": "off", "why": "purpose unverified"},
+  "*://d.agkn.com/pixel/*": {"class": "unwrap", "why": "Neustar ad pixel redirect"},
+  "*://deeplink-bh.datafeedfile.com/sl/*": {"class": "affiliate", "network": "Datafeedfile", "why": "opaque link token"},
+  "*://deeplink-bh.datafeedfile.com/sl?*": {"class": "affiliate", "network": "Datafeedfile", "why": "opaque link token"},
+  "*://engage.squarespace-mail.com/r?*": {"class": "unwrap", "why": "Squarespace email click tracker"},
+  "*://flake.creditcable.info/*": {"class": "off", "why": "purpose unverified"},
+  "*://g-o-media.digidip.net/visit?*": {"class": "affiliate", "network": "digidip", "why": "publisher is the subdomain owner, not a parameter"},
+  "*://go.redirectingat.com/*": {"class": "affiliate", "network": "Skimlinks", "idParam": "id", "ref": "design §4.4.1 (Skimlinks, id, <publisher>X<site>); vendor link-format doc pending (M1 exit, Q17)"},
+  "*://go.skimresources.com/*": {"class": "affiliate", "network": "Skimlinks", "idParam": "id", "ref": "design §4.4.1 (Skimlinks, id, <publisher>X<site>); vendor link-format doc pending (M1 exit, Q17)"},
+  "*://goto.carters.com/c/*": {"class": "affiliate", "network": "Impact", "idPath": "^/c/([0-9]+)/", "ref": "design §4.4.1 (Impact, /c/<partner>/ path segment); vendor link-format doc pending (M1 exit, Q17)"},
+  "*://goto.target.com/c/*": {"class": "affiliate", "network": "Impact", "idPath": "^/c/([0-9]+)/", "ref": "design §4.4.1 (Impact, /c/<partner>/ path segment); vendor link-format doc pending (M1 exit, Q17)"},
+  "*://goto.walmart.com/c/*": {"class": "affiliate", "network": "Impact", "idPath": "^/c/([0-9]+)/", "ref": "design §4.4.1 (Impact, /c/<partner>/ path segment); vendor link-format doc pending (M1 exit, Q17)"},
+  "*://howl.me/link/?*": {"class": "affiliate", "network": "Howl (Narrativ)", "why": "opaque link token"},
+  "*://jsv3.recruitics.com/redirect?*": {"class": "unwrap", "why": "recruitment ad click tracker"},
+  "*://laylo.co/e/*": {"class": "unwrap", "why": "Laylo email redirector"},
+  "*://lcmspubcontact.lc.ca.gov/PublicLCMS/LinkTracking.php?*": {"class": "unwrap", "why": "government newsletter link tracker"},
+  "*://llo.to/e/*": {"class": "unwrap", "why": "Laylo email redirector"},
+  "*://mcpedl.com/leaving/?*": {"class": "unwrap", "why": "site leaving interstitial"},
+  "*://microsoft.msafflnk.net/c/*": {"class": "affiliate", "network": "Impact", "idPath": "^/c/([0-9]+)/", "ref": "design §4.4.1 (Impact, /c/<partner>/ path segment); vendor link-format doc pending (M1 exit, Q17)"},
+  "*://pj.nutribullet.com/t/*": {"class": "affiliate", "network": "Pepperjam (Partnerize)", "why": "publisher is encoded in an opaque path token"},
+  "*://pvn.mediamarkt.de/trck/eclick/*": {"class": "affiliate", "network": "MediaMarktSaturn partner programme", "why": "no publisher parameter"},
+  "*://pvn.saturn.de/trck/eclick/*": {"class": "affiliate", "network": "MediaMarktSaturn partner programme", "why": "no publisher parameter"},
+  "*://r.bttn.io/*": {"class": "affiliate", "network": "Button", "idParam": "btn_ref", "ref": "design §4.4.1 (Button, btn_ref); vendor link-format doc pending (M1 exit, Q17)"},
+  "*://rd.bizrate.com/rd2?*": {"class": "affiliate", "network": "Connexity (Bizrate)", "why": "paid-click comparison redirect; no publisher parameter"},
+  "*://rd.bizrate.com/rd?*": {"class": "affiliate", "network": "Connexity (Bizrate)", "why": "paid-click comparison redirect; no publisher parameter"},
+  "*://rd.connexity.net/rd?*": {"class": "affiliate", "network": "Connexity (Bizrate)", "why": "paid-click comparison redirect; no publisher parameter"},
+  "*://redir.tradedoubler.com/*": {"class": "affiliate", "network": "Tradedoubler", "why": "deep-link redirector carries no affiliate parameter"},
+  "*://redirect.viglink.com/*": {"class": "affiliate", "network": "Sovrn Commerce (VigLink)", "idParam": "key", "ref": "design §4.4.1 (Sovrn Commerce (VigLink), key, the publisher key); vendor link-format doc pending (M1 exit, Q17)"},
+  "*://search.app/?*": {"class": "unwrap", "why": "Google app share redirect"},
+  "*://shareasale-analytics.com/r.cfm?*": {"class": "affiliate", "network": "ShareASale", "idParam": "u", "ref": "design §4.4.1 (ShareASale, u, the affiliate user ID); vendor link-format doc pending (M1 exit, Q17)"},
+  "*://shareasale.com/r.cfm?*": {"class": "affiliate", "network": "ShareASale", "idParam": "u", "ref": "design §4.4.1 (ShareASale, u, the affiliate user ID); vendor link-format doc pending (M1 exit, Q17)"},
+  "*://sherlock.scribblelive.com/r?*": {"class": "unwrap", "why": "ScribbleLive click tracker"},
+  "*://shop-links.co/link*": {"class": "affiliate", "network": "Shop-Links", "why": "opaque link token"},
+  "*://shopping.yahoo.com/rdlw?*": {"class": "affiliate", "network": "Yahoo Shopping", "why": "first-party commerce redirect; no publisher parameter"},
+  "*://streaklinks.com/*": {"class": "off", "why": "action \"regex-path\" not supported in v1"},
+  "*://t.cfjump.com/*": {"class": "affiliate", "network": "Commission Factory", "idPath": "^/([0-9]+)/", "ref": "design §4.4.1 (Commission Factory, affiliate ID in the first path segment); vendor link-format doc pending (M1 exit, Q17)"},
+  "*://t.lever-analytics.com/email-link?": {"class": "unwrap", "why": "Lever email click tracker; the upstream path glob has no *, so it matches only the exact path /email-link? and never fires (design §4.4.1, golden row 148)"},
+  "*://t.mailpgn.com/l/*": {"class": "unwrap", "why": "email click tracker"},
+  "*://target.georiot.com/*": {"class": "affiliate", "network": "Geniuslink", "idParam": "TSID", "ref": "design §4.4.1 (Geniuslink, TSID); vendor link-format doc pending (M1 exit, Q17)"},
+  "*://track.effiliation.com/servlet/effi.redir*": {"class": "affiliate", "network": "Effiliation", "why": "id_compteur is a per-link counter, not the publisher"},
+  "*://track.flexlinks.com/a.ashx?*": {"class": "affiliate", "network": "FlexOffers", "idParam": "foid", "ref": "design §4.4.1 (FlexOffers, foid); vendor link-format doc pending (M1 exit, Q17)"},
+  "*://trk.pm-srv.co/v2/trk?*": {"class": "off", "why": "purpose unverified"},
+  "*://trk.pmsrv.co/v2/trk?*": {"class": "off", "why": "purpose unverified"},
+  "*://visit.ws/visit/*": {"class": "off", "why": "purpose unverified"},
+  "*://www.anrdoezrs.net/click-*": {"class": "affiliate", "network": "CJ Affiliate", "idPath": "^/click-([0-9]+)-", "ref": "design §4.4.1 (CJ Affiliate, publisher ID (PID) in the /click-<pid>- path); vendor link-format doc pending (M1 exit, Q17)"},
+  "*://www.awin1.com/awclick.php?*": {"class": "affiliate", "network": "Awin", "idParam": "awinaffid", "ref": "design §4.4.1 (Awin, awinaffid); vendor link-format doc pending (M1 exit, Q17)"},
+  "*://www.awin1.com/cread.php?*": {"class": "affiliate", "network": "Awin", "idParam": "awinaffid", "ref": "design §4.4.1 (Awin, awinaffid); vendor link-format doc pending (M1 exit, Q17)"},
+  "*://www.clixgalore.com/Lead.aspx*": {"class": "affiliate", "network": "clixGalore", "idParam": "AfID", "ref": "design §4.4.1 (clixGalore, AfID); vendor link-format doc pending (M1 exit, Q17)"},
+  "*://www.dpbolvw.net/click-*": {"class": "affiliate", "network": "CJ Affiliate", "idPath": "^/click-([0-9]+)-", "ref": "design §4.4.1 (CJ Affiliate, publisher ID (PID) in the /click-<pid>- path); vendor link-format doc pending (M1 exit, Q17)"},
+  "*://www.forocoches.com/link.php?*": {"class": "unwrap", "why": "forum outbound-link interstitial"},
+  "*://www.google.com/amp/s/*": {"class": "off", "why": "action \"regex-path\", pref brave.de_amp.enabled not supported in v1"},
+  "*://www.googleadservices.com/pagead/aclk?*": {"class": "unwrap", "why": "Google Ads click redirect"},
+  "*://www.gopjn.com/t/*": {"class": "affiliate", "network": "Pepperjam (Partnerize)", "why": "publisher is encoded in an opaque path token"},
+  "*://www.jdoqocy.com/click-*": {"class": "affiliate", "network": "CJ Affiliate", "idPath": "^/click-([0-9]+)-", "ref": "design §4.4.1 (CJ Affiliate, publisher ID (PID) in the /click-<pid>- path); vendor link-format doc pending (M1 exit, Q17)"},
+  "*://www.kqzyfj.com/click-*": {"class": "affiliate", "network": "CJ Affiliate", "idPath": "^/click-([0-9]+)-", "ref": "design §4.4.1 (CJ Affiliate, publisher ID (PID) in the /click-<pid>- path); vendor link-format doc pending (M1 exit, Q17)"},
+  "*://www.ojrq.net/p/*": {"class": "off", "why": "purpose unverified"},
+  "*://www.pjtra.com/t/*": {"class": "affiliate", "network": "Pepperjam (Partnerize)", "why": "publisher is encoded in an opaque path token"},
+  "*://www.pntrac.com/t/*": {"class": "affiliate", "network": "Pepperjam (Partnerize)", "why": "publisher is encoded in an opaque path token"},
+  "*://www.pntrs.com/t/*": {"class": "affiliate", "network": "Pepperjam (Partnerize)", "why": "publisher is encoded in an opaque path token"},
+  "*://www.shareasale-analytics.com/r.cfm?*": {"class": "affiliate", "network": "ShareASale", "idParam": "u", "ref": "design §4.4.1 (ShareASale, u, the affiliate user ID); vendor link-format doc pending (M1 exit, Q17)"},
+  "*://www.shareasale.com/r.cfm?*": {"class": "affiliate", "network": "ShareASale", "idParam": "u", "ref": "design §4.4.1 (ShareASale, u, the affiliate user ID); vendor link-format doc pending (M1 exit, Q17)"},
+  "*://www.sopasti.com/anime.php?*": {"class": "off", "why": "purpose unverified"},
+  "*://www.tkqlhce.com/click-": {"class": "affiliate", "network": "CJ Affiliate", "idPath": "^/click-([0-9]+)-", "ref": "design §4.4.1 (CJ Affiliate, publisher ID (PID) in the /click-<pid>- path); vendor link-format doc pending (M1 exit, Q17)"},
+  "*://www.wordseed.com/go/*": {"class": "affiliate", "network": "WordSeed", "why": "opaque link token"},
+  "*://www.zenaps.com/rclick.php*": {"class": "affiliate", "network": "Zenaps", "why": "no documented publisher parameter"},
+  "*://x.chip.de/linktrack/button/*": {"class": "affiliate", "network": "CHIP price comparison", "why": "first-party publisher redirector"},
+  "*://y2u.be/*": {"class": "off", "why": "action \"regex-path-template\" not supported in v1"},
+  "https://buy.geni.us/Proxy.ashx?*": {"class": "affiliate", "network": "Geniuslink", "idParam": "TSID", "ref": "design §4.4.1 (Geniuslink, TSID); vendor link-format doc pending (M1 exit, Q17)"},
+  "https://dev-pages.brave.software/navigation-tracking/*": {"class": "off", "why": "Brave test fixture"},
+  "https://dev-pages.brave.software/navigation-tracking/error.html?*": {"class": "off", "why": "Brave test fixture"},
+  "https://dev-pages.brave.software/navigation-tracking/regex-multiple-capture-groups/*": {"class": "off", "why": "Brave test fixture"},
+  "https://dev-pages.bravesoftware.com/navigation-tracking/*": {"class": "off", "why": "Brave test fixture"},
+  "https://dev-pages.bravesoftware.com/navigation-tracking/error.html?*": {"class": "off", "why": "Brave test fixture"},
+  "https://dev-pages.bravesoftware.com/navigation-tracking/regex-multiple-capture-groups/*": {"class": "off", "why": "Brave test fixture"}
+}}
