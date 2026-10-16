@@ -210,6 +210,9 @@ func TestDerivedViews(t *testing.T) {
 		{"http://example.com:443/", "443", "/", "http://example.com:443/"},
 		{"http://example.com:/p?", "80", "/p?", "http://example.com/p?"},
 		{"https://[::1]:80/x#", "80", "/x", "https://[::1]:80/x#"},
+		{"https://example.com/p?q#f", "443", "/p?q", "https://example.com/p?q#f"},
+		{"https://bücher.example/p", "443", "/p", "https://xn--bcher-kva.example/p"},
+		{"https://example.com./p", "443", "/p", "https://example.com/p"},
 	}
 	for _, tt := range tests {
 		u, skip := Parse(tt.in)
@@ -414,6 +417,9 @@ func TestAllocs(t *testing.T) {
 	}
 	if n := testing.AllocsPerRun(100, func() { _ = u.PathForRequest() }); n != 0 {
 		t.Errorf("PathForRequest allocs = %v, want 0", n)
+	}
+	if n := testing.AllocsPerRun(100, func() { _ = u.MatchString() }); n != 0 {
+		t.Errorf("MatchString allocs = %v, want 0", n)
 	}
 	if n := testing.AllocsPerRun(100, func() { _ = Site("localhost") }); n != 0 {
 		t.Errorf("Site(single-label) allocs = %v, want 0", n)

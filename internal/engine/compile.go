@@ -21,7 +21,10 @@ type Program struct {
 	sets   []SetInfo
 	hosts  *hostindex.Index
 	params map[string][]int32 // canon(name) -> Strip and Keep rules naming it, ascending
-	regex  []int32            // Strip and Keep rules with ParamRegexps, ascending
+	// trivial lists the special rules (see crule.special) whose scope is
+	// trivial, ascending. Trivial rules are not in hosts: they are candidates
+	// for every URL, so the per-call candidate list never holds them.
+	trivial []int32
 }
 
 // SetInfo describes one compiled rule set.
@@ -38,6 +41,7 @@ type crule struct {
 	affiliate bool
 	global    bool // some Include has host "*": the signed guard's global bucket
 	needSite  bool // some Include or Exclude has a label.* host
+	trivial   bool // in scope for every URL: an Include "*://*/*", no Exclude, no URLRegexps
 
 	include, exclude []*matchpattern.Pattern
 	urlRes           []*regexp.Regexp
@@ -53,6 +57,12 @@ type crule struct {
 	unwrapParams  []string // canonical
 	allowSameSite bool
 	prependScheme string
+}
+
+// special reports whether r acts without naming a param through the params
+// index, so cleaning has to visit it for every URL it is a candidate for.
+func (r *crule) special() bool {
+	return len(r.paramRes) > 0 || len(r.pathRes) > 0 || r.action == rule.Unwrap
 }
 
 // paramRegexp is a ParamRegexps entry, anchored, with the literal prefix every
@@ -109,8 +119,13 @@ func Compile(sets []rule.Set) (*Program, error) {
 			}
 			ord := int32(len(p.rules))
 			p.rules = append(p.rules, cr)
-			for _, inc := range cr.include {
-				b.Add(ord, inc)
+			switch {
+			case !cr.trivial:
+				for _, inc := range cr.include {
+					b.Add(ord, inc)
+				}
+			case cr.special():
+				p.trivial = append(p.trivial, ord)
 			}
 			if cr.action == rule.Strip || cr.action == rule.Keep {
 				for _, n := range r.Params {
@@ -118,9 +133,6 @@ func Compile(sets []rule.Set) (*Program, error) {
 					if l := p.params[cn]; len(l) == 0 || l[len(l)-1] != ord {
 						p.params[cn] = append(l, ord)
 					}
-				}
-				if len(cr.paramRes) > 0 {
-					p.regex = append(p.regex, ord)
 				}
 			}
 		}
@@ -135,9 +147,6 @@ func Compile(sets []rule.Set) (*Program, error) {
 	}
 	return p, nil
 }
-
-// Len returns the number of compiled rules.
-func (p *Program) Len() int { return len(p.rules) }
 
 // Sets describes the compiled rule sets, in order.
 func (p *Program) Sets() []SetInfo { return slices.Clone(p.sets) }
@@ -194,6 +203,8 @@ func compileRule(set string, r *rule.Rule, allowLabel bool, e *ruleErrs) crule {
 			cr.urlRes = append(cr.urlRes, re)
 		}
 	}
+	cr.trivial = len(r.Exclude) == 0 && len(r.URLRegexps) == 0 &&
+		slices.ContainsFunc(cr.include, (*matchpattern.Pattern).MatchesAll)
 
 	matcher := r.Action == rule.Strip || r.Action == rule.Keep
 	switch r.Action {

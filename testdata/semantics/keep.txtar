@@ -73,10 +73,20 @@ want: https://shop.example.net/?a=1
 -- path-repeated --
 in: https://shop.example.net/p/ref=a/ref=b/amp
 want: https://shop.example.net/p
--- path-query-untouched --
-note: a path-only change copies the query verbatim
+-- path-change-rebuilds-query --
+note: §5.1: once the path changed, the query is rebuilt from its non-empty segments
 in: https://shop.example.net/p/ref=a?&x=1&&y=2
-want: https://shop.example.net/p?&x=1&&y=2
+want: https://shop.example.net/p?x=1&y=2
+-- path-change-drops-bare-question-mark --
+in: https://shop.example.net/p/ref=a?
+want: https://shop.example.net/p
+-- path-change-drops-empty-query --
+in: https://shop.example.net/p/ref=a?&&
+want: https://shop.example.net/p
+-- unchanged-keeps-empty-segments --
+note: DV-7: an unchanged URL keeps its bare '?' and '&&'
+in: https://shop.example.net/p?&x=1&&y=2&
+want: unchanged
 -- fixed-point-121 --
 note: row 121 shape: the keep trigger lives in a value stripped in round 1
 in: https://example.net/landing?utm_campaign=unsubscribe-flow&mkt_tok=abc
@@ -134,6 +144,20 @@ want: unchanged
 -- signed-guard-extra --
 config: {"ExtraSignedParams":["Token"]}
 in: https://example.net/?TOKEN=1&utm_source=x
+want: unchanged
+-- signed-guard-extra-long --
+note: a configured name over 64 bytes still flags the URL
+config: {"ExtraSignedParams":["verification_signature_token_verification_signature_token_abcdefgh"]}
+in: https://example.net/?verification_signature_token_verification_signature_token_abcdefgh=1&utm_source=x
+want: unchanged
+-- signed-guard-extra-encoded --
+note: a percent-encoded raw spelling (84 bytes) of a 28-byte configured name
+config: {"ExtraSignedParams":["verification_signature_token"]}
+in: https://example.net/x?%76%65%72%69%66%69%63%61%74%69%6F%6E%5F%73%69%67%6E%61%74%75%72%65%5F%74%6F%6B%65%6E=abc&utm_source=x
+want: unchanged
+-- signed-guard-builtin-encoded --
+note: x-amz-security-token fully encoded is 60 bytes; in uppercase hex escapes and mixed case
+in: https://example.net/x?%58%2D%41%4D%5A%2D%53%45%43%55%52%49%54%59%2D%54%4F%4B%45%4E=abc&utm_source=x
 want: unchanged
 -- signed-guard-off --
 config: {"DisableSignedGuard":true}
@@ -214,3 +238,7 @@ want: unchanged
 -- fragment-with-query --
 in: https://example.net/a?utm_source=x&b=1#utm_medium=y
 want: https://example.net/a?b=1
+-- fragment-gone-rebuilds-query --
+note: §5.1: a fragment-only change also rebuilds the query
+in: https://example.net/?a=1&&b=2#utm_source=x
+want: https://example.net/?a=1&b=2

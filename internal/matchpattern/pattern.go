@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"net/netip"
 	"strings"
+
+	"golang.org/x/net/idna"
 )
 
 // HostKind is the shape of a pattern's host part.
@@ -40,16 +42,16 @@ type Pattern struct {
 //	scheme "://" host [":" port] path
 //
 // The scheme is "*" (http or https), "http" or "https", case-sensitive. The
-// host is "*", "*.d" or "d", lowercased with trailing dots trimmed; with
-// allowLabel it may also be "label.*" or "*.label.*", where label is a single
-// DNS label. A bracketed IPv6 literal is allowed as an exact host. The port is
-// decimal 0-65535 without leading zeros. The path starts with '/' and may
-// contain '*' wildcards anywhere.
+// host is "*", "*.d" or "d", canonicalized as URL hosts are (§4.1): ASCII
+// lowercased, trailing dots trimmed and, if it has a non-ASCII byte, mapped by
+// idna.Lookup.ToASCII to punycode. With allowLabel it may also be "label.*" or
+// "*.label.*", where label is a single DNS label. A bracketed IPv6 literal is
+// allowed as an exact host. The port is decimal 0-65535 without leading zeros.
+// The path starts with '/' and may contain '*' wildcards anywhere.
 //
 // Everything else is an error: "<all_urls>", other schemes, '*' anywhere else
-// in the host, url_pattern_index syntax ("||", "^"), a missing path, and any
-// non-ASCII or non-hostname byte in the host. Unicode hosts must be written in
-// punycode; Parse does not run IDNA.
+// in the host, url_pattern_index syntax ("||", "^"), a missing path, a host
+// that IDNA rejects, and any non-hostname byte in the canonical host.
 func Parse(p string, allowLabel bool) (*Pattern, error) {
 	m, err := parse(p, allowLabel)
 	if err != nil {
@@ -149,6 +151,13 @@ func (m *Pattern) parseHost(host string, allowLabel bool) error {
 		m.kind, host = HostLabel, l
 	}
 	host = strings.TrimRight(asciiLower(host), ".")
+	if !isASCII(host) {
+		a, err := idna.Lookup.ToASCII(host)
+		if err != nil {
+			return fmt.Errorf("host %q: %v", host, err)
+		}
+		host = strings.TrimRight(a, ".")
+	}
 	if host == "" {
 		return errors.New("empty host")
 	}
@@ -157,8 +166,6 @@ func (m *Pattern) parseHost(host string, allowLabel bool) error {
 		switch {
 		case c == '*':
 			return errors.New(`'*' in host is only allowed as "*" or a leading "*."`)
-		case c >= 0x80:
-			return errors.New("non-ASCII pattern host; write it in punycode")
 		case c == '.':
 			if i == 0 || host[i-1] == '.' {
 				return errors.New("empty host label")
@@ -190,6 +197,11 @@ func (m *Pattern) String() string { return m.raw }
 // Host returns the host kind and the canonical host: "" for HostAny, the
 // label for HostLabel.
 func (m *Pattern) Host() (HostKind, string) { return m.kind, m.host }
+
+// MatchesAll reports whether m matches every http(s) Target: "*://*/*".
+func (m *Pattern) MatchesAll() bool {
+	return m.scheme == "*" && m.kind == HostAny && m.port < 0 && m.anyPath
+}
 
 // Target is the per-call view a pattern is matched against. The engine fills
 // the exported fields once per call from the URL's views and calls SetPath
@@ -284,9 +296,18 @@ func isLabelSite(site, label string) bool {
 	return len(site) > len(label)+1 && site[len(label)] == '.' && site[:len(label)] == label
 }
 
+func isASCII(s string) bool {
+	for i := 0; i < len(s); i++ {
+		if s[i] >= 0x80 {
+			return false
+		}
+	}
+	return true
+}
+
 // asciiLower lowercases ASCII letters only. strings.ToLower would fold some
-// non-ASCII runes into ASCII (U+212A KELVIN SIGN becomes 'k'), letting a
-// Unicode host past the ASCII check.
+// non-ASCII runes into ASCII (U+212A KELVIN SIGN becomes 'k') differently
+// from IDNA mapping, which canonicalizes the rest.
 func asciiLower(s string) string {
 	for i := 0; i < len(s); i++ {
 		if 'A' <= s[i] && s[i] <= 'Z' {

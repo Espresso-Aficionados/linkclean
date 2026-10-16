@@ -183,3 +183,36 @@ config: {"Extra":[{"id":"x","action":"unwrap","include":["*://wrap.example.org/*
 in: https://wrap.example.org/?u=https%3A%2F%2Fexample.net%2Fa&url=https%3A%2F%2Fexample.net%2Fb
 want: https://example.net/b
 hop: {"rule":"user:x"}
+-- unwrap-after-strip-glob --
+note: R1-IDEM-1: the Include glob matches only once utm_source is stripped, so unwrap is retried after the rounds
+config: {"Extra":[{"id":"r","action":"unwrap","include":["*://w.example.net/r?url=*"],"unwrap":{"queryParams":["url"]}}]}
+in: https://w.example.net/r?utm_source=1&url=https%3A%2F%2Fd.example.org%2Fp%3Fid%3D2
+want: https://d.example.org/p?id=2
+hop: {"from":"https://w.example.net/r?url=https%3A%2F%2Fd.example.org%2Fp%3Fid%3D2","to":"https://d.example.org/p?id=2","rule":"user:r","fromHost":"w.example.net"}
+removed: none
+-- unwrap-after-strip-nested --
+note: what the wrapper's rounds removed, nested values included, is not reported once it is unwrapped
+config: {"Extra":[{"id":"r","action":"unwrap","include":["*://w.example.net/r?url=*"],"unwrap":{"queryParams":["url"]}}]}
+in: https://w.example.net/r?utm_source=1&url=https%3A%2F%2Fd.example.org%2Fp%3Futm_medium%3D2
+want: https://d.example.org/p
+hop: {"from":"https://w.example.net/r?url=https%3A%2F%2Fd.example.org%2Fp","to":"https://d.example.org/p"}
+removed: none
+-- unwrap-after-strip-urlregexp --
+config: {"Extra":[{"id":"r","action":"unwrap","include":["*://w.example.net/*"],"urlRegexps":["\\?url="],"unwrap":{"queryParams":["url"]}}]}
+in: https://w.example.net/r?utm_source=1&url=https%3A%2F%2Fd.example.org%2Fp
+want: https://d.example.org/p
+hop: {"rule":"user:r"}
+removed: none
+-- unwrap-after-path-strip --
+note: a PathRegexps strip brings the unwrap glob into scope
+config: {"Extra":[{"id":"go","action":"unwrap","include":["*://shop.example.net/go?*"],"unwrap":{"queryParams":["url"]}}]}
+in: https://shop.example.net/go/ref=abc?url=https%3A%2F%2Fd.example.org%2Fp
+want: https://d.example.org/p
+hop: {"from":"https://shop.example.net/go?url=https%3A%2F%2Fd.example.org%2Fp","rule":"user:go"}
+-- unwrap-after-strip-cap --
+note: hops found after the strips count toward MaxUnwrap; abandoning cleans the input without nesting
+config: {"MaxUnwrap":1,"Extra":[{"id":"r","action":"unwrap","include":["*://w.example.net/r?url=*"],"unwrap":{"queryParams":["url"]}}]}
+in: https://w.example.net/r?utm_source=1&url=https%3A%2F%2Fwrap.example.com%2F%3Fu%3Dhttps%253A%252F%252Fexample.net%252F
+want: https://w.example.net/r?url=https%3A%2F%2Fwrap.example.com%2F%3Fu%3Dhttps%253A%252F%252Fexample.net%252F
+abandoned: true
+hops: none

@@ -3,6 +3,8 @@ package matchpattern
 import (
 	"strings"
 	"testing"
+
+	"github.com/Espresso-Aficionados/linkclean/internal/rawurl"
 )
 
 func TestParseKinds(t *testing.T) {
@@ -46,8 +48,8 @@ func TestParseErrors(t *testing.T) {
 		{"*://*.example.*.com/*", true, "'*' in host"},
 		{"*://a..b/*", true, "empty host label"},
 		{"*://.a/*", true, "empty host label"},
-		{"*://bücher.example/*", true, "punycode"},
-		{"*://Kelvin.example/*", true, "punycode"}, // KELVIN SIGN folds to 'k' under strings.ToLower
+		{"*://a\u200db.example/*", true, "idna"}, // ZWJ outside a joining context
+		{"*://\uff0a.example/*", true, "idna"},   // FULLWIDTH ASTERISK maps to '*'
 		{"*://a%41.example/*", true, "invalid host byte"},
 		{"*://a b/*", true, "invalid host byte"},
 		{"*://user@host/*", true, "invalid host byte"},
@@ -198,5 +200,29 @@ func BenchmarkMatchLongPath(b *testing.B) {
 	b.ReportAllocs()
 	for b.Loop() {
 		m.Match(tg)
+	}
+}
+
+// Pattern hosts are canonicalized as URL hosts are (§4.2): a Unicode host
+// compiles to its punycode view and matches every spelling with that view.
+func TestUnicodePatternHost(t *testing.T) {
+	for _, c := range []struct{ in, host string }{
+		{"http://bücher.example/*", "xn--bcher-kva.example"},
+		{"http://*.BÜCHER.example\u3002/*", "xn--bcher-kva.example"},
+		{"http://\u212aelvin.example/*", "kelvin.example"}, // KELVIN SIGN
+		{"http://bücher.*/*", "xn--bcher-kva"},
+	} {
+		if _, h := mustParse(t, c.in, true).Host(); h != c.host {
+			t.Errorf("%s: host %q, want %q", c.in, h, c.host)
+		}
+	}
+	p := mustParse(t, "*://bücher.example/*", false)
+	for _, h := range []string{"bücher.example", "BÜCHER.example", "xn--bcher-kva.example"} {
+		v, _ := rawurl.HostView(h)
+		tg := &Target{Scheme: "https", Host: v, Port: "443"}
+		tg.SetPath("/")
+		if !p.Match(tg) {
+			t.Errorf("%s does not match host %q (view %q)", p, h, v)
+		}
 	}
 }

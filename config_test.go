@@ -4,6 +4,8 @@ import (
 	"errors"
 	"strings"
 	"testing"
+
+	"github.com/Espresso-Aficionados/linkclean/internal/rule"
 )
 
 // Config semantics of §14.1 and §9 against the built-in rules.
@@ -129,7 +131,7 @@ func TestSourcesAndNotices(t *testing.T) {
 }
 
 func TestDefault(t *testing.T) {
-	if Default() != Default() {
+	if a, b := Default(), Default(); a != b {
 		t.Error("Default is not shared")
 	}
 	in := "https://example.com/?utm_source=x&id=7"
@@ -150,5 +152,73 @@ func TestMaxUnwrapClamp(t *testing.T) {
 	r := MustNew(Config{MaxUnwrap: 20}).Explain(in)
 	if !r.UnwrapAbandoned {
 		t.Errorf("11 hops with MaxUnwrap 20 (clamped to 10) not abandoned: %d hops", len(r.Hops))
+	}
+}
+
+func TestTextMarshaling(t *testing.T) {
+	for a := Strip; a <= Unwrap; a++ {
+		b, err := a.MarshalText()
+		var back Action
+		if err != nil || back.UnmarshalText(b) != nil || back != a {
+			t.Errorf("Action %d: %q %v -> %d", a, b, err, back)
+		}
+	}
+	for c := CatTracker; c <= CatUnshortened; c++ {
+		b, err := c.MarshalText()
+		var back Category
+		if err != nil || back.UnmarshalText(b) != nil || back != c {
+			t.Errorf("Category %d: %q %v -> %d", c, b, err, back)
+		}
+	}
+	for _, a := range []Action{0, Unwrap + 1} {
+		if _, err := a.MarshalText(); err == nil {
+			t.Errorf("Action(%d).MarshalText: no error", a)
+		}
+	}
+	for _, c := range []Category{0, CatUnshortened + 1} {
+		if _, err := c.MarshalText(); err == nil {
+			t.Errorf("Category(%d).MarshalText: no error", c)
+		}
+	}
+	var a Action
+	var c Category
+	for _, s := range []string{"", "Strip", "redirect"} {
+		if a.UnmarshalText([]byte(s)) == nil {
+			t.Errorf("Action.UnmarshalText(%q): no error", s)
+		}
+	}
+	for _, s := range []string{"", "Tracker", "strip"} {
+		if c.UnmarshalText([]byte(s)) == nil {
+			t.Errorf("Category.UnmarshalText(%q): no error", s)
+		}
+	}
+}
+
+func TestMustNewPanics(t *testing.T) {
+	defer func() {
+		err, _ := recover().(error)
+		var re *RuleError
+		if !errors.As(err, &re) || re.Field != "MaxUnwrap" {
+			t.Errorf("recovered %v, want a *RuleError for MaxUnwrap", err)
+		}
+	}()
+	MustNew(Config{MaxUnwrap: -1})
+	t.Error("MustNew did not panic")
+}
+
+// Q2: errors from the embedded data path arrive joined twice (compiler, then
+// readDefaults); every leaf must still be a *RuleError.
+func TestConvertErrsNested(t *testing.T) {
+	in := errors.Join(errors.Join(&rule.Error{Set: "s", RuleID: "r", Field: "f", Err: errors.New("x")}), errors.New("plain"))
+	out := convertErrs(in)
+	if len(out) != 2 {
+		t.Fatalf("got %d errors, want 2: %v", len(out), out)
+	}
+	var re *RuleError
+	if !errors.As(out[0], &re) || re.Set != "s" || re.RuleID != "r" || re.Field != "f" {
+		t.Errorf("leaf 0 = %#v, want *RuleError s:r f", out[0])
+	}
+	if got, want := out[0].Error(), "linkclean: s:r: f: x"; got != want {
+		t.Errorf("Error() = %q, want %q", got, want)
 	}
 }

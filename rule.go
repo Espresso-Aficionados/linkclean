@@ -92,7 +92,9 @@ type Rule struct {
 	// Scope: the rule applies iff some Include pattern matches, no Exclude
 	// pattern matches, and (URLRegexps is empty or some URLRegexps entry matches).
 	// At least one Include is required, so every rule is host-scoped by
-	// construction ("*://*/*" is the explicit global scope).
+	// construction ("*://*/*" is the explicit global scope). Pattern hosts
+	// are canonicalized like URL hosts: lowercased, and a Unicode host is
+	// mapped to punycode by IDNA (New rejects one that IDNA refuses).
 	Include    []string `json:"include"`              // match patterns
 	Exclude    []string `json:"exclude,omitempty"`    // same grammar; exempts THIS rule only
 	URLRegexps []string `json:"urlRegexps,omitempty"` // RE2, unanchored search over the match string

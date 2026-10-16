@@ -111,8 +111,8 @@ func TestCompileValid(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if p.Len() != 4 {
-		t.Fatalf("Len %d", p.Len())
+	if len(p.rules) != 4 {
+		t.Fatalf("%d rules", len(p.rules))
 	}
 	if got := p.params["fbclid"]; len(got) != 2 || got[0] != 0 || got[1] != 3 {
 		t.Errorf("params[fbclid] = %v, want [0 3] (canonical, ascending)", got)
@@ -162,23 +162,5 @@ func TestNewCleanerDisable(t *testing.T) {
 	c, _ = NewCleaner([]*Program{p}, Options{AffiliateStrip: true, MaxUnwrap: 5, MaxURLLength: 8192})
 	if !c.isActive(2) || c.isActive(3) {
 		t.Errorf("AffiliateStrip: active = %b", c.active[0])
-	}
-}
-
-func TestHasHTTPScheme(t *testing.T) {
-	for v, want := range map[string]bool{
-		"https://a":       true,
-		"http://a":        true,
-		"HTTPS%3A%2F%2Fa": true,
-		"http%3A//a":      true,
-		"https%253A":      false,
-		"ftp://a":         false,
-		"http:/":          false,
-		"":                false,
-		"httpx://":        false,
-	} {
-		if got := hasHTTPScheme(v); got != want {
-			t.Errorf("hasHTTPScheme(%q) = %v", v, got)
-		}
 	}
 }

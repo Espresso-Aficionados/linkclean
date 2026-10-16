@@ -100,14 +100,13 @@ func CompileDebounce(debounce, classes []byte) ([]rule.Rule, DebounceStats, erro
 		}
 	}
 
-	type groupKey struct{ class, network, idParam, idPath string }
 	var out []rule.Rule
 	ids := newIDs()
 	upstream := map[string]bool{}
 	for i, e := range elems {
 		id := "#" + strconv.Itoa(i)
-		groups := map[groupKey][]string{}
-		var order []groupKey
+		groups := map[class][]string{} // by (class, network, locator)
+		var order []class
 		for j, p := range e.include {
 			st.Instances++
 			upstream[p] = true
@@ -127,11 +126,10 @@ func CompileDebounce(debounce, classes []byte) ([]rule.Rule, DebounceStats, erro
 				st.SkippedInstances++
 				continue
 			}
-			k := groupKey{c.class, c.network, c.idParam, c.idPath}
-			if _, seen := groups[k]; !seen {
-				order = append(order, k)
+			if _, seen := groups[c]; !seen {
+				order = append(order, c)
 			}
-			groups[k] = append(groups[k], p)
+			groups[c] = append(groups[c], p)
 		}
 		for _, k := range order {
 			inc := groups[k]

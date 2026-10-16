@@ -1,7 +1,7 @@
 // Package linkclean removes tracking parameters from http(s) URLs and unwraps
 // known redirect wrappers. It is a pure, offline string transform: no function
-// in this package performs I/O. Network unshortening lives in the opt-in package
-// github.com/Espresso-Aficionados/linkclean/unshorten.
+// in this package performs I/O. Network unshortening is planned as a separate,
+// opt-in package; this one never will.
 //
 // Rules come from Brave's clean-urls.json, query-filter.json and debounce.json
 // (MPL-2.0, embedded unmodified from one pinned brave/adblock-lists commit) plus
@@ -10,9 +10,10 @@
 // Rules never change at runtime; a data refresh is a patch release.
 //
 // Cleaning is a minimal edit. Only removed query/fragment segments, removed path
-// text, a re-encoded nested URL value, or a replaced wrapper change. Host spelling,
-// percent-encoding, parameter order, port, userinfo and fragment are otherwise
-// copied verbatim. If nothing applies, the input string is returned unchanged, so
+// text, a re-encoded nested URL value, or a replaced wrapper change; once one of
+// those happened, empty query segments ("&&", a bare "?") are dropped too. Host
+// spelling, percent-encoding, parameter order, port, userinfo and fragment are
+// otherwise copied verbatim. If nothing applies, the input string is returned unchanged, so
 //
 //	if out := linkclean.Clean(in); out != in { /* changed */ }
 //
@@ -32,6 +33,17 @@
 //
 // Host matching is always done on the parsed host (userinfo removed, IDNA and
 // trailing-dot canonicalized), never by substring search over the URL.
+//
+// # Licensing
+//
+// The code is MIT. The embedded Brave lists (rules/brave) and the debounce
+// classification table (rules/overlay/debounce-classes.json) are MPL-2.0. A
+// program that distributes a binary built with this package must tell
+// recipients where the MPL-covered source is (MPL-2.0 §3.2): this module's
+// source with rules/brave/NOTICE and NOTICE.md suffices, and
+// Cleaner.Notices returns the same attribution at run time, for an about page
+// or a --licenses flag. Importers have no other obligations for their own
+// code.
 //
 // # Deviations from Brave
 //

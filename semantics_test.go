@@ -130,7 +130,7 @@ func TestHostileIDs(t *testing.T) {
 		"%60x%60":           "`x`",
 		"%2541":             "%41",
 		"a%0Ab":             "a\nb",
-		"%E2%80%AEevil-20":  "‮evil-20",
+		"%E2%80%AEevil-20":  "\u202eevil-20",
 		"%FF%FE":            "\xff\xfe",
 		"a+b":               "a+b",
 		"%%zz":              "%%zz",

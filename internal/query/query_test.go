@@ -11,16 +11,16 @@ func TestParse(t *testing.T) {
 		q    string
 		want []Segment
 	}{
-		{"", []Segment{{}}},
+		{"", nil},
 		{"a", []Segment{{Text: "a", Name: "a"}}},
 		{"a=", []Segment{{Text: "a=", Name: "a", HasEq: true}}},
 		{"=v", []Segment{{Text: "=v", Value: "v", HasEq: true}}},
 		{"=k=v", []Segment{{Text: "=k=v", Value: "k=v", HasEq: true}}}, // DV-4: empty name
 		{"a=1&b=2", []Segment{{Text: "a=1", Name: "a", Value: "1", HasEq: true}, {Text: "b=2", Name: "b", Value: "2", HasEq: true}}},
-		{"&&", []Segment{{}, {}, {}}},
+		{"&&", nil},
+		{"&a&&b&", []Segment{{Text: "a", Name: "a"}, {Text: "b", Name: "b"}}},
 		{"a=1;b=2", []Segment{{Text: "a=1;b=2", Name: "a", Value: "1;b=2", HasEq: true}}},
 		{"u=https://x/?a=1", []Segment{{Text: "u=https://x/?a=1", Name: "u", Value: "https://x/?a=1", HasEq: true}}},
-		{"a&", []Segment{{Text: "a", Name: "a"}, {}}},
 	}
 	for _, tt := range tests {
 		if got := Parse(nil, tt.q); !slices.Equal(got, tt.want) {
@@ -33,20 +33,22 @@ func TestParse(t *testing.T) {
 	}
 }
 
-func TestJoin(t *testing.T) {
-	segs := Parse(nil, "a=1&&b&c=3&")
-	if got, want := Join(segs, nil), "a=1&b&c=3"; got != want {
-		t.Errorf("Join(nil drop) = %q, want %q", got, want)
-	}
-	drop := func(i int) bool { return segs[i].Name == "b" || segs[i].Name == "a" }
-	if got, want := Join(segs, drop), "c=3"; got != want {
-		t.Errorf("Join = %q, want %q", got, want)
-	}
-	if got := Join(segs, func(int) bool { return true }); got != "" {
-		t.Errorf("Join(drop all) = %q, want \"\"", got)
-	}
-	if got := Join(Parse(nil, ""), nil); got != "" {
-		t.Errorf("Join(\"\") = %q", got)
+// A long query grows dst at most once, sized by its non-empty segments.
+func TestParseGrowsOnce(t *testing.T) {
+	for _, c := range []struct {
+		q string
+		n int
+	}{
+		{strings.Repeat("&", 8100), 0},
+		{strings.Repeat("a=1&", 2025), 2025},
+		{"&" + strings.Repeat("a&&", 100), 100},
+	} {
+		if allocs := testing.AllocsPerRun(10, func() { Parse(nil, c.q) }); allocs > 1 && !raceEnabled {
+			t.Errorf("Parse(%.12q…): %v allocs, want <= 1", c.q, allocs)
+		}
+		if got := Parse(nil, c.q); len(got) != c.n {
+			t.Errorf("Parse(%.12q…): %d segments, want %d", c.q, len(got), c.n)
+		}
 	}
 }
 
@@ -180,8 +182,8 @@ func TestAllocs(t *testing.T) {
 	}
 }
 
-// FuzzQuery checks that tokenizing is lossless and that DecodeValue inverts
-// EncodeComponent (§14).
+// FuzzQuery checks that tokenizing keeps every non-empty segment and that
+// DecodeValue inverts EncodeComponent (§14).
 func FuzzQuery(f *testing.F) {
 	for _, s := range []string{"", "a=1&b=2", "&&", "=k=v", "a=%2541&B=%zz", "u=https%3A%2F%2Fx%2F%3Fa%3D1", "é=\xff;x"} {
 		f.Add(s)
@@ -199,8 +201,14 @@ func FuzzQuery(f *testing.F) {
 				t.Fatalf("segment %+v of %q is inconsistent", s, q)
 			}
 		}
-		if got := strings.Join(texts, "&"); got != q {
-			t.Fatalf("rejoined %q, want %q", got, q)
+		var want []string
+		for _, p := range strings.Split(q, "&") {
+			if p != "" {
+				want = append(want, p)
+			}
+		}
+		if !slices.Equal(texts, want) && len(texts)+len(want) > 0 {
+			t.Fatalf("segments %q, want %q", texts, want)
 		}
 		if got := DecodeValue(EncodeComponent(q)); got != q {
 			t.Fatalf("DecodeValue(EncodeComponent(%q)) = %q", q, got)
@@ -237,5 +245,23 @@ func BenchmarkParse(b *testing.B) {
 	b.ReportAllocs()
 	for b.Loop() {
 		dst = Parse(dst[:0], q)
+	}
+}
+
+func TestHasHTTPScheme(t *testing.T) {
+	for v, want := range map[string]bool{
+		"https://a":       true,
+		"http://a":        true,
+		"HTTPS%3A%2F%2Fa": true,
+		"http%3A//a":      true,
+		"https%253A":      false,
+		"ftp://a":         false,
+		"http:/":          false,
+		"":                false,
+		"httpx://":        false,
+	} {
+		if got := HasHTTPScheme(v); got != want {
+			t.Errorf("HasHTTPScheme(%q) = %v", v, got)
+		}
 	}
 }

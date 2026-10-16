@@ -3,6 +3,8 @@ package linkclean
 import (
 	"errors"
 	"fmt"
+
+	"github.com/Espresso-Aficionados/linkclean/internal/rule"
 )
 
 // RuleError reports one invalid rule or config entry.
@@ -12,20 +14,7 @@ type RuleError struct {
 }
 
 func (e *RuleError) Error() string {
-	where := e.Set
-	if e.RuleID != "" {
-		where += ":" + e.RuleID
-	}
-	if e.Field != "" {
-		if where != "" {
-			where += ": "
-		}
-		where += e.Field
-	}
-	if where == "" {
-		return fmt.Sprintf("linkclean: %v", e.Err)
-	}
-	return fmt.Sprintf("linkclean: %s: %v", where, e.Err)
+	return (&rule.Error{Set: e.Set, RuleID: e.RuleID, Field: e.Field, Err: e.Err}).Error()
 }
 
 func (e *RuleError) Unwrap() error { return e.Err }

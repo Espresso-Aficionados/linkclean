@@ -1,56 +1,54 @@
 package query
 
-import "strings"
+import (
+	"slices"
+	"strings"
+)
 
-// Segment is one '&'-separated piece of a raw query or fragment.
+// Segment is one non-empty '&'-separated piece of a raw query or fragment.
 type Segment struct {
-	Text  string // raw bytes between separators; may be ""
+	Text  string // raw bytes between separators
 	Name  string // Text before the first '=', or all of Text if it has none
 	Value string // Text after the first '='; "" if none
 	HasEq bool
 }
 
-// Parse appends every segment of q to dst, empty ones included, so a query
-// with n separators yields n+1 segments ("" yields one empty segment). ';' is
-// not a separator. Every string is a substring of q; Parse does not allocate
-// when dst has capacity.
+// Parse appends the non-empty segments of q to dst. Empty segments ("&&", a
+// leading or trailing '&') carry no name, so no rule can act on them, and the
+// engine rebuilds a changed query without them (§5.1). ';' is not a
+// separator. Every string is a substring of q. Parse does not allocate when
+// dst has room, and grows dst at most once.
 func Parse(dst []Segment, q string) []Segment {
-	for {
-		text, rest, more := strings.Cut(q, "&")
-		name, value, eq := strings.Cut(text, "=")
-		dst = append(dst, Segment{Text: text, Name: name, Value: value, HasEq: eq})
-		if !more {
-			return dst
+	if room := cap(dst) - len(dst); len(q)/2+1 > room {
+		if n := count(q); n > room {
+			dst = slices.Grow(dst, n)
+		}
+	}
+	for q != "" {
+		text, rest, _ := strings.Cut(q, "&")
+		if text != "" {
+			name, value, eq := strings.Cut(text, "=")
+			dst = append(dst, Segment{Text: text, Name: name, Value: value, HasEq: eq})
 		}
 		q = rest
 	}
+	return dst
 }
 
-// Join joins with '&' the Text of every segment that is non-empty and not
-// dropped; drop may be nil. Empty segments therefore collapse, which the
-// engine relies on only after something changed (§5.1, DV-7).
-func Join(segs []Segment, drop func(i int) bool) string {
+// count returns the number of non-empty segments of q.
+func count(q string) int {
 	n := 0
-	for i, s := range segs {
-		if s.Text != "" && (drop == nil || !drop(i)) {
-			n += len(s.Text) + 1
+	for q != "" {
+		i := strings.IndexByte(q, '&')
+		if i < 0 {
+			return n + 1
 		}
-	}
-	if n == 0 {
-		return ""
-	}
-	var b strings.Builder
-	b.Grow(n - 1)
-	for i, s := range segs {
-		if s.Text == "" || drop != nil && drop(i) {
-			continue
+		if i > 0 {
+			n++
 		}
-		if b.Len() > 0 {
-			b.WriteByte('&')
-		}
-		b.WriteString(s.Text)
+		q = q[i+1:]
 	}
-	return b.String()
+	return n
 }
 
 // Canon returns canon(name) (§4.1): "%XX" decoded once (invalid escapes stay
@@ -132,6 +130,26 @@ func EncodeComponent(s string) string {
 		}
 	}
 	return string(b)
+}
+
+// HasHTTPScheme reports whether v, decoded once (§5.4), starts with "http://"
+// or "https://" (ASCII case-insensitive), without decoding all of v.
+func HasHTTPScheme(v string) bool {
+	var b [8]byte
+	n := 0
+	for i := 0; i < len(v) && n < len(b); i++ {
+		c := v[i]
+		if c == '%' && escapeAt(v, i) {
+			c = unhex(v[i+1])<<4 | unhex(v[i+2])
+			i += 2
+		}
+		if 'A' <= c && c <= 'Z' {
+			c += 'a' - 'A'
+		}
+		b[n] = c
+		n++
+	}
+	return n >= 7 && string(b[:7]) == "http://" || n == 8 && string(b[:8]) == "https://"
 }
 
 // IsFragmentParams reports whether fragment f is parameter-shaped (§5.3): it

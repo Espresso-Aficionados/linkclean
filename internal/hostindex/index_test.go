@@ -45,34 +45,29 @@ func TestCandidates(t *testing.T) {
 		8: {"*://amazon.*/*"},
 	})
 	for _, c := range []struct {
-		host     string
-		isIP     bool
-		want     []int32
-		needSite bool
+		host string
+		isIP bool
+		want []int32
 	}{
-		{"www.example.com", false, []int32{0, 1, 2, 4, 7}, false},
-		{"example.com", false, []int32{0, 2, 4, 7}, false},
-		{"badexample.com", false, []int32{0, 4, 7}, false},
-		{"www.amazon.co.uk", false, []int32{0, 3, 7, 8}, true},
-		{"www.amazon.com.be", false, []int32{0, 3, 7, 8}, true},
-		{"amazon.com", false, []int32{0, 3, 4, 7, 8}, true},
-		{"10.0.0.1", true, []int32{0, 5, 6, 7}, false},
-		{"0.0.1", false, []int32{0, 5, 7}, false},
-		{"[::1]", true, []int32{0, 7}, false},
-		{"x.example", false, []int32{0, 7}, false},
-		{"", false, []int32{0, 7}, false},
+		{"www.example.com", false, []int32{0, 1, 2, 4, 7}},
+		{"example.com", false, []int32{0, 2, 4, 7}},
+		{"badexample.com", false, []int32{0, 4, 7}},
+		{"www.amazon.co.uk", false, []int32{0, 3, 7, 8}},
+		{"www.amazon.com.be", false, []int32{0, 3, 7, 8}},
+		{"amazon.com", false, []int32{0, 3, 4, 7, 8}},
+		{"10.0.0.1", true, []int32{0, 5, 6, 7}},
+		{"0.0.1", false, []int32{0, 5, 7}},
+		{"[::1]", true, []int32{0, 7}},
+		{"x.example", false, []int32{0, 7}},
+		{"", false, []int32{0, 7}},
 	} {
-		got, needSite := ix.Candidates(nil, c.host, c.isIP)
-		if !slices.Equal(got, c.want) || needSite != c.needSite {
-			t.Errorf("Candidates(%q, %v) = %v %v, want %v %v", c.host, c.isIP, got, needSite, c.want, c.needSite)
+		if got := ix.Candidates(nil, c.host, c.isIP); !slices.Equal(got, c.want) {
+			t.Errorf("Candidates(%q, %v) = %v, want %v", c.host, c.isIP, got, c.want)
 		}
-	}
-	if ix.Len() != 9 {
-		t.Errorf("Len() = %d, want 9", ix.Len())
 	}
 
 	// The prefix of dst is preserved and not merged into the output order.
-	got, _ := ix.Candidates([]int32{99, 3}, "www.example.com", false)
+	got := ix.Candidates([]int32{99, 3}, "www.example.com", false)
 	if want := []int32{99, 3, 0, 1, 2, 4, 7}; !slices.Equal(got, want) {
 		t.Errorf("with prefix: %v, want %v", got, want)
 	}
@@ -81,8 +76,8 @@ func TestCandidates(t *testing.T) {
 func TestEmptyIndex(t *testing.T) {
 	var b Builder
 	ix := b.Build()
-	if got, needSite := ix.Candidates(nil, "example.com", false); len(got) != 0 || needSite || ix.Len() != 0 {
-		t.Errorf("empty index: %v %v %d", got, needSite, ix.Len())
+	if got := ix.Candidates(nil, "example.com", false); len(got) != 0 {
+		t.Errorf("empty index: %v", got)
 	}
 }
 
@@ -92,7 +87,7 @@ func TestCandidatesAllocs(t *testing.T) {
 	})
 	dst := make([]int32, 0, 64)
 	if n := testing.AllocsPerRun(100, func() {
-		dst, _ = ix.Candidates(dst[:0], "a.b.www.example.com", false)
+		dst = ix.Candidates(dst[:0], "a.b.www.example.com", false)
 	}); n != 0 {
 		t.Errorf("Candidates: %v allocs, want 0", n)
 	}
@@ -166,7 +161,7 @@ func TestCandidatesSuperset(t *testing.T) {
 	matched := 0
 	for _, host := range hosts {
 		isIP := host == "10.0.0.1" || host == "127.0.0.1" || host == "[::1]"
-		cands, needSite := ix.Candidates(buf[:0], host, isIP)
+		cands := ix.Candidates(buf[:0], host, isIP)
 		buf = cands
 		if !slices.IsSorted(cands) || len(slices.Compact(slices.Clone(cands))) != len(cands) {
 			t.Fatalf("%q: candidates not ascending and unique: %v", host, cands)
@@ -176,9 +171,6 @@ func TestCandidatesSuperset(t *testing.T) {
 				tg := &matchpattern.Target{Scheme: "https", Host: host, IsIP: isIP, Port: "443"}
 				if kind, _ := p.Host(); kind == matchpattern.HostLabel && !isIP {
 					tg.Site = fakeSite(host)
-					if _, found := slices.BinarySearch(cands, int32(ord)); found && !needSite {
-						t.Errorf("%q: label rule %d is a candidate but needSite is false", host, ord)
-					}
 				}
 				scheme, rest, _ := strings.Cut(p.String(), "://")
 				if scheme == "http" {
@@ -232,7 +224,7 @@ func BenchmarkCandidates(b *testing.B) {
 			b.Run(fmt.Sprintf("rules=%d/%s", n, host), func(b *testing.B) {
 				b.ReportAllocs()
 				for b.Loop() {
-					dst, _ = ix.Candidates(dst[:0], host, false)
+					dst = ix.Candidates(dst[:0], host, false)
 				}
 			})
 		}

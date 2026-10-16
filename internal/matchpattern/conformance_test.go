@@ -31,10 +31,7 @@
 
 package matchpattern
 
-import (
-	"strings"
-	"testing"
-)
+import "testing"
 
 // Parse results for the subset (Chromium's ParseResult cases that apply to
 // http/https patterns).
@@ -209,14 +206,4 @@ func TestChromiumParseCanonicalHost(t *testing.T) {
 			t.Errorf("%s: host %q, want %q", c.in, h, c.host)
 		}
 	}
-	if !strings.Contains(errString(Parse("http://bücher.example/*", false)), "punycode") {
-		t.Error("non-ASCII host: want punycode hint")
-	}
-}
-
-func errString(_ *Pattern, err error) string {
-	if err == nil {
-		return ""
-	}
-	return err.Error()
 }

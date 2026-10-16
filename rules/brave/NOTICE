@@ -13,4 +13,4 @@ brave-lists/query-filter.json d31593d2932d18853c5fc633b0139da71c1eb48f c16168bb9
 brave-lists/debounce.json e1e49260ea7b1187f4395d6de15170f3c696d34a fb2396985a78983c8f88ee701100c5cb4681731239ac6624e86da1212645dbf8
 LICENSE a612ad9813b006ce81d1ee438dd784da99a54007 1f256ecad192880510e84ad60474eab7589218784b9a50bc7ceee34c2b91f1d5
 
-This file is generated from rules.lock.json. Do not edit it by hand.
+Its hashes must equal those in rules.lock.json; TestRules/Provenance checks them.

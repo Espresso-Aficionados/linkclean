@@ -51,6 +51,12 @@ func (c *Cleaner) Explain(raw string) Result {
 // run implements §4–§6 for one URL. inner marks the depth-1 clean of a
 // nested value: no unwrapping and no nesting. A non-zero Skip means the
 // input is returned unchanged and rec holds nothing meaningful.
+//
+// Unwrap runs before the strip rounds (§6) and once more after any round
+// that changed the URL: a strip can bring an Unwrap rule into scope (an
+// Include glob or URLRegexps that reads the query), and without the retry
+// Clean(Clean(x)) would unwrap what Clean(x) did not (§5.6 invariant 1).
+// Retried hops count toward MaxUnwrap and share the cycle check.
 func (c *Cleaner) run(raw string, rec *recorder, inner bool) (string, Skip) {
 	if len(raw) > c.opt.MaxURLLength {
 		return raw, SkipTooLong
@@ -71,83 +77,102 @@ func (c *Cleaner) run(raw string, rec *recorder, inner bool) (string, Skip) {
 		return raw, SkipArchive
 	}
 
+	unwrap := !inner && !c.opt.DisableUnwrap
 	nested := !inner && !c.opt.DisableNested
-	if !inner && !c.opt.DisableUnwrap {
-		cur := raw
-		var seen []string
-		abandoned := false
-		for n := 0; ; n++ {
+	var seen []string
+	cleaned := false // cl's URL is the fixed point of the rounds
+	for {
+		if unwrap {
 			t, ord, ok := cl.unwrapOnce()
-			if !ok {
-				break
-			}
-			if n == c.opt.MaxUnwrap || t == raw || slices.Contains(seen, t) {
-				abandoned = true
-				break
-			}
-			seen = append(seen, t)
-			if rec != nil {
-				rec.hops = append(rec.hops, cl.hop(cur, t, ord))
-			}
-			tu, sk := rawurl.Parse(t)
-			if sk != rawurl.OK {
-				// Unreachable: Reserialize output always parses. Stop here
-				// rather than clean a URL the views do not describe.
-				return t, NotSkipped
-			}
-			cur = t
-			cl.reset(&tu)
-			if cl.archived() {
-				return t, NotSkipped // §5.5: an archive target is emitted uncleaned
+			switch {
+			case ok && (len(seen) == c.opt.MaxUnwrap || t == raw || slices.Contains(seen, t)):
+				// K8: abandon the chain and clean the input without nesting.
+				unwrap, nested, cleaned = false, false, false
+				if rec != nil {
+					rec.hops, rec.removed, rec.abandoned = nil, nil, true
+				}
+				if cl.u.Raw != raw {
+					cl.reset(&u)
+				}
+				continue
+			case ok:
+				seen = append(seen, t)
+				if rec != nil {
+					rec.hops = append(rec.hops, cl.hop(t, ord))
+					// Rounds already run were on the wrapper, which is gone.
+					rec.removed, rec.kept, rec.signed = nil, nil, false
+				}
+				tu, sk := rawurl.Parse(t)
+				if sk != rawurl.OK {
+					// Unreachable: Reserialize output always parses. Stop here
+					// rather than clean a URL the views do not describe.
+					return t, NotSkipped
+				}
+				cl.reset(&tu)
+				if cl.archived() {
+					return t, NotSkipped // §5.5: an archive target is emitted uncleaned
+				}
+				cleaned = false
+				continue
+			case cleaned:
+				return cl.u.Raw, NotSkipped
 			}
 		}
-		if abandoned {
-			if rec != nil {
-				rec.hops = nil
-				rec.abandoned = true
-			}
-			nested = false
-			if cur != raw {
-				cl.reset(&u)
-			}
+		before := cl.u.Raw
+		out, ok := cl.rounds(nested)
+		if !ok {
+			return raw, SkipRoundCap
 		}
+		if !unwrap || out == before {
+			return out, NotSkipped
+		}
+		cleaned = true
 	}
-
-	out, ok := cl.rounds(nested)
-	if !ok {
-		return raw, SkipRoundCap
-	}
-	return out, NotSkipped
 }
 
-// call is the state of cleaning one URL: the views that are constant for it
-// (host, site, rule candidates), the current round's spans, and the scope
-// memo. It lives on the stack of run.
+// call is the state of cleaning one URL: its views, the rule candidates for
+// its host, and the scope memo of the current round. It lives on the stack
+// of run.
 type call struct {
 	c   *Cleaner
 	rec *recorder
 
-	u        rawurl.URL // the URL as parsed; its host-derived views hold for every round
+	// u is the current round's URL. Rounds only edit the path, query and
+	// fragment, so its host-derived views (Prefix, Host, Port, IsIP) hold
+	// for every round; reset replaces them after an unwrap hop.
+	u        rawurl.URL
 	t        matchpattern.Target
 	siteDone bool
 
-	// The candidate rules for u's host, ascending global ordinals, and the
-	// scope memo of the current round per candidate: 0 unknown, 1 in scope,
-	// 2 not. They live in cb and mb unless there are more than fit, in big
-	// and bigMemo. cl never points into itself, so it stays on the stack.
+	// The candidates whose scope must be evaluated (host-indexed, and global
+	// with a non-trivial scope), ascending global ordinals, and the scope memo
+	// of the current round per candidate: 0 unknown, 1 in scope, 2 not.
+	// Trivial-scope rules are candidates for every URL and are not listed.
+	// The specials are the candidates, trivial ones included, that cleaning
+	// visits without a param name (crule.special), ascending. All of these
+	// live in the fixed arrays unless they do not fit, in the big slices. cl
+	// never points into itself, so it stays on the stack.
 	nc      int
 	cb      [128]int32
 	mb      [128]uint8
 	big     []int32
 	bigMemo []uint8
+	ns      int
+	sb      [32]special
+	bigSpec []special
 
-	// The current round's URL and spans. Strips never touch the authority,
-	// so u.Prefix is a prefix of every round's raw.
-	raw, path, query, frag string
-	hasQuery, hasFrag      bool
-	ms                     string // match string, valid iff msDone
-	msDone                 bool
-	signed                 bool
+	ms     string // match string, valid iff msDone
+	msDone bool
+	signed bool
+	rxBuf  []byte // a name for ParamRegexps matching
+}
+
+// special is a candidate rule with ParamRegexps, PathRegexps or action
+// Unwrap.
+type special struct {
+	r   *crule
+	ord int32 // global ordinal
+	pos int32 // index into the candidates and memo; -1 for a trivial scope
 }
 
 // reset points cl at a new URL, keeping its buffers.
@@ -155,63 +180,64 @@ func (cl *call) reset(u *rawurl.URL) {
 	cl.u = *u
 	cl.t = matchpattern.Target{Scheme: u.Scheme, Host: u.Host, IsIP: u.IsIP, Port: u.EffectivePort()}
 	cl.siteDone = false
-	var tmp [256]int32
-	cands := tmp[:0]
+	cands, specs := cl.cb[:0], cl.sb[:0]
 	for i, p := range cl.c.progs {
+		off := cl.c.offs[i]
 		start := len(cands)
-		cands, _ = p.hosts.Candidates(cands, u.Host, u.IsIP)
-		if off := cl.c.offs[i]; off != 0 {
-			for j := start; j < len(cands); j++ {
-				cands[j] += off
+		cands = p.hosts.Candidates(cands, u.Host, u.IsIP)
+		// Merge this program's candidates and trivial specials by ordinal.
+		for k, j := start, 0; k < len(cands) || j < len(p.trivial); {
+			lo, pos := int32(0), int32(-1)
+			if j == len(p.trivial) || k < len(cands) && cands[k] < p.trivial[j] {
+				lo, pos = cands[k], int32(k)
+				k++
+			} else {
+				lo = p.trivial[j]
+				j++
+			}
+			if r := &p.rules[lo]; r.special() {
+				specs = append(specs, special{r: r, ord: off + lo, pos: pos})
 			}
 		}
+		for k := start; k < len(cands); k++ {
+			cands[k] += off
+		}
 	}
-	cl.nc = len(cands)
-	if cl.nc <= len(cl.cb) {
-		copy(cl.cb[:], cands)
-		cl.big, cl.bigMemo = nil, nil
-	} else {
+	cl.nc, cl.ns = len(cands), len(specs)
+	cl.big, cl.bigMemo, cl.bigSpec = nil, nil, nil
+	if len(cands) > len(cl.cb) {
 		cl.big = slices.Clone(cands)
-		cl.bigMemo = make([]uint8, cl.nc)
+		cl.bigMemo = make([]uint8, len(cands))
 	}
-	cl.setRound(u.Raw, u.Path, u.Query, u.Fragment, u.HasQuery, u.HasFragment)
+	if len(specs) > len(cl.sb) {
+		cl.bigSpec = slices.Clone(specs)
+	}
+	cl.newRound()
 }
 
-func (cl *call) setRound(raw, path, q, frag string, hasQuery, hasFrag bool) {
-	cl.raw, cl.path, cl.query, cl.frag = raw, path, q, frag
-	cl.hasQuery, cl.hasFrag = hasQuery, hasFrag
+// newRound resets the per-round state for cl.u.
+func (cl *call) newRound() {
 	cl.msDone = false
 	clear(cl.memo())
-	// pathForRequest (§4.1) is a substring of raw unless the path is empty.
-	start := len(cl.u.Prefix)
-	var pfr string
-	switch {
-	case path != "" && hasQuery:
-		pfr = raw[start : start+len(path)+1+len(q)]
-	case path != "":
-		pfr = raw[start : start+len(path)]
-	case hasQuery:
-		pfr = "/?" + q
-	default:
-		pfr = "/"
-	}
-	cl.t.SetPath(pfr)
+	cl.t.SetPath(cl.u.PathForRequest())
 }
 
-// split re-derives the round spans of a URL that rounds rebuilt from
-// cl.u.Prefix: rounds never write a '?' or '#' into the path, nor a '#' into
-// the query.
+// split points cl.u at raw, a URL that rounds rebuilt from cl.u.Prefix:
+// rounds never write a '?' or '#' into the path, nor a '#' into the query.
 func (cl *call) split(raw string) {
-	tail := raw[len(cl.u.Prefix):]
-	frag, hasFrag := "", false
+	u := &cl.u
+	tail := raw[len(u.Prefix):]
+	u.Raw = raw
+	u.Fragment, u.HasFragment = "", false
 	if i := strings.IndexByte(tail, '#'); i >= 0 {
-		tail, frag, hasFrag = tail[:i], tail[i+1:], true
+		tail, u.Fragment, u.HasFragment = tail[:i], tail[i+1:], true
 	}
-	q, hasQuery := "", false
+	u.Query, u.HasQuery = "", false
 	if i := strings.IndexByte(tail, '?'); i >= 0 {
-		tail, q, hasQuery = tail[:i], tail[i+1:], true
+		tail, u.Query, u.HasQuery = tail[:i], tail[i+1:], true
 	}
-	cl.setRound(raw, tail, q, frag, hasQuery, hasFrag)
+	u.Path = tail
+	cl.newRound()
 }
 
 // cands returns the candidate list. The result points into cl: it must not
@@ -230,6 +256,15 @@ func (cl *call) memo() []uint8 {
 	return cl.mb[:cl.nc]
 }
 
+// specials returns the special candidates. The result points into cl: it
+// must not be stored.
+func (cl *call) specials() []special {
+	if cl.bigSpec != nil {
+		return cl.bigSpec
+	}
+	return cl.sb[:cl.ns]
+}
+
 func (cl *call) site() string {
 	if !cl.siteDone {
 		cl.siteDone = true
@@ -240,50 +275,22 @@ func (cl *call) site() string {
 	return cl.t.Site
 }
 
-// matchString is the §4.1 match string of the current round. When the URL
-// is written in canonical form (lowercase scheme, no userinfo or port, a
-// host equal to its view, a non-empty path) it is the URL itself.
+// matchString is the §4.1 match string of the current round.
 func (cl *call) matchString() string {
-	if cl.msDone {
-		return cl.ms
+	if !cl.msDone {
+		cl.ms, cl.msDone = cl.u.MatchString(), true
 	}
-	cl.msDone = true
-	p, s, h := cl.u.Prefix, cl.u.Scheme, cl.u.Host
-	if cl.path != "" && len(p) == len(s)+3+len(h) && p[:len(s)] == s && p[len(s)+3:] == h {
-		cl.ms = cl.raw
-		return cl.ms
-	}
-	var b strings.Builder
-	b.Grow(len(cl.raw) + 1)
-	b.WriteString(s)
-	b.WriteString("://")
-	b.WriteString(h)
-	if port := cl.u.Port; port != "" && port != defaultPort(s) {
-		b.WriteByte(':')
-		b.WriteString(port)
-	}
-	if cl.path == "" {
-		b.WriteByte('/')
-	} else {
-		b.WriteString(cl.path)
-	}
-	if cl.hasQuery {
-		b.WriteByte('?')
-		b.WriteString(cl.query)
-	}
-	if cl.hasFrag {
-		b.WriteByte('#')
-		b.WriteString(cl.frag)
-	}
-	cl.ms = b.String()
 	return cl.ms
 }
 
 // inScope reports whether candidate cands[pos], rule r, is in scope for the
 // current round (§4.2): an Include matches, no Exclude matches, and some
 // URLRegexps entry matches if there are any. The answer is memoized for the
-// round.
+// round. pos < 0 means r's scope is trivial.
 func (cl *call) inScope(pos int, r *crule) bool {
+	if pos < 0 {
+		return true
+	}
 	m := cl.memo()
 	switch m[pos] {
 	case 1:
@@ -390,49 +397,58 @@ func (cl *call) decide(name string, frag bool) decision {
 // scan considers every rule of the given action that names canonical name
 // cn, through the params index or a ParamRegexps entry.
 func (cl *call) scan(cn []byte, frag bool, action rule.Action, d *decision) {
-	cs := "" // string(cn), made only if a regexp needs it
 	for pi, p := range cl.c.progs {
 		off := cl.c.offs[pi]
 		for _, lo := range p.params[string(cn)] {
-			if cl.consider(off+lo, &p.rules[lo], frag, action, d) {
+			r := &p.rules[lo]
+			if r.action != action {
+				continue
+			}
+			pos := -1
+			if !r.trivial {
+				if pos = cl.candPos(off + lo); pos < 0 {
+					continue
+				}
+			}
+			if cl.consider(off+lo, pos, r, frag, d) {
 				return
 			}
 		}
-		for _, lo := range p.regex {
-			r := &p.rules[lo]
-			if r.action != action || cl.candPos(off+lo) < 0 {
+	}
+	for _, sp := range cl.specials() {
+		r := sp.r
+		if r.action != action {
+			continue
+		}
+		for i := range r.paramRes {
+			pr := &r.paramRes[i]
+			if !pr.prefixOK(cn) {
 				continue
 			}
-			for i := range r.paramRes {
-				pr := &r.paramRes[i]
-				if !pr.prefixOK(cn) {
-					continue
+			// Match would leak cn, a stack buffer, so the name goes through
+			// one heap buffer per call instead of one string per name.
+			cl.rxBuf = append(cl.rxBuf[:0], cn...)
+			if pr.re.Match(cl.rxBuf) {
+				if cl.consider(sp.ord, int(sp.pos), r, frag, d) {
+					return
 				}
-				if cs == "" {
-					cs = string(cn)
-				}
-				if pr.re.MatchString(cs) {
-					if cl.consider(off+lo, r, frag, action, d) {
-						return
-					}
-					break
-				}
+				break
 			}
 		}
 	}
 }
 
-// consider applies rule r (global ordinal ord) to d. It returns true when
-// the answer can no longer change and nothing is recorded.
-func (cl *call) consider(ord int32, r *crule, frag bool, action rule.Action, d *decision) bool {
-	if r.action != action || action == rule.Strip && frag && !r.inFragment {
+// consider applies candidate rule r (global ordinal ord, candidate position
+// pos) to d. It returns true when the answer can no longer change and
+// nothing is recorded.
+func (cl *call) consider(ord int32, pos int, r *crule, frag bool, d *decision) bool {
+	if r.action == rule.Strip && frag && !r.inFragment {
 		return false
 	}
-	pos := cl.candPos(ord)
-	if pos < 0 || !cl.c.isActive(ord) || !cl.inScope(pos, r) {
+	if !cl.c.isActive(ord) || !cl.inScope(pos, r) {
 		return false
 	}
-	if action == rule.Keep {
+	if r.action == rule.Keep {
 		if d.keep < 0 || ord < d.keep {
 			d.keep = ord
 		}
@@ -452,18 +468,15 @@ func (cl *call) consider(ord int32, r *crule, frag bool, action rule.Action, d *
 }
 
 // isSigned reports whether some segment's canonical name is a signature
-// parameter (§5.5).
+// parameter (§5.5). Names of any length are compared: AppendCanon grows
+// past the stack buffer when it has to.
 func (cl *call) isSigned(segs []query.Segment) bool {
 	if cl.c.opt.DisableSignedGuard {
 		return false
 	}
 	var nb [64]byte
 	for i := range segs {
-		n := segs[i].Name
-		if n == "" || len(n) > len(nb) {
-			continue
-		}
-		if _, ok := cl.c.signed[string(query.AppendCanon(nb[:0], n))]; ok {
+		if _, ok := cl.c.signed[string(query.AppendCanon(nb[:0], segs[i].Name))]; ok {
 			return true
 		}
 	}
@@ -483,7 +496,7 @@ func (cl *call) rounds(nested bool) (out string, ok bool) {
 			if cl.rec != nil {
 				cl.rec.signed = cl.signed
 			}
-			return cl.raw, true
+			return cl.u.Raw, true
 		}
 		if round == maxRounds {
 			return "", false
@@ -500,44 +513,40 @@ type replacement struct {
 // round runs one §4.3 round: path, query, fragment, nested. It returns the
 // rebuilt URL and whether anything changed.
 func (cl *call) round(nestedDone *bool) (string, bool) {
+	u := &cl.u
 	var sb [32]query.Segment
-	segs := sb[:0]
-	if cl.hasQuery {
-		segs = query.Parse(segs, cl.query)
+	var segs []query.Segment
+	if u.HasQuery {
+		segs = query.Parse(sb[:0], u.Query)
 	}
 	cl.signed = cl.isSigned(segs)
 
-	path, pathChanged := cl.stripPath()
+	path, changed := cl.stripPath()
 
-	var db [64]bool
-	drop := db[:0]
+	var db [32]bool
+	drop := db[:]
 	if len(segs) > len(db) {
 		drop = make([]bool, len(segs))
-	} else {
-		drop = db[:len(segs)]
 	}
-	qChanged := false
 	for i := range segs {
 		s := &segs[i]
 		d := cl.decide(s.Name, false)
 		if d.removed() {
 			drop[i] = true
-			qChanged = true
+			changed = true
 			cl.recordRemoval(PartQuery, s, &d)
 		} else {
 			cl.recordKept(s.Name, &d)
 		}
 	}
 
+	// §5.3: IsFragmentParams guarantees every segment a non-empty name.
 	fragGone := false
-	if cl.hasFrag && query.IsFragmentParams(cl.frag) {
+	if u.HasFragment && query.IsFragmentParams(u.Fragment) {
 		var fb [16]query.Segment
-		fsegs := query.Parse(fb[:0], cl.frag)
+		fsegs := query.Parse(fb[:0], u.Fragment)
 		fragGone = true
 		for i := range fsegs {
-			if fsegs[i].Name == "" {
-				continue
-			}
 			if d := cl.decide(fsegs[i].Name, true); !d.removed() {
 				fragGone = false
 				if cl.rec == nil {
@@ -548,12 +557,11 @@ func (cl *call) round(nestedDone *bool) (string, bool) {
 		}
 		if fragGone && cl.rec != nil {
 			for i := range fsegs {
-				if fsegs[i].Name != "" {
-					d := cl.decide(fsegs[i].Name, true)
-					cl.recordRemoval(PartFragment, &fsegs[i], &d)
-				}
+				d := cl.decide(fsegs[i].Name, true)
+				cl.recordRemoval(PartFragment, &fsegs[i], &d)
 			}
 		}
+		changed = changed || fragGone
 	}
 
 	// §5.4 nested values. The pass runs once per call (D4, P-6): a later
@@ -564,7 +572,7 @@ func (cl *call) round(nestedDone *bool) (string, bool) {
 		*nestedDone = true
 		for i := range segs {
 			s := &segs[i]
-			if drop[i] || !s.HasEq || !hasHTTPScheme(s.Value) {
+			if drop[i] || !s.HasEq || !query.HasHTTPScheme(s.Value) {
 				continue
 			}
 			t := query.DecodeValue(s.Value)
@@ -577,7 +585,7 @@ func (cl *call) round(nestedDone *bool) (string, bool) {
 				continue
 			}
 			repl = append(repl, replacement{i, s.Name + "=" + query.EncodeComponent(out)})
-			qChanged = true
+			changed = true
 			if cl.rec != nil {
 				for _, r := range inner.removed {
 					r.Part = PartNested
@@ -588,38 +596,33 @@ func (cl *call) round(nestedDone *bool) (string, bool) {
 		}
 	}
 
-	if !pathChanged && !qChanged && !fragGone {
-		return cl.raw, false
+	if !changed {
+		return u.Raw, false
 	}
-	b := make([]byte, 0, len(cl.raw))
-	b = append(b, cl.u.Prefix...)
+	// §5.1: once anything changed, the query is rebuilt from the surviving
+	// non-empty segments, and '?' is written only if one survives.
+	b := make([]byte, 0, len(u.Raw))
+	b = append(b, u.Prefix...)
 	b = append(b, path...)
-	if qChanged {
-		mark := len(b)
-		b = append(b, '?')
-		for i := range segs {
-			text := segs[i].Text
-			if len(repl) > 0 && repl[0].i == i {
-				text, repl = repl[0].text, repl[1:]
-			}
-			if drop[i] || text == "" {
-				continue
-			}
-			if len(b) > mark+1 {
-				b = append(b, '&')
-			}
-			b = append(b, text...)
+	mark := len(b)
+	for i := range segs {
+		if drop[i] {
+			continue
 		}
-		if len(b) == mark+1 {
-			b = b[:mark]
+		text := segs[i].Text
+		if len(repl) > 0 && repl[0].i == i {
+			text, repl = repl[0].text, repl[1:]
 		}
-	} else if cl.hasQuery {
-		b = append(b, '?')
-		b = append(b, cl.query...)
+		if len(b) == mark {
+			b = append(b, '?')
+		} else {
+			b = append(b, '&')
+		}
+		b = append(b, text...)
 	}
-	if cl.hasFrag && !fragGone {
+	if u.HasFragment && !fragGone {
 		b = append(b, '#')
-		b = append(b, cl.frag...)
+		b = append(b, u.Fragment...)
 	}
 	return string(b), true
 }
@@ -627,16 +630,16 @@ func (cl *call) round(nestedDone *bool) (string, bool) {
 // stripPath applies the PathRegexps of the in-scope Strip rules to the path
 // span (§5.2), at most maxPathPasses times.
 func (cl *call) stripPath() (string, bool) {
-	path := cl.path
+	path := cl.u.Path
 	if path == "" {
 		return path, false
 	}
 	changed := false
 	for pass := 0; pass < maxPathPasses; pass++ {
 		np := path
-		for pos, ord := range cl.cands() {
-			r := cl.c.rule(ord)
-			if len(r.pathRes) == 0 || !cl.c.isActive(ord) || cl.signed && r.global || !cl.inScope(pos, r) {
+		for _, sp := range cl.specials() {
+			r := sp.r
+			if len(r.pathRes) == 0 || !cl.c.isActive(sp.ord) || cl.signed && r.global || !cl.inScope(int(sp.pos), r) {
 				continue
 			}
 			for _, re := range r.pathRes {
@@ -660,7 +663,7 @@ func (cl *call) stripPath() (string, bool) {
 		}
 		path, changed = np, true
 	}
-	if changed && path == "" && strings.HasPrefix(cl.path, "/") {
+	if changed && path == "" && strings.HasPrefix(cl.u.Path, "/") {
 		path = "/"
 	}
 	return path, changed
@@ -704,49 +707,8 @@ func (cl *call) recordKept(name string, d *decision) {
 	}
 }
 
-// hasHTTPScheme reports whether v, decoded once (§5.4), starts with
-// "http://" or "https://" (ASCII case-insensitive), without decoding all of v.
-func hasHTTPScheme(v string) bool {
-	var b [8]byte
-	n := 0
-	for i := 0; i < len(v) && n < len(b); i++ {
-		c := v[i]
-		if c == '%' && i+2 < len(v) && isHex(v[i+1]) && isHex(v[i+2]) {
-			c = unhex(v[i+1])<<4 | unhex(v[i+2])
-			i += 2
-		}
-		if 'A' <= c && c <= 'Z' {
-			c += 'a' - 'A'
-		}
-		b[n] = c
-		n++
-	}
-	return n >= 7 && string(b[:7]) == "http://" || n == 8 && string(b[:8]) == "https://"
-}
-
 // hasHTTPPrefix reports whether s starts with "http://" or "https://",
 // ASCII case-insensitive.
 func hasHTTPPrefix(s string) bool {
 	return len(s) >= 7 && strings.EqualFold(s[:7], "http://") || len(s) >= 8 && strings.EqualFold(s[:8], "https://")
-}
-
-func defaultPort(scheme string) string {
-	if scheme == "https" {
-		return "443"
-	}
-	return "80"
-}
-
-func isHex(c byte) bool {
-	return '0' <= c && c <= '9' || 'a' <= c && c <= 'f' || 'A' <= c && c <= 'F'
-}
-
-func unhex(c byte) byte {
-	switch {
-	case c <= '9':
-		return c - '0'
-	case c >= 'a':
-		return c - 'a' + 10
-	}
-	return c - 'A' + 10
 }

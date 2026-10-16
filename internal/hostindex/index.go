@@ -11,19 +11,16 @@ import (
 type Builder struct {
 	exact, suffix, label map[string][]int32
 	global               []int32
-	ords                 map[int32]struct{}
 }
 
 // Add registers rule ordinal ord under the host part of Include pattern p.
 // Calls may come in any order and repeat.
 func (b *Builder) Add(ord int32, p *matchpattern.Pattern) {
-	if b.ords == nil {
+	if b.exact == nil {
 		b.exact = map[string][]int32{}
 		b.suffix = map[string][]int32{}
 		b.label = map[string][]int32{}
-		b.ords = map[int32]struct{}{}
 	}
-	b.ords[ord] = struct{}{}
 	kind, host := p.Host()
 	switch kind {
 	case matchpattern.HostAny:
@@ -49,7 +46,6 @@ func (b *Builder) Build() *Index {
 		suffix: b.suffix,
 		label:  b.label,
 		global: sortedSet(b.global),
-		n:      len(b.ords),
 	}
 }
 
@@ -65,7 +61,6 @@ type Index struct {
 	suffix map[string][]int32 // "*.d" patterns, by d
 	label  map[string][]int32 // "label.*" and "*.label.*" patterns, by label
 	global []int32            // "*" patterns
-	n      int
 }
 
 // Candidates appends to dst the ordinals of every rule with an Include whose
@@ -73,14 +68,9 @@ type Index struct {
 // and of each parent domain (for an IP, host itself only), the label map
 // looked up by every label of host (a superset: no PSL needed; skipped for
 // IPs, which have no site), and the global bucket. The appended ordinals are
-// ascending and deduplicated; dst[:len(dst)] is left as is.
-//
-// needSite is true iff an ordinal came from the label map, in which case the
-// caller must set matchpattern.Target.Site before matching. It covers Include
-// patterns only: a candidate's HostLabel Exclude needs Site too.
-//
-// Candidates does not allocate when dst has room.
-func (ix *Index) Candidates(dst []int32, host string, isIP bool) (cands []int32, needSite bool) {
+// ascending and deduplicated; dst[:len(dst)] is left as is. Candidates does
+// not allocate when dst has room.
+func (ix *Index) Candidates(dst []int32, host string, isIP bool) []int32 {
 	start := len(dst)
 	sources := 0
 	add := func(l []int32) {
@@ -101,13 +91,11 @@ func (ix *Index) Candidates(dst []int32, host string, isIP bool) (cands []int32,
 			add(ix.suffix[s])
 		}
 		if len(ix.label) > 0 {
-			before := sources
 			for s := host; s != ""; {
 				l, rest, _ := strings.Cut(s, ".")
 				add(ix.label[l])
 				s = rest
 			}
-			needSite = sources > before
 		}
 	}
 	add(ix.global)
@@ -116,8 +104,5 @@ func (ix *Index) Candidates(dst []int32, host string, isIP bool) (cands []int32,
 		slices.Sort(out)
 		dst = dst[:start+len(slices.Compact(out))]
 	}
-	return dst, needSite
+	return dst
 }
-
-// Len returns the number of distinct ordinals indexed.
-func (ix *Index) Len() int { return ix.n }

@@ -20,18 +20,6 @@ const (
 	Unwrap                   // replace the URL with an embedded destination
 )
 
-func (a Action) String() string {
-	switch a {
-	case Strip:
-		return "strip"
-	case Keep:
-		return "keep"
-	case Unwrap:
-		return "unwrap"
-	}
-	return fmt.Sprintf("Action(%d)", uint8(a))
-}
-
 // Rule is one normalized rule. Field semantics are documented on
 // linkclean.Rule (design §3, §4).
 type Rule struct {

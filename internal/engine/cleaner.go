@@ -50,9 +50,11 @@ type Cleaner struct {
 }
 
 // NewCleaner builds a Cleaner over progs, which it shares, not copies. It
-// reports every Disable* entry that matches no rule.
+// reports every Disable* entry that matches no rule. It reads the slices of
+// opt other than ExtraArchive and keeps none of them.
 func NewCleaner(progs []*Program, opt Options) (*Cleaner, []Unmatched) {
 	c := &Cleaner{progs: slices.Clone(progs), opt: opt, signed: builtinSigned, archive: opt.ExtraArchive}
+	c.opt.DisableRules, c.opt.DisableRulePrefixes, c.opt.DisableTags, c.opt.ExtraSignedParams = nil, nil, nil, nil
 	n := int32(0)
 	for _, p := range progs {
 		c.offs = append(c.offs, n)

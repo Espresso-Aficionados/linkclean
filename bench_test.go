@@ -1,6 +1,7 @@
 package linkclean
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 
@@ -172,5 +173,71 @@ func TestCleanUnchangedAllocs(t *testing.T) {
 		if n := testing.AllocsPerRun(100, func() { benchSink = c.Clean(in) }); n != 0 {
 			t.Errorf("Clean(%s): %v allocs, want 0", in, n)
 		}
+	}
+}
+
+// manyExtra returns n Extra Strip rules: global rules naming one param each
+// (trivial scope) or, with offHost, rules scoped to a host that is never
+// cleaned, each with a ParamRegexps entry.
+func manyExtra(n int, offHost bool) []Rule {
+	rs := make([]Rule, n)
+	for i := range rs {
+		rs[i] = Rule{ID: fmt.Sprint("r", i), Action: Strip, Include: []string{"*://*/*"}, Params: []string{fmt.Sprint("zz", i)}}
+		if offHost {
+			rs[i].Include = []string{"*://*.other-host.example/*"}
+			rs[i].Params, rs[i].ParamRegexps = nil, []string{fmt.Sprintf("zz%d_.*", i)}
+		}
+	}
+	return rs
+}
+
+// Global Params-only rules and off-host ParamRegexps rules cost nothing per
+// URL (§8, PERF_REVIEW #8): an unchanged URL stays at 0 allocs at any n.
+func TestCleanUnchangedAllocsManyExtra(t *testing.T) {
+	for _, offHost := range []bool{false, true} {
+		c := MustNew(Config{Extra: manyExtra(2000, offHost)})
+		for _, in := range []string{benchUnchanged, "https://github.com/o/r/blob/main/x.go?ref=feature"} {
+			if c.Clean(in) != in {
+				t.Fatalf("%s changed", in)
+			}
+			if n := testing.AllocsPerRun(20, func() { benchSink = c.Clean(in) }); n != 0 {
+				t.Errorf("offHost=%v Clean(%s): %v allocs, want 0", offHost, in, n)
+			}
+		}
+	}
+}
+
+// BenchmarkManyExtra should be flat in n for both rule shapes.
+func BenchmarkManyExtra(b *testing.B) {
+	for _, offHost := range []bool{false, true} {
+		for _, n := range []int{0, 100, 10000} {
+			c := MustNew(Config{Extra: manyExtra(n, offHost)})
+			b.Run(fmt.Sprintf("offHost=%v/n=%d", offHost, n), func(b *testing.B) {
+				b.ReportAllocs()
+				for b.Loop() {
+					benchSink = c.Clean(benchUnchanged)
+					benchSink = c.Clean(benchChanged)
+				}
+			})
+		}
+	}
+}
+
+// BenchmarkLongQuery covers the long-query shapes of R1-PERF-1 and PERF-3:
+// only separators, many tiny params, and a signed URL whose utm_* names
+// reach the ParamRegexps Keep scan (PERF-4).
+func BenchmarkLongQuery(b *testing.B) {
+	c := Default()
+	for name, in := range map[string]string{
+		"separators": "https://example.com/?" + strings.Repeat("&", 8100),
+		"tiny":       "https://www.example.com/x?" + strings.Repeat("a=1&", 2025),
+		"signed":     "https://example.com/f?X-Amz-Signature=1&" + strings.Repeat("utm_source=1&a=1&", 400),
+	} {
+		b.Run(name, func(b *testing.B) {
+			b.ReportAllocs()
+			for b.Loop() {
+				benchSink = c.Clean(in)
+			}
+		})
 	}
 }

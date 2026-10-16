@@ -60,16 +60,16 @@ func New(cfg Config) (*Cleaner, error) {
 	}
 	opt := engine.Options{
 		AffiliateStrip:      cfg.Affiliate == AffiliateStrip,
-		DisableRules:        slices.Clone(cfg.DisableRules),
-		DisableRulePrefixes: slices.Clone(cfg.DisableRulePrefixes),
-		DisableTags:         slices.Clone(cfg.DisableTags),
+		DisableRules:        cfg.DisableRules, // read by NewCleaner, not kept
+		DisableRulePrefixes: cfg.DisableRulePrefixes,
+		DisableTags:         cfg.DisableTags,
 		DisableUnwrap:       cfg.DisableUnwrap,
 		DisableNested:       cfg.DisableNested,
 		DisableSignedGuard:  cfg.DisableSignedGuard,
 		DisableArchiveGuard: cfg.DisableArchiveGuard,
 		MaxUnwrap:           cfg.MaxUnwrap,
 		MaxURLLength:        cfg.MaxURLLength,
-		ExtraSignedParams:   slices.Clone(cfg.ExtraSignedParams),
+		ExtraSignedParams:   cfg.ExtraSignedParams,
 	}
 	if cfg.Affiliate > AffiliateStrip {
 		cfgErr("Affiliate", fmt.Errorf("invalid policy %d", cfg.Affiliate))
@@ -182,25 +182,50 @@ func New(cfg Config) (*Cleaner, error) {
 	return c, nil
 }
 
-// convertErrs turns the *rule.Error values in a joined error into *RuleError.
+// The engine's enums mirror the public ones value for value, and Explain
+// converts by value. A constant index out of range (or a negative one) here is
+// a compile error, so any drift fails the build.
+func _() {
+	var x [1]struct{}
+	_ = x[NotSkipped-SkipReason(engine.NotSkipped)]
+	_ = x[SkipScheme-SkipReason(engine.SkipScheme)]
+	_ = x[SkipUnparseable-SkipReason(engine.SkipUnparseable)]
+	_ = x[SkipAmbiguous-SkipReason(engine.SkipAmbiguous)]
+	_ = x[SkipTooLong-SkipReason(engine.SkipTooLong)]
+	_ = x[SkipArchive-SkipReason(engine.SkipArchive)]
+	_ = x[SkipRoundCap-SkipReason(engine.SkipRoundCap)]
+	_ = x[CatTracker-Category(engine.CatTracker)]
+	_ = x[CatAffiliate-Category(engine.CatAffiliate)]
+	_ = x[CatPathSegment-Category(engine.CatPathSegment)]
+	_ = x[CatRedirectUnwrapped-Category(engine.CatRedirectUnwrapped)]
+	_ = x[PartPath-Part(engine.PartPath)]
+	_ = x[PartQuery-Part(engine.PartQuery)]
+	_ = x[PartFragment-Part(engine.PartFragment)]
+	_ = x[PartNested-Part(engine.PartNested)]
+	_ = x[KeptByRule-KeepReason(engine.KeptByRule)]
+	_ = x[KeptAffiliate-KeepReason(engine.KeptAffiliate)]
+	_ = x[KeptSignedGuard-KeepReason(engine.KeptSignedGuard)]
+	_ = x[Strip-Action(rule.Strip)]
+	_ = x[Keep-Action(rule.Keep)]
+	_ = x[Unwrap-Action(rule.Unwrap)]
+}
+
+// convertErrs flattens a joined error, at any depth, into its leaves and
+// turns every *rule.Error among them into *RuleError.
 func convertErrs(err error) []error {
-	if err == nil {
+	switch e := err.(type) {
+	case nil:
 		return nil
-	}
-	var in []error
-	if j, ok := err.(interface{ Unwrap() []error }); ok {
-		in = j.Unwrap()
-	} else {
-		in = []error{err}
-	}
-	out := make([]error, 0, len(in))
-	for _, e := range in {
-		if re, ok := e.(*rule.Error); ok {
-			e = &RuleError{Set: re.Set, RuleID: re.RuleID, Field: re.Field, Err: re.Err}
+	case interface{ Unwrap() []error }:
+		var out []error
+		for _, x := range e.Unwrap() {
+			out = append(out, convertErrs(x)...)
 		}
-		out = append(out, e)
+		return out
+	case *rule.Error:
+		return []error{&RuleError{Set: e.Set, RuleID: e.RuleID, Field: e.Field, Err: e.Err}}
 	}
-	return out
+	return []error{err}
 }
 
 // MustNew is like New but panics on error. Warnings never panic.

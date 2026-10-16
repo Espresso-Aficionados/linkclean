@@ -252,8 +252,14 @@ func (u *URL) PathForRequest() string {
 
 // MatchString returns lower(scheme) "://" Host [":" Port, if written and not
 // the scheme default] path' ["?" Query] ["#" Fragment], the view URLRegexps
-// search (§4.1). Userinfo is never present.
+// search (§4.1). Userinfo is never present. When Raw is already in that form
+// (lowercase scheme, no userinfo or port, a host equal to its view, a
+// non-empty path), MatchString returns Raw and does not allocate.
 func (u *URL) MatchString() string {
+	p, s, h := u.Prefix, u.Scheme, u.Host
+	if u.Path != "" && len(p) == len(s)+3+len(h) && p[:len(s)] == s && p[len(s)+3:] == h {
+		return u.Raw
+	}
 	var b strings.Builder
 	b.Grow(len(u.Scheme) + 3 + len(u.Host) + 1 + len(u.Port) + 1 + len(u.Path) + 1 + len(u.Query) + 1 + len(u.Fragment))
 	b.WriteString(u.Scheme)
