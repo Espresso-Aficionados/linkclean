@@ -16,9 +16,10 @@ type Result struct {
 	// Removed lists the removals per strip round, in round order; within a
 	// round: path, query (input order), fragment, nested. Only rounds on the
 	// final URL count. When an Extra Unwrap rule comes into scope only after
-	// a round (its Include or URLRegexps reads text a strip removed), the
-	// wrapper's removals are dropped with the wrapper, nested removals in the
-	// value that becomes the destination included.
+	// a round (its Include, Exclude or URLRegexps reads path or query text
+	// the round removed or re-encoded), the wrapper's removals are dropped
+	// with the wrapper, nested removals in the value that becomes the
+	// destination included.
 	Removed []Removal
 	// Kept lists the params of the final URL's query and fragment that
 	// matched a strip rule but were retained, and why. Params retained inside

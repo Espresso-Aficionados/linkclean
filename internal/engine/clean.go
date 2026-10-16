@@ -58,9 +58,10 @@ func (c *Cleaner) Explain(raw string) Result {
 // input is returned unchanged and rec holds nothing meaningful.
 //
 // Unwrap runs before the strip rounds (§6) and once more after any round
-// that changed the URL: a strip can bring an Unwrap rule into scope (an
-// Include glob or URLRegexps that reads the query), and without the retry
-// Clean(Clean(x)) would unwrap what Clean(x) did not (§5.6 invariant 1).
+// that changed the URL: a round can bring an Unwrap rule into scope (an
+// Include, Exclude or URLRegexps that reads path or query text the round
+// removed or re-encoded), and without the retry Clean(Clean(x)) would unwrap
+// what Clean(x) did not (§5.6 invariant 1).
 // Retried hops count toward MaxUnwrap and share the cycle check.
 func (c *Cleaner) run(raw string, rec *recorder, inner bool) (string, Skip) {
 	if len(raw) > c.opt.MaxURLLength {
