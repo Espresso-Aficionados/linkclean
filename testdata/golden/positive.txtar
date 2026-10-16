@@ -845,3 +845,23 @@ want: https://gamefound.com/en/projects/x/y
 rules: linkclean/overlay:gamefound-refcode-strip
 removed: {"part":"query","category":"affiliate","name":"refcode","network":"Gamefound referrals","id":"AbC123"}
 removed: {"part":"query","category":"tracker","name":"ref"}
+-- N1/offline --
+note: offline half of network row N1: the clean applied to t.co's destination. The network half (one HTTPS request, the http listener untouched) is package unshorten's (M4); row 97 pins that Clean never touches the network.
+in: https://example.net/p?utm_source=x
+want: https://example.net/p
+-- N2/offline --
+note: offline half of network row N2: the amzn.to destination under both policies; linkCode kept per MD-3. The network half is M4.
+in: https://www.amazon.com/dp/B0?tag=aff-20&linkCode=ll1&ref_=as_li
+want: https://www.amazon.com/dp/B0?tag=aff-20&linkCode=ll1
+want-strip: https://www.amazon.com/dp/B0
+rules: linkclean/overlay:amazon-affiliate-keep
+-- N2/offline-categories --
+note: N2's removal categories under AffiliateStrip, in query input order (§3); the CatUnshortened hop is M4's
+policy: strip
+in: https://www.amazon.com/dp/B0?tag=aff-20&linkCode=ll1&ref_=as_li
+want: https://www.amazon.com/dp/B0
+rules: linkclean/overlay:amazon-affiliate-strip
+hops: none
+removed: {"part":"query","category":"affiliate","name":"tag","network":"Amazon Associates","id":"aff-20"}
+removed: {"part":"query","category":"affiliate","name":"linkCode","network":"Amazon Associates","id":""}
+removed: {"part":"query","category":"tracker","name":"ref_"}

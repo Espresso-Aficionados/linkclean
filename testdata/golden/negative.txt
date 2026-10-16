@@ -83,3 +83,9 @@
 147 https://www.tkqlhce.com/click-1234567-13579?url=https%3A%2F%2Fwww.example.com%2Fp
 # ◆ Lever, classed unwrap, upstream pattern …/email-link? has no *: inert (§4.4.1)
 148 https://t.lever-analytics.com/email-link?dest=https%3A%2F%2Fjobs.example.net%2Fx&eid=1
+# Offline halves of the network rows N3-N5 (the network halves are package unshorten's, M4):
+# the short links themselves are never touched offline, and N3's/N4's destinations are already clean.
+N3/offline https://amzn.to/xyz
+N3/offline-dest https://www.amazon.com/
+N4/offline https://evil.example/x
+N5/offline https://bit.ly/abc
