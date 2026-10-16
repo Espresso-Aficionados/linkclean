@@ -1,0 +1,2 @@
+go test fuzz v1
+string("http://00?=http%3A%2F%2F0%3FfBCliD")
