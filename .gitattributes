@@ -1,0 +1,2 @@
+# Vendored upstream bytes are checked by sha256 and git blob hash: never convert line endings.
+rules/brave/** -text

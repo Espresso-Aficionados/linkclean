@@ -1,0 +1,36 @@
+{
+  "schema": 4,
+  "upstream": {
+    "repo": "github.com/brave/adblock-lists",
+    "submodule": "tools/upstream/adblock-lists",
+    "branch": "master",
+    "commit": "8846788d578bf89696ad4ec5cdff845dfb170f1a",
+    "commit_date": "2026-10-14T19:19:33-07:00",
+    "files": {
+      "brave-lists/clean-urls.json": {
+        "vendored": "rules/brave/clean-urls.json",
+        "git_blob_sha1": "f09f1a442c9dee7bdb9bc23312b7d4bafad9806e",
+        "sha256": "c2664e019673f58dbefed33ed32f355dd5c8a781e395059918d87020a9e4dc05",
+        "counts": {"rules": 51, "params": 425, "global_params": 213}
+      },
+      "brave-lists/query-filter.json": {
+        "vendored": "rules/brave/query-filter.json",
+        "git_blob_sha1": "d31593d2932d18853c5fc633b0139da71c1eb48f",
+        "sha256": "c16168bb98ea4a615c178a71da6c6e9463114e24a59101c1caef80942735940e",
+        "counts": {"rules": 4, "params": 71, "global_params": 65}
+      },
+      "brave-lists/debounce.json": {
+        "vendored": "rules/brave/debounce.json",
+        "git_blob_sha1": "e1e49260ea7b1187f4395d6de15170f3c696d34a",
+        "sha256": "fb2396985a78983c8f88ee701100c5cb4681731239ac6624e86da1212645dbf8",
+        "counts": {"rules": 48, "includes": 190}
+      },
+      "LICENSE": {
+        "vendored": "rules/brave/LICENSE",
+        "git_blob_sha1": "a612ad9813b006ce81d1ee438dd784da99a54007",
+        "sha256": "1f256ecad192880510e84ad60474eab7589218784b9a50bc7ceee34c2b91f1d5",
+        "spdx": "MPL-2.0"
+      }
+    }
+  }
+}
