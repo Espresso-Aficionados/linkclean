@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -333,5 +334,41 @@ func TestNewDeepCopies(t *testing.T) {
 	disable[0] = "semantics:track"
 	if got := c.Clean("https://example.net/?foo=1&utm_source=2&bar=3#xtor=1"); got != "https://example.net/?bar=3#xtor=1" {
 		t.Errorf("caller mutation leaked into the Cleaner: %s", got)
+	}
+}
+
+// Rounds walk the query segment by segment and keep one drop bit per
+// segment: on the stack up to 2,048 segments, then in a per-call buffer.
+// Padding a query with neutral params, short or past that bound, must leave
+// what is removed, kept and unwrapped unchanged (PERF2-4).
+func TestLongQueryWalk(t *testing.T) {
+	for _, n := range []int{40, 2100} {
+		testPaddedQuery(t, n)
+	}
+}
+
+func testPaddedQuery(t *testing.T, n int) {
+	var pad strings.Builder
+	for i := range n {
+		fmt.Fprintf(&pad, "&k%d=v", i)
+	}
+	c := MustNew(Config{Affiliate: AffiliateStrip, MaxURLLength: 1 << 16})
+	for _, base := range []string{
+		"https://example.com/a?id=1&utm_source=x&fbclid=y",
+		"https://example.com/a?id=1&u=https%3A%2F%2Fexample.net%2F%3Futm_medium%3Dz%26q%3D1",
+		"https://example.com/a?id=1&X-Amz-Signature=s&utm_source=x",
+		"https://www.amazon.com/dp/B0ABC/ref=sr_1_3?id=1&tag=aff-20&crid=X",
+		"https://example.com/a?id=1&utm_campaign=c#utm_source=x&utm_medium=y",
+		"https://l.facebook.com/l.php?id=1&u=https%3A%2F%2Fexample.net%2Fa%3Ffbclid%3DIw%26id%3D1&h=AT0",
+	} {
+		short, long := c.Explain(base), c.Explain(strings.Replace(base, "id=1", "id=1"+pad.String(), 1))
+		wantURL := short.URL
+		if len(short.Hops) == 0 {
+			wantURL = strings.Replace(short.URL, "id=1", "id=1"+pad.String(), 1)
+		}
+		if long.URL != wantURL || !reflect.DeepEqual(long.Removed, short.Removed) ||
+			!reflect.DeepEqual(long.Kept, short.Kept) || len(long.Hops) != len(short.Hops) || long.Signed != short.Signed {
+			t.Errorf("%s padded with %d params cleans differently:\n short %+v\n long  %+v", base, n, short, long)
+		}
 	}
 }

@@ -219,9 +219,3 @@ func setFromInternal(s *rule.Set) RuleSet {
 	}
 	return out
 }
-
-// cloneSet deep-copies s.
-func cloneSet(s *RuleSet) RuleSet {
-	in := s.toInternal()
-	return setFromInternal(&in)
-}

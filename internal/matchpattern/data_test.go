@@ -2,8 +2,6 @@ package matchpattern
 
 import (
 	"encoding/json"
-	"errors"
-	"io/fs"
 	"os"
 	"testing"
 )
@@ -39,13 +37,9 @@ func TestVendoredPatternsParse(t *testing.T) {
 	t.Logf("%d pattern instances parsed", n)
 }
 
-// Overlay patterns may use label.*. The overlay lands separately (WP-C); the
-// test skips until it exists.
+// Overlay patterns may use label.*.
 func TestOverlayPatternsParse(t *testing.T) {
 	b, err := os.ReadFile("../../rules/overlay/overlay.json")
-	if errors.Is(err, fs.ErrNotExist) {
-		t.Skip("rules/overlay/overlay.json not present")
-	}
 	if err != nil {
 		t.Fatal(err)
 	}

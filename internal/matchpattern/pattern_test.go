@@ -185,6 +185,36 @@ func TestMatchAllocs(t *testing.T) {
 	}
 }
 
+// SetRootPath(q) matches as SetPath("/?" + q) does, and builds nothing for
+// "/*" globs (PERF2-6).
+func TestSetRootPath(t *testing.T) {
+	pats := []*Pattern{
+		mustParse(t, "*://*/*", false),
+		mustParse(t, "*://x.example/?*", false),
+		mustParse(t, "*://x.example/?a=1", false),
+		mustParse(t, "*://x.example/search?*", false),
+		mustParse(t, "*://x.example/%3F*", false),
+	}
+	for _, q := range []string{"", "a=1", "a=%31", "b"} {
+		root := &Target{Scheme: "https", Host: "x.example", Port: "443"}
+		full := *root
+		root.SetRootPath(q)
+		full.SetPath("/?" + q)
+		for _, p := range pats {
+			if got, want := p.Match(root), p.Match(&full); got != want {
+				t.Errorf("%s on root query %q: %v, want %v", p, q, got, want)
+			}
+		}
+	}
+	tg := &Target{Scheme: "https", Host: "x.example", Port: "443"}
+	if n := testing.AllocsPerRun(100, func() {
+		tg.SetRootPath("a=1")
+		pats[0].Match(tg)
+	}); n != 0 {
+		t.Errorf(`SetRootPath + "/*" Match: %v allocs, want 0`, n)
+	}
+}
+
 func BenchmarkMatch(b *testing.B) {
 	m := mustParse(b, "*://*.youtube.com/watch?*", false)
 	tg := target(b, "https://www.youtube.com/watch?v=dQw4w9WgXcQ&si=abc&feature=share", "youtube.com")
@@ -218,7 +248,11 @@ func TestUnicodePatternHost(t *testing.T) {
 	}
 	p := mustParse(t, "*://bücher.example/*", false)
 	for _, h := range []string{"bücher.example", "BÜCHER.example", "xn--bcher-kva.example"} {
-		v, _ := rawurl.HostView(h)
+		u, sk := rawurl.Parse("https://" + h + "/")
+		if sk != rawurl.OK {
+			t.Fatalf("Parse(%q): %v", h, sk)
+		}
+		v := u.Host
 		tg := &Target{Scheme: "https", Host: v, Port: "443"}
 		tg.SetPath("/")
 		if !p.Match(tg) {

@@ -10,9 +10,6 @@ import (
 	"github.com/Espresso-Aficionados/linkclean/internal/rule"
 )
 
-// DebounceSet is the rule-set name of the compiled debounce rules.
-const DebounceSet = "brave/debounce"
-
 // DebounceStats is the include-instance accounting of design §4.5.3 and the
 // rules-compile gate (§11.3). On current data: 48 rules, 190 instances, 49
 // compiled rules over 139 instances, 51 instances skipped.
@@ -35,10 +32,6 @@ const (
 	classUnwrap    = "unwrap"
 	classOff       = "off"
 )
-
-// networkRE is Rule.Network's charset (design §3), checked here so the error
-// names the classification entry.
-var networkRE = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9 .&'()/-]{0,39}$`)
 
 type debounceElem struct {
 	include, exclude []string
@@ -82,7 +75,7 @@ type class struct {
 // errors.Join of *rule.Error; on error the rules are nil, but stats are
 // filled as far as the input allowed.
 func CompileDebounce(debounce, classes []byte) ([]rule.Rule, DebounceStats, error) {
-	l := &errList{set: DebounceSet}
+	l := &errList{set: rule.DebounceSet}
 	var st DebounceStats
 	elems := l.debounceElems(debounce)
 	cls := l.classes(classes)
@@ -262,8 +255,10 @@ func (l *errList) classes(data []byte) map[string]class {
 			l.add("", f+".network", "missing: required for class affiliate")
 		case !aff && hasNet:
 			l.add("", f+".network", "set on class %q: only affiliate entries name a network", c.class)
-		case aff && !networkRE.MatchString(c.network):
-			l.add("", f+".network", "%q does not match %s", c.network, networkRE)
+		case aff && !rule.NetworkRe.MatchString(c.network):
+			// Checked here as well as by the engine so the error names the
+			// classification entry.
+			l.add("", f+".network", "%q does not match %s", c.network, rule.NetworkRe)
 		}
 		switch {
 		case hasParam && hasPath:

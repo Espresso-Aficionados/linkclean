@@ -52,6 +52,14 @@ func TestParseGrowsOnce(t *testing.T) {
 	}
 }
 
+func TestCount(t *testing.T) {
+	for _, q := range []string{"", "&", "a", "a&", "&a", "a&&b", "&&a=1&b=&&c&", "=&=", strings.Repeat("a=1&&", 50)} {
+		if got, want := Count(q), len(Parse(nil, q)); got != want {
+			t.Errorf("Count(%q) = %d, want %d", q, got, want)
+		}
+	}
+}
+
 func TestCanon(t *testing.T) {
 	tests := []struct{ in, want string }{
 		{"utm_source", "utm_source"},
@@ -182,8 +190,9 @@ func TestAllocs(t *testing.T) {
 	}
 }
 
-// FuzzQuery checks that tokenizing keeps every non-empty segment and that
-// DecodeValue inverts EncodeComponent (§14).
+// FuzzQuery checks that tokenizing (Parse, through Next) keeps every
+// non-empty segment, that Count agrees, and that DecodeValue inverts
+// EncodeComponent (§14).
 func FuzzQuery(f *testing.F) {
 	for _, s := range []string{"", "a=1&b=2", "&&", "=k=v", "a=%2541&B=%zz", "u=https%3A%2F%2Fx%2F%3Fa%3D1", "é=\xff;x"} {
 		f.Add(s)
@@ -209,6 +218,9 @@ func FuzzQuery(f *testing.F) {
 		}
 		if !slices.Equal(texts, want) && len(texts)+len(want) > 0 {
 			t.Fatalf("segments %q, want %q", texts, want)
+		}
+		if n := Count(q); n != len(segs) {
+			t.Fatalf("Count(%q) = %d, Parse has %d segments", q, n, len(segs))
 		}
 		if got := DecodeValue(EncodeComponent(q)); got != q {
 			t.Fatalf("DecodeValue(EncodeComponent(%q)) = %q", q, got)

@@ -44,7 +44,7 @@ type URL struct {
 	HasQuery    bool   // a '?' occurs before the first '#'
 	Fragment    string // without '#'; valid iff HasFragment
 	HasFragment bool
-	Host        string // host view (see HostView); an IPv6 literal keeps its brackets
+	Host        string // host view (see canonHost); an IPv6 literal keeps its brackets
 	IsIP        bool   // dotted IPv4, bracketed IPv6, or a WHATWG "ends in a number" host
 }
 

@@ -198,10 +198,18 @@ want: https://d.example.org/p
 hop: {"from":"https://w.example.net/r?url=https%3A%2F%2Fd.example.org%2Fp","to":"https://d.example.org/p"}
 removed: none
 -- unwrap-after-strip-urlregexp --
+note: Q2: Hop.From is the wrapper as unwrapped, after the strip, not the input
 config: {"Extra":[{"id":"r","action":"unwrap","include":["*://w.example.net/*"],"urlRegexps":["\\?url="],"unwrap":{"queryParams":["url"]}}]}
 in: https://w.example.net/r?utm_source=1&url=https%3A%2F%2Fd.example.org%2Fp
 want: https://d.example.org/p
-hop: {"rule":"user:r"}
+hop: {"from":"https://w.example.net/r?url=https%3A%2F%2Fd.example.org%2Fp","rule":"user:r"}
+removed: none
+-- unwrap-after-strip-nested-destination --
+note: R2-ROB-2: a removal inside the value that becomes the destination is not reported either
+config: {"Extra":[{"id":"re","action":"unwrap","include":["*://x.example.net/*"],"urlRegexps":["\\?to="],"unwrap":{"queryParams":["to"]}}]}
+in: https://x.example.net/r?utm_medium=1&to=https%3A%2F%2Fd.example.org%2F%3Ffbclid%3D1
+want: https://d.example.org/
+hop: {"from":"https://x.example.net/r?to=https%3A%2F%2Fd.example.org%2F","to":"https://d.example.org/","rule":"user:re"}
 removed: none
 -- unwrap-after-path-strip --
 note: a PathRegexps strip brings the unwrap glob into scope

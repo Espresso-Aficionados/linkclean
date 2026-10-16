@@ -92,7 +92,7 @@ func TestCompileDebounceRealData(t *testing.T) {
 // The classification table's class counts (§4.5.3: 113 / 24 / 48 over 185
 // patterns). The compiler does not depend on them; the design pins them.
 func TestDebounceClassesRealData(t *testing.T) {
-	l := &errList{set: DebounceSet}
+	l := &errList{set: rule.DebounceSet}
 	cls := l.classes(readData(t, "rules/overlay/debounce-classes.json"))
 	if err := l.err(); err != nil {
 		t.Fatal(err)
@@ -369,7 +369,7 @@ func TestCompileDebounceErrors(t *testing.T) {
 			}
 			es := ruleErrors(t, err)
 			e := es[0]
-			if e.Set != DebounceSet || e.RuleID != tc.ruleID || e.Field != tc.field || !strings.Contains(e.Err.Error(), tc.msg) {
+			if e.Set != rule.DebounceSet || e.RuleID != tc.ruleID || e.Field != tc.field || !strings.Contains(e.Err.Error(), tc.msg) {
 				t.Errorf("got %q (rule %q, field %q); want rule %q, field %q, message containing %q", e, e.RuleID, e.Field, tc.ruleID, tc.field, tc.msg)
 			}
 		})

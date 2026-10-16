@@ -10,19 +10,30 @@ type Result struct {
 	// Skipped is non-zero ⇒ URL == Input and there are no Hops, Removed or
 	// Kept. Except for SkipRoundCap, nothing else was evaluated.
 	Skipped         SkipReason
-	Hops            []Hop     // unwrap hops in order; nil if none or abandoned
-	UnwrapAbandoned bool      // cap or cycle; the original input was cleaned instead
-	Signed          bool      // the signed-URL guard was active for the final URL
-	Removed         []Removal // per strip round, in round order; within a round: path, query (input order), fragment, nested
-	Kept            []Kept    // matched a strip rule but retained, and why
+	Hops            []Hop // unwrap hops in order; nil if none or abandoned
+	UnwrapAbandoned bool  // cap or cycle; the original input was cleaned instead
+	Signed          bool  // the signed-URL guard was active for the final URL
+	// Removed lists the removals per strip round, in round order; within a
+	// round: path, query (input order), fragment, nested. Only rounds on the
+	// final URL count. When an Extra Unwrap rule comes into scope only after
+	// a round (its Include or URLRegexps reads text a strip removed), the
+	// wrapper's removals are dropped with the wrapper, nested removals in the
+	// value that becomes the destination included.
+	Removed []Removal
+	Kept    []Kept // matched a strip rule but retained, and why
 }
 
 // Hop is one unwrap step. Rule is the full rule ID for offline hops. For
 // network hops added by package unshorten, Category is CatUnshortened and Rule
 // is "unshorten:<entry>" (an opaque label, not a rule ID).
 type Hop struct {
-	From, To string
-	Rule     string
+	// From is the URL the hop unwrapped: Input for the first hop, else the
+	// previous hop's To. The exception is an Extra Unwrap rule that comes
+	// into scope only after a strip round (see Removed): From is then the
+	// wrapper as cleaned by that round.
+	From string
+	To   string
+	Rule string
 	// Category is CatRedirectUnwrapped (offline Unwrap rule, Affiliate false),
 	// CatAffiliate (offline Unwrap+Affiliate rule; only under AffiliateStrip)
 	// or CatUnshortened (network hop, package unshorten).

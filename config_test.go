@@ -4,6 +4,7 @@ import (
 	"errors"
 	"strings"
 	"testing"
+	"unsafe"
 
 	"github.com/Espresso-Aficionados/linkclean/internal/rule"
 )
@@ -220,5 +221,24 @@ func TestConvertErrsNested(t *testing.T) {
 	}
 	if got, want := out[0].Error(), "linkclean: s:r: f: x"; got != want {
 		t.Errorf("Error() = %q, want %q", got, want)
+	}
+}
+
+// Cleaners on the shared base share its SourceInfo and notices instead of
+// rebuilding them (PERF2-5), and Sources still returns a fresh slice with
+// "user" first.
+func TestSharedBaseMetadata(t *testing.T) {
+	a := MustNew(Config{Affiliate: AffiliateStrip})
+	b := MustNew(Config{Extra: []Rule{{ID: "x", Action: Strip, Include: []string{"*://*/*"}, Params: []string{"x"}}}})
+	if &a.sources[0] != &b.sources[0] || unsafe.StringData(a.notices) != unsafe.StringData(b.notices) {
+		t.Error("Cleaners on the shared base do not share its metadata")
+	}
+	s := b.Sources()
+	if len(s) != len(a.sources)+1 || s[0].Name != "user" || s[0].Rules != 1 || s[1] != a.sources[0] {
+		t.Errorf("Sources() = %+v", s)
+	}
+	s[1].Name = "mutated"
+	if a.sources[0].Name == "mutated" {
+		t.Error("Sources() aliases the shared base")
 	}
 }

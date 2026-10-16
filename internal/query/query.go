@@ -20,33 +20,72 @@ type Segment struct {
 // dst has room, and grows dst at most once.
 func Parse(dst []Segment, q string) []Segment {
 	if room := cap(dst) - len(dst); len(q)/2+1 > room {
-		if n := count(q); n > room {
+		if n := Count(q); n > room {
 			dst = slices.Grow(dst, n)
 		}
 	}
-	for q != "" {
-		text, rest, _ := strings.Cut(q, "&")
-		if text != "" {
-			name, value, eq := strings.Cut(text, "=")
-			dst = append(dst, Segment{Text: text, Name: name, Value: value, HasEq: eq})
+	for {
+		s, rest, ok := Next(q)
+		if !ok {
+			return dst
 		}
-		q = rest
+		dst, q = append(dst, s), rest
 	}
-	return dst
 }
 
-// count returns the number of non-empty segments of q.
-func count(q string) int {
-	n := 0
-	for q != "" {
-		i := strings.IndexByte(q, '&')
-		if i < 0 {
-			return n + 1
+// Next splits the first non-empty segment s off q, as Parse would parse it,
+// and returns the text after it. ok is false when q has none left. Next lets
+// a caller walk a query of any length without a segment buffer.
+func Next(q string) (s Segment, rest string, ok bool) {
+	i := 0
+	for i < len(q) && q[i] == '&' {
+		i++
+	}
+	if i == len(q) {
+		return Segment{}, "", false
+	}
+	// Most segments are short, and a search call costs more than the bytes
+	// it would skip, so the first bytes are scanned by hand and only a long
+	// segment falls through to IndexByte.
+	q = q[i:]
+	eq, end, found := -1, len(q), false
+	n := min(len(q), 16)
+	for j := range n {
+		if c := q[j]; c == '&' {
+			end, found = j, true
+			break
+		} else if c == '=' && eq < 0 {
+			eq = j
 		}
-		if i > 0 {
+	}
+	if !found && n < len(q) {
+		if k := strings.IndexByte(q[n:], '&'); k >= 0 {
+			end, found = n+k, true
+		}
+		if k := strings.IndexByte(q[n:end], '='); eq < 0 && k >= 0 {
+			eq = n + k
+		}
+	}
+	if found {
+		rest = q[end+1:]
+	}
+	text := q[:end]
+	s = Segment{Text: text, Name: text}
+	if eq >= 0 {
+		s.Name, s.Value, s.HasEq = text[:eq], text[eq+1:], true
+	}
+	return s, rest, true
+}
+
+// Count returns the number of non-empty segments of q, the length of
+// Parse(nil, q). A byte loop: separator runs are the expensive case for a
+// search per segment.
+func Count(q string) int {
+	n := 0
+	for i := 0; i < len(q); i++ {
+		if q[i] != '&' && (i == 0 || q[i-1] == '&') {
 			n++
 		}
-		q = q[i+1:]
 	}
 	return n
 }

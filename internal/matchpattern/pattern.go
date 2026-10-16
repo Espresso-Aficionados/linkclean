@@ -215,6 +215,8 @@ type Target struct {
 	Site   string // ICANN eTLD+1 of Host; required before matching a HostLabel pattern ("" = no site)
 
 	path, normal string
+	rootQuery    string // with rootPending: path is "/?" + rootQuery, not yet built
+	rootPending  bool
 	normalDone   bool // normal and escaped are valid
 	escaped      bool // normal != path
 }
@@ -223,13 +225,23 @@ type Target struct {
 // UnescapeNormal form is computed on the first Match that needs it, which
 // allocates only when the path has an escape that NORMAL decodes.
 func (t *Target) SetPath(pathForRequest string) {
-	t.path = pathForRequest
-	t.normal = ""
-	t.normalDone = false
-	t.escaped = false
+	t.path, t.normal = pathForRequest, ""
+	t.rootQuery, t.rootPending = "", false
+	t.normalDone, t.escaped = false, false
+}
+
+// SetRootPath is SetPath("/?" + query), the pathForRequest of a URL with an
+// empty path and a query, except that the string is built only when a path
+// glob other than "/*" needs it.
+func (t *Target) SetRootPath(query string) {
+	t.SetPath("")
+	t.rootQuery, t.rootPending = query, true
 }
 
 func (t *Target) ensureNormal() {
+	if t.rootPending {
+		t.path, t.rootQuery, t.rootPending = "/?"+t.rootQuery, "", false
+	}
 	if !t.normalDone {
 		t.normal = UnescapeNormal(t.path)
 		t.escaped = t.normal != t.path
@@ -269,7 +281,7 @@ func (m *Pattern) Match(t *Target) bool {
 			return false
 		}
 	}
-	if m.anyPath && strings.HasPrefix(t.path, "/") {
+	if m.anyPath && (t.rootPending || strings.HasPrefix(t.path, "/")) {
 		return true
 	}
 	t.ensureNormal()

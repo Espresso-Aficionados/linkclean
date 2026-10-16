@@ -87,6 +87,20 @@ func TestCompileErrors(t *testing.T) {
 	}
 }
 
+// An invalid action is reported alone (Q6): the action-dependent checks
+// would only add misleading errors.
+func TestCompileBadActionAlone(t *testing.T) {
+	r := strip("r", "p")
+	r.Action, r.ParamRegexps, r.InFragment = 9, []string{"x"}, true
+	r.Unwrap = &rule.UnwrapSpec{QueryParams: []string{"u"}}
+	r.Affiliate, r.IDParam = true, "p"
+	_, err := Compile([]rule.Set{{Name: "s", Rules: []rule.Rule{r}}})
+	var re *rule.Error
+	if errs := err.(interface{ Unwrap() []error }).Unwrap(); len(errs) != 1 || !errors.As(errs[0], &re) || re.Field != "action" {
+		t.Errorf("want one error on action, have:\n%v", err)
+	}
+}
+
 func TestCompileCollectsAll(t *testing.T) {
 	_, err := Compile([]rule.Set{{Name: "s", Rules: []rule.Rule{
 		{ID: "a", Action: rule.Strip},
@@ -141,11 +155,10 @@ func TestNewCleanerDisable(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	c, un := NewCleaner([]*Program{p}, Options{
+	c, un := NewCleaner([]*Program{p}, Options{MaxUnwrap: 5, MaxURLLength: 8192}, Lists{
 		DisableRules:        []string{"s:x:1", "s:x"},
 		DisableRulePrefixes: []string{"s:x:", "nope:"},
 		DisableTags:         []string{"t", "u"},
-		MaxUnwrap:           5, MaxURLLength: 8192,
 	})
 	if c.isActive(0) || c.isActive(1) || c.isActive(2) || !c.isActive(3) {
 		t.Errorf("active = %b", c.active[0])
@@ -159,7 +172,7 @@ func TestNewCleanerDisable(t *testing.T) {
 			t.Errorf("unmatched %v, want %v", un, want)
 		}
 	}
-	c, _ = NewCleaner([]*Program{p}, Options{AffiliateStrip: true, MaxUnwrap: 5, MaxURLLength: 8192})
+	c, _ = NewCleaner([]*Program{p}, Options{AffiliateStrip: true, MaxUnwrap: 5, MaxURLLength: 8192}, Lists{})
 	if !c.isActive(2) || c.isActive(3) {
 		t.Errorf("AffiliateStrip: active = %b", c.active[0])
 	}

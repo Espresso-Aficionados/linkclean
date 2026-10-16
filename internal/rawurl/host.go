@@ -6,27 +6,22 @@ import (
 	"golang.org/x/net/idna"
 )
 
-// HostView canonicalizes a raw host (no userinfo, no port; an IPv6 literal
-// with its brackets): ASCII-lowercase, trim trailing dots,
+// canonHost returns the host view of a raw host (no userinfo, no port; an
+// IPv6 literal with its brackets): ASCII-lowercase, trim trailing dots,
 // idna.Lookup.ToASCII (on failure, keep the lowercased trimmed host), trim
 // trailing dots again, then flag IP literals on the ASCII form (§4.1).
 //
 // A host made only of [a-z0-9._-] with no "xn--" label skips IDNA: on such
 // hosts ToASCII returns its input or fails, and failure keeps the input, so
-// the shortcut is exact. HostView does not allocate for such a host when it
+// the shortcut is exact. canonHost does not allocate for such a host when it
 // is already lowercase.
 //
 // The second trim covers IDNA mapping a trailing U+3002 or U+FF0E to '.':
 // without it "web.archive.org。" would not equal "web.archive.org." for
 // matching, and "1.2.3.4。" would not be flagged as an IP.
-func HostView(rawHost string) (host string, isIP bool) {
-	host, isIP, _ = canonHost(rawHost, false)
-	return host, isIP
-}
-
-// canonHost implements HostView. With strict set it always runs IDNA, and
-// idnaOK reports whether ToASCII succeeded (ParseTarget's VALID check);
-// otherwise idnaOK is meaningless.
+//
+// With strict set it always runs IDNA, and idnaOK reports whether ToASCII
+// succeeded (ParseTarget's VALID check); otherwise idnaOK is meaningless.
 func canonHost(raw string, strict bool) (host string, isIP, idnaOK bool) {
 	h := strings.TrimRight(asciiLower(raw), ".")
 	if strings.HasPrefix(h, "[") {

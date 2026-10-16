@@ -150,7 +150,8 @@ func testCompile(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	// Nothing dropped: every rule in is a rule out.
+	// Nothing dropped: every rule in is a rule out. SetInfo.Rules counts
+	// the rules Compile emitted, not the input.
 	for i, si := range c.Sources() {
 		if si.Rules != len(srcs[i].Rules) {
 			t.Errorf("%s: %d rules compiled, %d in", si.Name, si.Rules, len(srcs[i].Rules))

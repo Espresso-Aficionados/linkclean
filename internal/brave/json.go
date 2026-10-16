@@ -8,8 +8,8 @@ import (
 	"io"
 	"maps"
 	"slices"
-	"strings"
 
+	"github.com/Espresso-Aficionados/linkclean/internal/matchpattern"
 	"github.com/Espresso-Aficionados/linkclean/internal/rule"
 )
 
@@ -191,28 +191,21 @@ func (l *errList) strs(id string, m map[string]any, key string, required bool) [
 }
 
 // patterns is strs for include/exclude lists; it also rejects the linkclean
-// "label.*" host extension, which Brave data must not use (§4.5.2). The full
-// pattern grammar is checked by the engine.
+// "label.*" host extension, which Brave data must not use (§4.5.2). The
+// engine rejects it too, for every "brave/" set; checking here as well makes
+// the error name the upstream element ("#<index>") rather than the compiled
+// rule, which for debounce is a group of elements. The rest of the pattern
+// grammar is the engine's to check.
 func (l *errList) patterns(id string, m map[string]any, key string, required bool) []string {
 	ps := l.strs(id, m, key, required)
 	for i, p := range ps {
-		if labelHost(p) {
-			l.add(id, fmt.Sprintf("%s[%d]", key, i), "pattern %q: label.* hosts are a linkclean extension, not allowed in Brave data", p)
+		if mp, err := matchpattern.Parse(p, true); err == nil {
+			if kind, _ := mp.Host(); kind == matchpattern.HostLabel {
+				l.add(id, fmt.Sprintf("%s[%d]", key, i), "pattern %q: label.* hosts are a linkclean extension, not allowed in Brave data", p)
+			}
 		}
 	}
 	return ps
-}
-
-// labelHost reports whether the host part of pattern p contains ".*", the
-// "label.*" / "*.label.*" extension. Any other ".*" in a host is invalid
-// anyway.
-func labelHost(p string) bool {
-	_, rest, ok := strings.Cut(p, "://")
-	if !ok {
-		return false
-	}
-	host, _, _ := strings.Cut(rest, "/")
-	return strings.Contains(host, ".*")
 }
 
 func join(field, key string) string {

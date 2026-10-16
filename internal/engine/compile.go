@@ -17,14 +17,27 @@ import (
 // with the indexes cleaning needs. A rule's ordinal is its position in the
 // list: sets in the order given, rules in set order. Safe for concurrent use.
 type Program struct {
-	rules  []crule
-	sets   []SetInfo
-	hosts  *hostindex.Index
-	params map[string][]int32 // canon(name) -> Strip and Keep rules naming it, ascending
-	// trivial lists the special rules (see crule.special) whose scope is
-	// trivial, ascending. Trivial rules are not in hosts: they are candidates
-	// for every URL, so the per-call candidate list never holds them.
-	trivial []int32
+	rules []crule
+	sets  []SetInfo
+	// hosts indexes the rules without a global Include by Include host, and
+	// marks the special ones (crule.special). A rule with a global Include
+	// is a candidate for every URL; globals lists the special ones,
+	// ascending.
+	hosts   *hostindex.Index
+	globals []int32
+	params  map[string][]int32 // canon(name) -> Strip and Keep rules naming it, ascending
+	// paramRx holds the ParamRegexps entries keyed by literal prefix. A name
+	// can only match an entry whose prefix it starts with, so it probes one
+	// key per distinct prefix length (rxLens, ascending; 0 for entries
+	// without a prefix).
+	paramRx map[string][]rxEntry
+	rxLens  []int
+}
+
+// rxEntry is one ParamRegexps entry of rule lo, anchored.
+type rxEntry struct {
+	lo int32
+	re *regexp.Regexp
 }
 
 // SetInfo describes one compiled rule set.
@@ -39,16 +52,16 @@ type crule struct {
 	tags      []string
 	action    rule.Action
 	affiliate bool
-	global    bool // some Include has host "*": the signed guard's global bucket
+	global    bool // some Include has host "*": a candidate for every URL, and the signed guard's global bucket
 	needSite  bool // some Include or Exclude has a label.* host
 	trivial   bool // in scope for every URL: an Include "*://*/*", no Exclude, no URLRegexps
 
 	include, exclude []*matchpattern.Pattern
-	urlRes           []*regexp.Regexp
+	urlRes           []lre
 
-	paramRes   []paramRegexp
+	paramRes   []*regexp.Regexp // anchored; in Program.paramRx at run time
 	inFragment bool
-	pathRes    []*regexp.Regexp
+	pathRes    []lre
 
 	network string
 	idParam string // canonical
@@ -59,26 +72,11 @@ type crule struct {
 	prependScheme string
 }
 
-// special reports whether r acts without naming a param through the params
-// index, so cleaning has to visit it for every URL it is a candidate for.
+// special reports whether r acts without naming a param, so cleaning visits
+// it for every URL it is a candidate for.
 func (r *crule) special() bool {
-	return len(r.paramRes) > 0 || len(r.pathRes) > 0 || r.action == rule.Unwrap
+	return len(r.pathRes) > 0 || r.action == rule.Unwrap
 }
-
-// paramRegexp is a ParamRegexps entry, anchored, with the literal prefix every
-// match starts with so most names are rejected without running the regexp.
-type paramRegexp struct {
-	re     *regexp.Regexp
-	prefix string
-}
-
-// prefixOK reports whether cn starts with the literal prefix, a necessary
-// condition for a match.
-func (p *paramRegexp) prefixOK(cn []byte) bool {
-	return len(cn) >= len(p.prefix) && string(cn[:len(p.prefix)]) == p.prefix
-}
-
-var networkRe = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9 .&'()/-]{0,39}$`)
 
 // Compile validates every rule of sets and compiles them in order. Rules of a
 // set whose name starts with "brave/" may not use label.* hosts (§4.2). All
@@ -93,7 +91,6 @@ func Compile(sets []rule.Set) (*Program, error) {
 		info := SetInfo{
 			Name: s.Name, License: s.License, Upstream: s.Upstream,
 			Commit: s.Commit, SHA256: s.SHA256, Notice: s.Notice,
-			Rules: len(s.Rules),
 		}
 		allowLabel := !strings.HasPrefix(s.Name, "brave/")
 		ids := make(map[string]bool, len(s.Rules))
@@ -117,24 +114,8 @@ func Compile(sets []rule.Set) (*Program, error) {
 				errs = append(errs, e.errs...)
 				continue
 			}
-			ord := int32(len(p.rules))
-			p.rules = append(p.rules, cr)
-			switch {
-			case !cr.trivial:
-				for _, inc := range cr.include {
-					b.Add(ord, inc)
-				}
-			case cr.special():
-				p.trivial = append(p.trivial, ord)
-			}
-			if cr.action == rule.Strip || cr.action == rule.Keep {
-				for _, n := range r.Params {
-					cn := query.Canon(n)
-					if l := p.params[cn]; len(l) == 0 || l[len(l)-1] != ord {
-						p.params[cn] = append(l, ord)
-					}
-				}
-			}
+			p.add(cr, r.Params, &b)
+			info.Rules++
 		}
 		p.sets = append(p.sets, info)
 	}
@@ -145,7 +126,41 @@ func Compile(sets []rule.Set) (*Program, error) {
 	for k, l := range p.params {
 		p.params[k] = slices.Clip(l)
 	}
+	for k, l := range p.paramRx {
+		p.paramRx[k] = slices.Clip(l)
+		p.rxLens = append(p.rxLens, len(k))
+	}
+	slices.Sort(p.rxLens)
+	p.rxLens = slices.Compact(p.rxLens)
 	return p, nil
+}
+
+// add appends cr, compiled from a rule with the given Params, to p and
+// indexes it.
+func (p *Program) add(cr crule, params []string, b *hostindex.Builder) {
+	ord := int32(len(p.rules))
+	p.rules = append(p.rules, cr)
+	switch {
+	case !cr.global:
+		for _, inc := range cr.include {
+			b.Add(ord, inc, cr.special())
+		}
+	case cr.special():
+		p.globals = append(p.globals, ord)
+	}
+	for _, n := range params {
+		cn := query.Canon(n)
+		if l := p.params[cn]; len(l) == 0 || l[len(l)-1] != ord {
+			p.params[cn] = append(l, ord)
+		}
+	}
+	for _, re := range cr.paramRes {
+		if p.paramRx == nil {
+			p.paramRx = map[string][]rxEntry{}
+		}
+		prefix, _ := re.LiteralPrefix()
+		p.paramRx[prefix] = append(p.paramRx[prefix], rxEntry{lo: ord, re: re})
+	}
 }
 
 // Sets describes the compiled rule sets, in order.
@@ -197,7 +212,7 @@ func compileRule(set string, r *rule.Rule, allowLabel bool, e *ruleErrs) crule {
 		}
 	}
 	for i, s := range r.URLRegexps {
-		if re, err := regexp.Compile(s); err != nil {
+		if re, err := compileLRE(s); err != nil {
 			e.add(fmt.Sprintf("urlRegexps[%d]", i), err)
 		} else {
 			cr.urlRes = append(cr.urlRes, re)
@@ -206,13 +221,14 @@ func compileRule(set string, r *rule.Rule, allowLabel bool, e *ruleErrs) crule {
 	cr.trivial = len(r.Exclude) == 0 && len(r.URLRegexps) == 0 &&
 		slices.ContainsFunc(cr.include, (*matchpattern.Pattern).MatchesAll)
 
-	matcher := r.Action == rule.Strip || r.Action == rule.Keep
 	switch r.Action {
 	case rule.Strip, rule.Keep, rule.Unwrap:
 	default:
+		// Every check below depends on the action: report this alone.
 		e.add("action", fmt.Errorf("invalid action %d", uint8(r.Action)))
+		return cr
 	}
-	if !matcher {
+	if r.Action == rule.Unwrap {
 		if len(r.Params) > 0 {
 			e.add("params", errors.New("only Strip and Keep rules match params"))
 		}
@@ -234,18 +250,17 @@ func compileRule(set string, r *rule.Rule, allowLabel bool, e *ruleErrs) crule {
 			e.add(fmt.Sprintf("paramRegexps[%d]", i), err)
 			continue
 		}
-		prefix, _ := re.LiteralPrefix()
-		cr.paramRes = append(cr.paramRes, paramRegexp{re: re, prefix: prefix})
+		cr.paramRes = append(cr.paramRes, re)
 	}
 	if len(r.PathRegexps) > 0 && r.Action != rule.Strip {
 		e.add("pathRegexps", errors.New("only Strip rules edit the path"))
 	}
 	for i, s := range r.PathRegexps {
-		re, err := regexp.Compile(s)
+		re, err := compileLRE(s)
 		switch {
 		case err != nil:
 			e.add(fmt.Sprintf("pathRegexps[%d]", i), err)
-		case re.MatchString(""):
+		case re.Regexp.MatchString(""):
 			e.add(fmt.Sprintf("pathRegexps[%d]", i), errors.New("matches the empty string"))
 		default:
 			cr.pathRes = append(cr.pathRes, re)
@@ -321,8 +336,8 @@ func compileAffiliate(r *rule.Rule, cr *crule, e *ruleErrs) {
 	if len(r.PathRegexps) > 0 {
 		e.add("affiliate", errors.New("an affiliate rule cannot have pathRegexps"))
 	}
-	if r.Network != "" && !networkRe.MatchString(r.Network) {
-		e.add("network", fmt.Errorf("%q does not match %s", r.Network, networkRe))
+	if r.Network != "" && !rule.NetworkRe.MatchString(r.Network) {
+		e.add("network", fmt.Errorf("%q does not match %s", r.Network, rule.NetworkRe))
 	}
 	if r.IDParam != "" && r.IDPathRegexp != "" {
 		e.add("idPathRegexp", errors.New("idParam and idPathRegexp are exclusive"))

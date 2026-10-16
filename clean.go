@@ -32,18 +32,45 @@ func Default() *Cleaner { return defaultCleaner() }
 var defaultCleaner = sync.OnceValue(func() *Cleaner { return MustNew(Config{}) })
 
 // defaultBase is the built-in rule sets compiled once per process and shared
-// by every Cleaner whose Config.Sources is nil (§8).
-var defaultBase = sync.OnceValues(func() (*engine.Program, error) {
+// by every Cleaner whose Config.Sources is nil (§8), with their SourceInfo
+// and notices.
+var defaultBase = sync.OnceValues(func() (base, error) {
 	sets, err := decodeDefaults()
 	if err != nil {
-		return nil, err
+		return base{}, err
 	}
-	in := make([]rule.Set, len(sets))
-	for i := range sets {
-		in[i] = sets[i].toInternal()
+	p, err := engine.Compile(sets)
+	if err != nil {
+		return base{}, err
 	}
-	return engine.Compile(in)
+	srcs, notices := describe(p)
+	return base{p, srcs, notices}, nil
 })
+
+// base is a compiled Program with what Sources and Notices report for it.
+// Its slices are shared by every Cleaner built on it and never modified.
+type base struct {
+	prog    *engine.Program
+	sources []SourceInfo
+	notices string
+}
+
+// describe returns the SourceInfo of every set of p, in order, and their
+// notices joined.
+func describe(p *engine.Program) ([]SourceInfo, string) {
+	var srcs []SourceInfo
+	var notices []string
+	for _, s := range p.Sets() {
+		srcs = append(srcs, SourceInfo{
+			Name: s.Name, License: s.License, Upstream: s.Upstream, Commit: s.Commit, SHA256: s.SHA256,
+			Rules: s.Rules, Params: s.Params, Regexps: s.Regexps,
+		})
+		if s.Notice != "" {
+			notices = append(notices, s.Notice)
+		}
+	}
+	return srcs, strings.Join(notices, "\n\n")
+}
 
 // New validates and compiles cfg. Inputs are deep-copied: later mutation by the
 // caller has no effect, and no caller slice is modified. Rule problems are
@@ -60,16 +87,12 @@ func New(cfg Config) (*Cleaner, error) {
 	}
 	opt := engine.Options{
 		AffiliateStrip:      cfg.Affiliate == AffiliateStrip,
-		DisableRules:        cfg.DisableRules, // read by NewCleaner, not kept
-		DisableRulePrefixes: cfg.DisableRulePrefixes,
-		DisableTags:         cfg.DisableTags,
 		DisableUnwrap:       cfg.DisableUnwrap,
 		DisableNested:       cfg.DisableNested,
 		DisableSignedGuard:  cfg.DisableSignedGuard,
 		DisableArchiveGuard: cfg.DisableArchiveGuard,
 		MaxUnwrap:           cfg.MaxUnwrap,
 		MaxURLLength:        cfg.MaxURLLength,
-		ExtraSignedParams:   cfg.ExtraSignedParams,
 	}
 	if cfg.Affiliate > AffiliateStrip {
 		cfgErr("Affiliate", fmt.Errorf("invalid policy %d", cfg.Affiliate))
@@ -108,19 +131,23 @@ func New(cfg Config) (*Cleaner, error) {
 	}
 
 	var progs []*engine.Program
+	var user *engine.Program
 	if len(cfg.Extra) > 0 {
-		user := rule.Set{Name: userSet, Rules: make([]rule.Rule, len(cfg.Extra))}
+		set := rule.Set{Name: userSet, Rules: make([]rule.Rule, len(cfg.Extra))}
 		for i := range cfg.Extra {
-			user.Rules[i] = cfg.Extra[i].toInternal()
+			set.Rules[i] = cfg.Extra[i].toInternal()
 		}
-		p, err := engine.Compile([]rule.Set{user})
+		var err error
+		user, err = engine.Compile([]rule.Set{set})
 		errs = append(errs, convertErrs(err)...)
-		progs = append(progs, p)
+		progs = append(progs, user)
 	}
+	var b base
 	if cfg.Sources == nil {
-		p, err := defaultBase()
+		var err error
+		b, err = defaultBase()
 		errs = append(errs, convertErrs(err)...)
-		progs = append(progs, p)
+		progs = append(progs, b.prog)
 	} else {
 		names := map[string]bool{userSet: true}
 		sets := make([]rule.Set, len(cfg.Sources))
@@ -139,13 +166,25 @@ func New(cfg Config) (*Cleaner, error) {
 		p, err := engine.Compile(sets)
 		errs = append(errs, convertErrs(err)...)
 		progs = append(progs, p)
+		if err == nil {
+			b.prog = p
+			b.sources, b.notices = describe(p)
+		}
 	}
 	if err := errors.Join(errs...); err != nil {
 		return nil, err
 	}
 
-	eng, unmatched := engine.NewCleaner(progs, opt)
-	c := &Cleaner{eng: eng}
+	eng, unmatched := engine.NewCleaner(progs, opt, engine.Lists{
+		DisableRules:        cfg.DisableRules,
+		DisableRulePrefixes: cfg.DisableRulePrefixes,
+		DisableTags:         cfg.DisableTags,
+		ExtraSignedParams:   cfg.ExtraSignedParams,
+	})
+	c := &Cleaner{eng: eng, sources: b.sources, notices: b.notices}
+	if user != nil {
+		c.user, _ = describe(user) // Extra has no notice
+	}
 	for _, u := range unmatched {
 		w := Warning{Field: u.Field, Err: ErrUnknownRule}
 		switch u.Field {
@@ -166,19 +205,6 @@ func New(cfg Config) (*Cleaner, error) {
 		return nil, err
 	}
 
-	var notices []string
-	for _, p := range progs {
-		for _, s := range p.Sets() {
-			c.sources = append(c.sources, SourceInfo{
-				Name: s.Name, License: s.License, Upstream: s.Upstream, Commit: s.Commit, SHA256: s.SHA256,
-				Rules: s.Rules, Params: s.Params, Regexps: s.Regexps,
-			})
-			if s.Notice != "" {
-				notices = append(notices, s.Notice)
-			}
-		}
-	}
-	c.notices = strings.Join(notices, "\n\n")
 	return c, nil
 }
 
@@ -241,7 +267,8 @@ func MustNew(cfg Config) *Cleaner {
 // no caches, locks or lazily-initialized state.
 type Cleaner struct {
 	eng      *engine.Cleaner
-	sources  []SourceInfo
+	user     []SourceInfo // Config.Extra's, if any
+	sources  []SourceInfo // shared with other Cleaners on the same base: never modified
 	notices  string
 	warnings []Warning
 }
@@ -284,7 +311,7 @@ func (c *Cleaner) Explain(rawURL string) Result {
 // Sources reports the compiled rule sets (name, license, upstream, commit,
 // sha256, counts) in priority order, Config.Extra first as "user". Log it at
 // startup so bug reports name the data version.
-func (c *Cleaner) Sources() []SourceInfo { return slices.Clone(c.sources) }
+func (c *Cleaner) Sources() []SourceInfo { return slices.Concat(c.user, c.sources) }
 
 // Notices returns the attribution and license notices of every compiled source
 // (MPL-2.0 §3.2 "where to get the source"), for --licenses output or an about page.

@@ -6,9 +6,24 @@
 // package can import the compilers without an import cycle. The root package
 // converts between the two (a deep copy, which New and DefaultSources need
 // anyway). Values here are plain data: no validation, no compiled state.
+// The constants below are the parts of the contract both compilers check.
 package rule
 
-import "fmt"
+import (
+	"fmt"
+	"regexp"
+)
+
+// Names of the built-in rule sets compiled from Brave data, in priority
+// order (design §2).
+const (
+	CleanURLsSet   = "brave/clean-urls"
+	QueryFilterSet = "brave/query-filter"
+	DebounceSet    = "brave/debounce"
+)
+
+// NetworkRe is the charset of Rule.Network (design §3).
+var NetworkRe = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9 .&'()/-]{0,39}$`)
 
 // Action is what a rule does to an in-scope URL. The values equal
 // linkclean.Action's.

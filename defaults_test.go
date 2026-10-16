@@ -9,6 +9,8 @@ import (
 	"strings"
 	"testing"
 	"testing/fstest"
+
+	"github.com/Espresso-Aficionados/linkclean/internal/rule"
 )
 
 // TestEmbedSet pins the embedded file set (design §11.7): moving a test input
@@ -158,7 +160,7 @@ func TestReadDefaultsFixture(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(sets) != 4 || len(sets[2].Rules) != 0 || len(sets[3].Rules) != 1 || sets[3].Rules[0].Action != Strip {
+	if len(sets) != 4 || len(sets[2].Rules) != 0 || len(sets[3].Rules) != 1 || sets[3].Rules[0].Action != rule.Strip {
 		t.Errorf("sets: %d, debounce rules %d, overlay %+v", len(sets), len(sets[2].Rules), sets[3].Rules)
 	}
 

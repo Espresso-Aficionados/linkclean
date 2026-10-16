@@ -35,9 +35,9 @@ const (
 // braveFiles are the vendored upstream files, keyed as in the lock, with the
 // rule set each compiles to, in priority order.
 var braveFiles = []struct{ set, upstream string }{
-	{"brave/clean-urls", "brave-lists/clean-urls.json"},
-	{"brave/query-filter", "brave-lists/query-filter.json"},
-	{brave.DebounceSet, "brave-lists/debounce.json"},
+	{rule.CleanURLsSet, "brave-lists/clean-urls.json"},
+	{rule.QueryFilterSet, "brave-lists/query-filter.json"},
+	{rule.DebounceSet, "brave-lists/debounce.json"},
 }
 
 // lockFile is rules.lock.json (schema 4, design §11.2). It is written only by
@@ -73,14 +73,14 @@ func DefaultSources() []RuleSet {
 	}
 	out := make([]RuleSet, len(sets))
 	for i := range sets {
-		out[i] = cloneSet(&sets[i])
+		out[i] = setFromInternal(&sets[i])
 	}
 	return out
 }
 
 // decodeDefaults returns the built-in rule sets, decoded from rulesFS once per
 // process. The result is shared: callers must not modify it.
-var decodeDefaults = sync.OnceValues(func() ([]RuleSet, error) {
+var decodeDefaults = sync.OnceValues(func() ([]rule.Set, error) {
 	return readDefaults(rulesFS)
 })
 
@@ -88,7 +88,7 @@ var decodeDefaults = sync.OnceValues(func() ([]RuleSet, error) {
 // file, after checking its sha256 against the lock, through internal/brave
 // (debounce.json with the classification table), then overlay.json. Set
 // metadata and notices come from the lock. All problems are returned together.
-func readDefaults(fsys fs.FS) ([]RuleSet, error) {
+func readDefaults(fsys fs.FS) ([]rule.Set, error) {
 	lock, err := readLock(fsys)
 	if err != nil {
 		return nil, err
@@ -97,7 +97,7 @@ func readDefaults(fsys fs.FS) ([]RuleSet, error) {
 		return nil, fmt.Errorf("%s: upstream LICENSE spdx is %q, want %q", lockPath, lic, braveSPDX)
 	}
 	var errs []error
-	sets := make([]RuleSet, 0, len(braveFiles)+1)
+	sets := make([]rule.Set, 0, len(braveFiles)+1)
 	for _, f := range braveFiles {
 		lf, ok := lock.Upstream.Files[f.upstream]
 		if !ok {
@@ -111,7 +111,7 @@ func readDefaults(fsys fs.FS) ([]RuleSet, error) {
 		}
 		var rs []rule.Rule
 		notice := braveNotice(&lock, f.upstream, lf)
-		if f.set == brave.DebounceSet {
+		if f.set == rule.DebounceSet {
 			var classes []byte
 			if classes, err = fs.ReadFile(fsys, classesPath); err == nil {
 				rs, _, err = brave.CompileDebounce(data, classes)
@@ -124,7 +124,7 @@ func readDefaults(fsys fs.FS) ([]RuleSet, error) {
 			errs = append(errs, err)
 			continue
 		}
-		s := rule.Set{
+		sets = append(sets, rule.Set{
 			Name:     f.set,
 			License:  braveSPDX,
 			Upstream: lock.Upstream.Repo + " " + f.upstream,
@@ -132,8 +132,7 @@ func readDefaults(fsys fs.FS) ([]RuleSet, error) {
 			SHA256:   lf.SHA256,
 			Notice:   notice,
 			Rules:    rs,
-		}
-		sets = append(sets, setFromInternal(&s))
+		})
 	}
 
 	if data, err := fs.ReadFile(fsys, overlayPath); err != nil {
@@ -141,7 +140,8 @@ func readDefaults(fsys fs.FS) ([]RuleSet, error) {
 	} else if ov, err := decodeOverlay(data); err != nil {
 		errs = append(errs, err)
 	} else {
-		sets = append(sets, RuleSet{Name: overlaySet, License: "MIT", Notice: overlayNotice, Rules: ov})
+		ovs := RuleSet{Name: overlaySet, License: "MIT", Notice: overlayNotice, Rules: ov}
+		sets = append(sets, ovs.toInternal())
 	}
 
 	if err := errors.Join(errs...); err != nil {

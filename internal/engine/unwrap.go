@@ -13,18 +13,16 @@ func (cl *call) unwrapOnce() (target string, ord int32, ok bool) {
 	if !cl.u.HasQuery {
 		return "", -1, false
 	}
-	var sb [32]query.Segment
-	var segs []query.Segment
-	for _, sp := range cl.specials() {
-		r := sp.r
-		if r.action != rule.Unwrap || !cl.c.isActive(sp.ord) || !cl.inScope(int(sp.pos), r) {
+	for it := (specIter{cl: cl}); ; {
+		ord, r, ok := it.next()
+		if !ok {
+			break
+		}
+		if r.action != rule.Unwrap || !cl.c.isActive(ord) || !cl.inScope(ord, r) {
 			continue
 		}
-		if segs == nil {
-			segs = query.Parse(sb[:0], cl.u.Query)
-		}
 		for _, qp := range r.unwrapParams {
-			v, found := firstValue(segs, qp)
+			v, found := firstValue(cl.u.Query, qp)
 			if !found {
 				continue
 			}
@@ -32,6 +30,9 @@ func (cl *call) unwrapOnce() (target string, ord int32, ok bool) {
 			if r.prependScheme != "" && !hasHTTPPrefix(t) {
 				t = r.prependScheme + "://" + t
 			}
+			// VALID bounds the decoded target (§6). Reserialize can grow it
+			// up to 3x, so the target may exceed MaxURLLength, which bounds
+			// the input; Clean then returns that output unchanged.
 			if len(t) > cl.c.opt.MaxURLLength {
 				continue
 			}
@@ -39,22 +40,26 @@ func (cl *call) unwrapOnce() (target string, ord int32, ok bool) {
 			if !ok || !r.allowSameSite && rawurl.Site(tu.Host) == cl.site() {
 				continue
 			}
-			return rawurl.Reserialize(&tu), sp.ord, true
+			return rawurl.Reserialize(&tu), ord, true
 		}
 	}
 	return "", -1, false
 }
 
-// firstValue returns the value of the first segment whose canonical name is
-// cn.
-func firstValue(segs []query.Segment, cn string) (string, bool) {
+// firstValue returns the value of the first segment of query q whose
+// canonical name is cn.
+func firstValue(q, cn string) (string, bool) {
 	var nb [64]byte
-	for i := range segs {
-		if string(query.AppendCanon(nb[:0], segs[i].Name)) == cn {
-			return segs[i].Value, true
+	for {
+		s, rest, ok := query.Next(q)
+		if !ok {
+			return "", false
 		}
+		if string(query.AppendCanon(nb[:0], s.Name)) == cn {
+			return s.Value, true
+		}
+		q = rest
 	}
-	return "", false
 }
 
 // hop describes the unwrap of cl's URL to to by rule ord (§3.1, §6).
@@ -68,8 +73,7 @@ func (cl *call) hop(to string, ord int32) Hop {
 	h.Beneficiary.Network = r.network
 	switch {
 	case r.idParam != "":
-		var sb [32]query.Segment
-		if v, ok := firstValue(query.Parse(sb[:0], cl.u.Query), r.idParam); ok {
+		if v, ok := firstValue(cl.u.Query, r.idParam); ok {
 			h.Beneficiary.ID = query.DecodeValue(v)
 		}
 	case r.idPath != nil:

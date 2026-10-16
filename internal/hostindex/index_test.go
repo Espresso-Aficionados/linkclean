@@ -21,15 +21,28 @@ func mustParse(tb testing.TB, p string) *matchpattern.Pattern {
 	return m
 }
 
-func build(tb testing.TB, rules [][]string) *Index {
+// build indexes rules the way the engine does: global ("*") Includes are not
+// indexed. Rules in special are also added as special.
+func build(tb testing.TB, rules [][]string, special ...int32) *Index {
 	tb.Helper()
 	var b Builder
 	for ord, incs := range rules {
 		for _, p := range incs {
-			b.Add(int32(ord), mustParse(tb, p))
+			if m := mustParse(tb, p); !isGlobal(m) {
+				b.Add(int32(ord), m, slices.Contains(special, int32(ord)))
+			}
 		}
 	}
 	return b.Build()
+}
+
+func isGlobal(m *matchpattern.Pattern) bool {
+	k, _ := m.Host()
+	return k == matchpattern.HostAny
+}
+
+func candidates(ix *Index, host string, isIP, special bool) []int32 {
+	return Merge(nil, ix.Lookup(nil, host, isIP), special)
 }
 
 func TestCandidates(t *testing.T) {
@@ -43,53 +56,116 @@ func TestCandidates(t *testing.T) {
 		6: {"*://*.10.0.0.1/*"},
 		7: {"https://*/*", "*://x.example/*"},
 		8: {"*://amazon.*/*"},
-	})
+	}, 2, 3, 6)
 	for _, c := range []struct {
-		host string
-		isIP bool
-		want []int32
+		host          string
+		isIP          bool
+		want, special []int32
 	}{
-		{"www.example.com", false, []int32{0, 1, 2, 4, 7}},
-		{"example.com", false, []int32{0, 2, 4, 7}},
-		{"badexample.com", false, []int32{0, 4, 7}},
-		{"www.amazon.co.uk", false, []int32{0, 3, 7, 8}},
-		{"www.amazon.com.be", false, []int32{0, 3, 7, 8}},
-		{"amazon.com", false, []int32{0, 3, 4, 7, 8}},
-		{"10.0.0.1", true, []int32{0, 5, 6, 7}},
-		{"0.0.1", false, []int32{0, 5, 7}},
-		{"[::1]", true, []int32{0, 7}},
-		{"x.example", false, []int32{0, 7}},
-		{"", false, []int32{0, 7}},
+		{"www.example.com", false, []int32{1, 2, 4}, []int32{2}},
+		{"example.com", false, []int32{2, 4}, []int32{2}},
+		{"badexample.com", false, []int32{4}, nil},
+		{"www.amazon.co.uk", false, []int32{3, 8}, []int32{3}},
+		{"www.amazon.com.be", false, []int32{3, 8}, []int32{3}},
+		{"amazon.com", false, []int32{3, 4, 8}, []int32{3}},
+		{"10.0.0.1", true, []int32{5, 6}, []int32{6}},
+		{"0.0.1", false, []int32{5}, nil},
+		{"[::1]", true, nil, nil},
+		{"x.example", false, []int32{7}, nil},
+		{"", false, nil, nil},
 	} {
-		if got := ix.Candidates(nil, c.host, c.isIP); !slices.Equal(got, c.want) {
-			t.Errorf("Candidates(%q, %v) = %v, want %v", c.host, c.isIP, got, c.want)
+		if got := candidates(ix, c.host, c.isIP, false); !slices.Equal(got, c.want) {
+			t.Errorf("candidates(%q, %v) = %v, want %v", c.host, c.isIP, got, c.want)
+		}
+		if got := candidates(ix, c.host, c.isIP, true); !slices.Equal(got, c.special) {
+			t.Errorf("special candidates(%q, %v) = %v, want %v", c.host, c.isIP, got, c.special)
+		}
+		bs := ix.Lookup(nil, c.host, c.isIP)
+		for ord := range int32(9) {
+			if got, want := Contains(bs, ord), slices.Contains(c.want, ord); got != want {
+				t.Errorf("Contains(%q, %d) = %v, want %v", c.host, ord, got, want)
+			}
 		}
 	}
 
 	// The prefix of dst is preserved and not merged into the output order.
-	got := ix.Candidates([]int32{99, 3}, "www.example.com", false)
-	if want := []int32{99, 3, 0, 1, 2, 4, 7}; !slices.Equal(got, want) {
+	got := Merge([]int32{99, 3}, ix.Lookup(nil, "www.example.com", false), false)
+	if want := []int32{99, 3, 1, 2, 4}; !slices.Equal(got, want) {
 		t.Errorf("with prefix: %v, want %v", got, want)
 	}
+}
+
+func TestAddGlobalPanics(t *testing.T) {
+	defer func() {
+		if recover() == nil {
+			t.Error("Add of a global pattern did not panic")
+		}
+	}()
+	var b Builder
+	b.Add(0, mustParse(t, "*://*/x*"), false)
 }
 
 func TestEmptyIndex(t *testing.T) {
 	var b Builder
 	ix := b.Build()
-	if got := ix.Candidates(nil, "example.com", false); len(got) != 0 {
+	if got := candidates(ix, "example.com", false, false); len(got) != 0 {
 		t.Errorf("empty index: %v", got)
 	}
 }
 
-func TestCandidatesAllocs(t *testing.T) {
+func TestLookupAllocs(t *testing.T) {
 	ix := build(t, [][]string{
-		{"*://*/*"}, {"*://*.example.com/*"}, {"*://www.example.com/*"}, {"*://*.example.*/*"}, {"*://*.com/*"},
+		{"*://*.example.com/*"}, {"*://www.example.com/*"}, {"*://*.example.*/*"}, {"*://*.com/*"},
 	})
+	bs := make([]*Bucket, 0, 16)
 	dst := make([]int32, 0, 64)
 	if n := testing.AllocsPerRun(100, func() {
-		dst = ix.Candidates(dst[:0], "a.b.www.example.com", false)
+		bs = ix.Lookup(bs[:0], "a.b.www.example.com", false)
+		dst = Merge(dst[:0], bs, false)
 	}); n != 0 {
-		t.Errorf("Candidates: %v allocs, want 0", n)
+		t.Errorf("Lookup+Merge: %v allocs, want 0", n)
+	}
+}
+
+// naiveLookup is Lookup without the suffixLabels bound: every parent domain.
+func naiveLookup(ix *Index, host string, isIP bool) []int32 {
+	var bs []*Bucket
+	add := func(b *Bucket) {
+		if b != nil {
+			bs = append(bs, b)
+		}
+	}
+	add(ix.exact[host])
+	add(ix.suffix[host])
+	if !isIP {
+		for s := host; strings.Contains(s, "."); {
+			_, s, _ = strings.Cut(s, ".")
+			add(ix.suffix[s])
+		}
+		for _, l := range strings.Split(host, ".") {
+			add(ix.label[l])
+		}
+	}
+	return Merge(nil, bs, false)
+}
+
+// The bounded parent walk finds what walking every parent finds, including
+// for hosts far deeper than any suffix key (PERF2-1).
+func TestLookupBoundedWalk(t *testing.T) {
+	ix := build(t, [][]string{
+		{"*://*.com/*"}, {"*://*.co.uk/*"}, {"*://*.a.b.example.co.uk/*"}, {"*://www.example.com/*"}, {"*://*.amazon.*/*"},
+	})
+	if ix.suffixLabels != 5 {
+		t.Fatalf("suffixLabels = %d, want 5", ix.suffixLabels)
+	}
+	for _, h := range []string{
+		"com", "x.com", "www.example.com", "a.b.example.co.uk", "x.a.b.example.co.uk", "y.x.a.b.example.co.uk",
+		"amazon.co.uk", "..com", "a..co.uk", ".", "",
+		strings.Repeat("a.", 4000) + "example.com", strings.Repeat("amazon.", 500) + "b.example.co.uk",
+	} {
+		if got, want := candidates(ix, h, false, false), naiveLookup(ix, h, false); !slices.Equal(got, want) {
+			t.Errorf("%.40q: Lookup %v, every parent %v", h, got, want)
+		}
 	}
 }
 
@@ -110,8 +186,8 @@ func fakeSite(host string) string {
 // concretize turns a path glob into a path it matches.
 func concretize(glob string) string { return strings.ReplaceAll(glob, "*", "x") }
 
-// Candidates ⊇ every rule with a matching Include, over the vendored Brave
-// patterns, the overlay (when present) and hosts derived from them.
+// The candidates ⊇ every rule with a matching host-scoped Include, over the
+// vendored Brave patterns, the overlay and hosts derived from them.
 func TestCandidatesSuperset(t *testing.T) {
 	var rules [][]string
 	for _, f := range []string{"clean-urls.json", "query-filter.json", "debounce.json"} {
@@ -121,14 +197,10 @@ func TestCandidatesSuperset(t *testing.T) {
 			rules = append(rules, r.Include)
 		}
 	}
-	if b, err := os.ReadFile("../../rules/overlay/overlay.json"); err == nil {
-		var rs []struct{ Include []string }
-		if err := json.Unmarshal(b, &rs); err != nil {
-			t.Fatal(err)
-		}
-		for _, r := range rs {
-			rules = append(rules, r.Include)
-		}
+	var ov []struct{ Include []string }
+	readJSON(t, "../../rules/overlay/overlay.json", &ov)
+	for _, r := range ov {
+		rules = append(rules, r.Include)
 	}
 	rules = append(rules, []string{"*://*.amazon.*/*"}, []string{"*://10.0.0.1/*"}, []string{"*://*.10.0.0.1/*"})
 
@@ -139,7 +211,9 @@ func TestCandidatesSuperset(t *testing.T) {
 		for _, p := range incs {
 			m := mustParse(t, p)
 			pats[ord] = append(pats[ord], m)
-			b.Add(int32(ord), m)
+			if !isGlobal(m) {
+				b.Add(int32(ord), m, false)
+			}
 			kind, h := m.Host()
 			switch kind {
 			case matchpattern.HostExact, matchpattern.HostSuffix:
@@ -157,12 +231,10 @@ func TestCandidatesSuperset(t *testing.T) {
 	}
 	hosts = append(hosts, "10.0.0.1", "127.0.0.1", "[::1]", "localhost", "")
 
-	var buf []int32
 	matched := 0
 	for _, host := range hosts {
 		isIP := host == "10.0.0.1" || host == "127.0.0.1" || host == "[::1]"
-		cands := ix.Candidates(buf[:0], host, isIP)
-		buf = cands
+		cands := candidates(ix, host, isIP, false)
 		if !slices.IsSorted(cands) || len(slices.Compact(slices.Clone(cands))) != len(cands) {
 			t.Fatalf("%q: candidates not ascending and unique: %v", host, cands)
 		}
@@ -178,10 +250,8 @@ func TestCandidatesSuperset(t *testing.T) {
 				}
 				_, path, _ := strings.Cut(rest, "/")
 				tg.SetPath("/" + concretize(path))
-				if p.Match(tg) {
-					if kind, _ := p.Host(); kind != matchpattern.HostAny {
-						matched++
-					}
+				if p.Match(tg) && !isGlobal(p) {
+					matched++
 					if _, found := slices.BinarySearch(cands, int32(ord)); !found {
 						t.Errorf("%q: rule %d (%s) matches but is not a candidate", host, ord, p)
 					}
@@ -206,25 +276,38 @@ func readJSON(t *testing.T, path string, v any) {
 	}
 }
 
-// Candidates cost is flat in the number of host-scoped rules.
+// Lookup cost is flat in the number of host-scoped rules and linear in the
+// host length (labels=N: a host of N labels).
 func BenchmarkCandidates(b *testing.B) {
 	for _, n := range []int{0, 1000, 10000} {
 		var bl Builder
-		bl.Add(0, mustParse(b, "*://*/*"))
 		for i := 1; i <= n; i++ {
 			pat := fmt.Sprintf("*://*.h%d.example/*", i)
 			if i%2 == 0 {
 				pat = fmt.Sprintf("*://www.h%d.example/*", i)
 			}
-			bl.Add(int32(i), mustParse(b, pat))
+			bl.Add(int32(i), mustParse(b, pat), false)
 		}
+		bl.Add(int32(n+1), mustParse(b, "*://*.co.uk/*"), false)
 		ix := bl.Build()
+		hosts := []string{"www.unrelated.example.com", "a.b.h1.example"}
+		if n == 1000 {
+			for _, labels := range []int{500, 1000, 2000, 4000} {
+				hosts = append(hosts, strings.Repeat("a.", labels-2)+"example.com")
+			}
+		}
+		bs := make([]*Bucket, 0, 16)
 		dst := make([]int32, 0, 64)
-		for _, host := range []string{"www.unrelated.example.com", "a.b.h1.example"} {
-			b.Run(fmt.Sprintf("rules=%d/%s", n, host), func(b *testing.B) {
+		for _, host := range hosts {
+			name := host
+			if len(host) > 64 {
+				name = fmt.Sprint("labels=", strings.Count(host, ".")+1)
+			}
+			b.Run(fmt.Sprintf("rules=%d/%s", n, name), func(b *testing.B) {
 				b.ReportAllocs()
 				for b.Loop() {
-					dst = ix.Candidates(dst[:0], host, false)
+					bs = ix.Lookup(bs[:0], host, false)
+					dst = Merge(dst[:0], bs, false)
 				}
 			})
 		}

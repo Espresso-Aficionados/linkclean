@@ -424,8 +424,8 @@ func TestAllocs(t *testing.T) {
 	if n := testing.AllocsPerRun(100, func() { _ = Site("localhost") }); n != 0 {
 		t.Errorf("Site(single-label) allocs = %v, want 0", n)
 	}
-	if n := testing.AllocsPerRun(100, func() { _, _ = HostView("www.example.com") }); n != 0 {
-		t.Errorf("HostView(ASCII) allocs = %v, want 0", n)
+	if n := testing.AllocsPerRun(100, func() { _, _, _ = canonHost("www.example.com", false) }); n != 0 {
+		t.Errorf("canonHost(ASCII) allocs = %v, want 0", n)
 	}
 }
 
@@ -437,12 +437,12 @@ func BenchmarkParse(b *testing.B) {
 	}
 }
 
-func BenchmarkHostView(b *testing.B) {
+func BenchmarkCanonHost(b *testing.B) {
 	for _, h := range []string{"www.example.com", "WWW.Example.COM", "bücher.example", "xn--bcher-kva.example"} {
 		b.Run(h, func(b *testing.B) {
 			b.ReportAllocs()
 			for b.Loop() {
-				HostView(h)
+				canonHost(h, false)
 			}
 		})
 	}
