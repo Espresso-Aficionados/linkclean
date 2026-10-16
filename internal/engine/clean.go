@@ -183,14 +183,17 @@ func (cl *call) setRound(raw, path, q, frag string, hasQuery, hasFrag bool) {
 	cl.msDone = false
 	clear(cl.memo())
 	// pathForRequest (§4.1) is a substring of raw unless the path is empty.
-	pfr := raw[len(cl.u.Prefix) : len(cl.u.Prefix)+len(path)]
+	start := len(cl.u.Prefix)
+	var pfr string
 	switch {
-	case path == "" && hasQuery:
-		pfr = "/?" + q
-	case path == "":
-		pfr = "/"
+	case path != "" && hasQuery:
+		pfr = raw[start : start+len(path)+1+len(q)]
+	case path != "":
+		pfr = raw[start : start+len(path)]
 	case hasQuery:
-		pfr = raw[len(cl.u.Prefix) : len(cl.u.Prefix)+len(path)+1+len(q)]
+		pfr = "/?" + q
+	default:
+		pfr = "/"
 	}
 	cl.t.SetPath(pfr)
 }
