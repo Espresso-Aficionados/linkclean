@@ -244,6 +244,10 @@ func TestCleanUnchangedAllocsManyExtra(t *testing.T) {
 				if c.Clean(in) != in {
 					t.Fatalf("%s changed", in)
 				}
+				// Beyond 2,048 rules the scope bitsets come from a sync.Pool.
+				if raceEnabled && n > 2048 {
+					continue
+				}
 				if a := testing.AllocsPerRun(20, func() { benchSink = c.Clean(in) }); a != 0 {
 					t.Errorf("%s/n=%d Clean(%s): %v allocs, want 0", shape, n, in, a)
 				}
