@@ -51,6 +51,9 @@
 81 https://archive.ph/2024.01.01/https://example.com/?fbclid=abc
 # archive guard, security rewriter (DV-9)
 82 https://urldefense.com/v3/__https://example.com/?utm_source=x__;!!AbC$
+# archive guard with a doubled leading slash, which the archives serve as one (R3-ROB-1)
+80/slashes https://web.archive.org//web/2024/https://example.com/?utm_source=x
+82/slashes https://urldefense.com//v3/__https://example.com/?utm_source=x__;!!AbC$
 # control byte in the target host: invalid target; nested value skipped
 90 https://l.facebook.com/l.php?u=https%3A%2F%2Fexa%0Ample.net%2F&h=AT0
 # IP-literal target rejected (DR-F6)

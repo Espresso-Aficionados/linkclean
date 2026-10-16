@@ -59,7 +59,9 @@ type Config struct {
 	ExtraSignedParams []string
 
 	// DisableArchiveGuard turns off the archive guard, which returns
-	// archive-replay and security-rewriter URLs unchanged.
+	// archive-replay and security-rewriter URLs unchanged. The guard matches
+	// the path as written and with each run of '/' collapsed to one, as the
+	// archives read it ("https://web.archive.org//web/…" is guarded).
 	DisableArchiveGuard bool
 
 	// ExtraArchivePatterns extends the archive guard with match patterns (the

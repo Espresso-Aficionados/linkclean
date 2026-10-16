@@ -372,3 +372,117 @@ func testPaddedQuery(t *testing.T, n int) {
 		}
 	}
 }
+
+// TestArchiveGuardSlashRuns: the archive guard matches the path with runs of
+// '/' collapsed, as the archives' servers read it (R3-ROB-1); rule scopes
+// and other hosts are unaffected.
+func TestArchiveGuardSlashRuns(t *testing.T) {
+	c := Default()
+	for _, in := range []string{
+		"https://web.archive.org//web/2024/https://example.com/?utm_source=x",
+		"https://web.archive.org///web//2024/https://example.com/?utm_source=x",
+		"https://arquivo.pt//wayback/2024/https://example.com/?utm_source=x",
+		"https://urldefense.com//v3/__https://example.com/?utm_source=x__;!!AbC$",
+		"https://urldefense.proofpoint.com//v2/url?u=https-3A__example.com&utm_source=x",
+	} {
+		if r := c.Explain(in); r.Skipped != SkipArchive || r.URL != in {
+			t.Errorf("%s: %+v, want SkipArchive", in, r)
+		}
+	}
+	for in, want := range map[string]string{
+		"https://web.archive.org/x//web/2024/?utm_source=x": "https://web.archive.org/x//web/2024/",
+		"https://example.com//web/2024/?utm_source=x":       "https://example.com//web/2024/",
+		// An unwrap target is emitted uncleaned, a nested value is not cleaned.
+		"https://l.facebook.com/l.php?u=" + query.EncodeComponent("https://web.archive.org//web/2024/https://example.com/?fbclid=x") + "&h=AT0": "https://web.archive.org//web/2024/https://example.com/?fbclid=x",
+		"https://example.net/?utm_source=x&u=" + query.EncodeComponent("https://web.archive.org//web/2024/https://example.com/?fbclid=x"):       "https://example.net/?u=" + query.EncodeComponent("https://web.archive.org//web/2024/https://example.com/?fbclid=x"),
+	} {
+		if got := c.Clean(in); got != want {
+			t.Errorf("Clean(%s) = %s, want %s", in, got, want)
+		}
+	}
+	if got, want := MustNew(Config{DisableArchiveGuard: true}).Clean("https://web.archive.org//web/2024/https://example.com/?utm_source=x"), "https://web.archive.org//web/2024/https://example.com/"; got != want {
+		t.Errorf("DisableArchiveGuard: %s, want %s", got, want)
+	}
+}
+
+// TestGlobalSpecials: Unwrap and PathRegexps rules with a global Include are
+// merged with the host's special rules in ordinal order (Q3-1). A user
+// global unwrapper outranks a built-in host one; a user host unwrapper
+// outranks a later user global one.
+func TestGlobalSpecials(t *testing.T) {
+	c := MustNew(Config{Extra: []Rule{
+		{ID: "host-v", Action: Unwrap, Include: []string{"*://wrap.example.org/*"}, Unwrap: &UnwrapSpec{QueryParams: []string{"v"}}},
+		{ID: "any-u", Action: Unwrap, Include: []string{"*://*/*"}, URLRegexps: []string{`[?&]go=1`}, Unwrap: &UnwrapSpec{QueryParams: []string{"u"}}},
+		{ID: "any-v", Action: Unwrap, Include: []string{"*://*/*"}, Unwrap: &UnwrapSpec{QueryParams: []string{"v"}}},
+		{ID: "trk", Action: Strip, Include: []string{"*://*/*"}, PathRegexps: []string{`/trk=[^/]*`}},
+	}})
+	enc := query.EncodeComponent
+	for _, tc := range []struct {
+		in, want, rule string
+	}{
+		// any-u (user) before the overlay's l.facebook.com unwrapper.
+		{"https://l.facebook.com/l.php?go=1&u=" + enc("https://example.net/a") + "&h=AT0", "https://example.net/a", "user:any-u"},
+		// Without go=1 any-u is out of scope and the overlay one acts.
+		{"https://l.facebook.com/l.php?u=" + enc("https://example.net/a") + "&h=AT0", "https://example.net/a", "linkclean/overlay:facebook-l"},
+		{"https://wrap.example.org/?v=" + enc("https://example.net/b"), "https://example.net/b", "user:host-v"},
+		{"https://other.example.org/?v=" + enc("https://example.net/b"), "https://example.net/b", "user:any-v"},
+		// The global path rule and the overlay's Amazon one both apply.
+		{"https://www.amazon.com/dp/B0/trk=x/ref=sr_1?th=1", "https://www.amazon.com/dp/B0?th=1", ""},
+		{"https://example.net/a/trk=1/b?x=1", "https://example.net/a/b?x=1", ""},
+	} {
+		r := c.Explain(tc.in)
+		if r.URL != tc.want {
+			t.Errorf("%s: %s, want %s", tc.in, r.URL, tc.want)
+		}
+		if tc.rule != "" && (len(r.Hops) != 1 || !strings.HasPrefix(r.Hops[0].Rule, tc.rule)) {
+			t.Errorf("%s: hops %+v, want one by %s", tc.in, r.Hops, tc.rule)
+		}
+		if c.Clean(r.URL) != r.URL {
+			t.Errorf("%s: not idempotent", tc.in)
+		}
+	}
+	r := c.Explain("https://example.net/a/trk=1/b")
+	if len(r.Removed) != 1 || r.Removed[0].Rule != "user:trk" || r.Removed[0].Part != PartPath {
+		t.Errorf("global path removal: %+v", r.Removed)
+	}
+}
+
+// TestManyHostCandidates: a host with more special rules, ParamRegexps
+// rules or host-index buckets than a call's fixed arrays hold (Q3-1).
+func TestManyHostCandidates(t *testing.T) {
+	var rs []Rule
+	for i := range 40 {
+		rs = append(rs,
+			Rule{ID: fmt.Sprint("w", i), Action: Unwrap, Include: []string{"*://wrap.example.org/*"}, Unwrap: &UnwrapSpec{QueryParams: []string{fmt.Sprint("p", i)}}},
+			Rule{ID: fmt.Sprint("t", i), Action: Strip, Include: []string{"*://wrap.example.org/*"}, PathRegexps: []string{fmt.Sprintf("/t%d=x", i)}},
+			Rule{ID: fmt.Sprint("x", i), Action: Strip, Include: []string{"*://wrap.example.org/*"}, ParamRegexps: []string{fmt.Sprintf("(?i)x%d_.*", i)}},
+		)
+	}
+	// 20 label.* rules: a host with 20 labels looks up 20 buckets.
+	var labels []string
+	for i := range 20 {
+		rs = append(rs, Rule{ID: fmt.Sprint("l", i), Action: Strip, Include: []string{fmt.Sprintf("*://*.l%d.*/*", i)},
+			Params: []string{fmt.Sprint("lp", i)}, ParamRegexps: []string{fmt.Sprintf("(?i)q%d_.*", i)}})
+		labels = append(labels, fmt.Sprint("l", i))
+	}
+	c := MustNew(Config{Extra: rs})
+	lhost := "https://" + strings.Join(labels, ".") + ".com/"
+	for in, want := range map[string]string{
+		"https://wrap.example.org/?p39=" + query.EncodeComponent("https://example.net/z"): "https://example.net/z",
+		"https://wrap.example.org/a/t39=x/t0=x?k=1":                                       "https://wrap.example.org/a?k=1",
+		"https://wrap.example.org/a?X39_a=1&x0_b=2&k=1":                                   "https://wrap.example.org/a?k=1",
+		// Only l19 is the site's label, so only its params are stripped.
+		lhost + "?q19_x=1&Q0_y=2&lp19=1&lp0=1&k=1": lhost + "?Q0_y=2&lp0=1&k=1",
+	} {
+		r := c.Explain(in)
+		if r.URL != want {
+			t.Errorf("%s: %s, want %s", in, r.URL, want)
+		}
+		if got := c.Clean(in); got != want || c.Clean(got) != got {
+			t.Errorf("%s: Clean %s", in, got)
+		}
+	}
+	if r := c.Explain("https://wrap.example.org/?p39=" + query.EncodeComponent("https://example.net/z")); len(r.Hops) != 1 || r.Hops[0].Rule != "user:w39" {
+		t.Errorf("hops %+v, want one by user:w39", r.Hops)
+	}
+}

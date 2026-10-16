@@ -40,6 +40,9 @@ func TestDisableRulesStarIsLiteral(t *testing.T) {
 	if !strings.Contains(w[0].Error(), "brave/clean-urls:*://*/*") {
 		t.Errorf("Warning.Error() = %q", w[0].Error())
 	}
+	if !errors.Is(w[0], ErrUnknownRule) {
+		t.Error("errors.Is(Warning, ErrUnknownRule) is false")
+	}
 }
 
 func TestDisableRulePrefixes(t *testing.T) {

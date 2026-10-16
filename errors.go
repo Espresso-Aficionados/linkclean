@@ -30,6 +30,8 @@ func (w Warning) Error() string {
 	return fmt.Sprintf("%s %q: %v", w.Field, w.Entry, w.Err)
 }
 
+func (w Warning) Unwrap() error { return w.Err }
+
 var (
 	ErrUnknownRule = errors.New("linkclean: DisableRules entry matches no rule")
 	ErrUnknownTag  = errors.New("linkclean: DisableTags entry matches no rule")

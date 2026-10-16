@@ -149,7 +149,9 @@ func parseCases(file string, data []byte) ([]goldenCase, error) {
 					c.Removed = append(c.Removed, m)
 				}
 			case "kept":
-				if m, err = obj(); err == nil {
+				if val == "none" {
+					c.Kept = []map[string]any{}
+				} else if m, err = obj(); err == nil {
 					c.Kept = append(c.Kept, m)
 				}
 			case "note":

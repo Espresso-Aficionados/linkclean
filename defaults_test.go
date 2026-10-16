@@ -190,6 +190,25 @@ func TestReadDefaultsFixture(t *testing.T) {
 		{"license not MPL", func(f fstest.MapFS) {
 			f["rules.lock.json"].Data = []byte(strings.Replace(string(f["rules.lock.json"].Data), `"spdx": "MPL-2.0"`, `"spdx": "MIT"`, 1))
 		}, `spdx is "MIT"`},
+		{"missing lock", func(f fstest.MapFS) {
+			delete(f, "rules.lock.json")
+		}, "rules.lock.json"},
+		{"lock not JSON", func(f fstest.MapFS) {
+			f["rules.lock.json"].Data = []byte("{")
+		}, "rules.lock.json: unexpected EOF"},
+		{"lock trailing data", func(f fstest.MapFS) {
+			f["rules.lock.json"].Data = append(f["rules.lock.json"].Data, "{}"...)
+		}, "rules.lock.json: trailing data"},
+		{"missing vendored file", func(f fstest.MapFS) {
+			delete(f, "rules/brave/clean-urls.json")
+		}, "rules/brave/clean-urls.json"},
+		{"vendored file byte-flipped", func(f fstest.MapFS) {
+			d := f["rules/brave/clean-urls.json"].Data
+			d[len(d)/2] ^= 1
+		}, "rules/brave/clean-urls.json: sha256"},
+		{"invalid overlay", func(f fstest.MapFS) {
+			f["rules/overlay/overlay.json"].Data = []byte(`{"id": "x"}`)
+		}, "overlay.json"},
 		{"unclassified debounce pattern", func(f fstest.MapFS) {
 			f["rules/overlay/debounce-classes.json"].Data = []byte(`{"schema": 1, "patterns": {}}`)
 		}, "unclassified pattern"},

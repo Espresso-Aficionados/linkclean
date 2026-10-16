@@ -3,6 +3,7 @@ package engine
 import (
 	"slices"
 	"strings"
+	"sync"
 
 	"github.com/Espresso-Aficionados/linkclean/internal/matchpattern"
 	"github.com/Espresso-Aficionados/linkclean/internal/query"
@@ -50,6 +51,12 @@ type Cleaner struct {
 	active []uint64 // bitset: the rule is enabled and its affiliate gate is open
 	opt    Options  // ExtraArchive holds the user's archive patterns; the built-ins are in builtinArchive
 	signed map[string]struct{}
+
+	// scopeWords is the number of words of one bit per rule. A call keeps
+	// its scope memo on the stack up to stackRules rules; past that it takes
+	// a 2*scopeWords buffer from scopePool.
+	scopeWords int
+	scopePool  sync.Pool
 }
 
 // NewCleaner builds a Cleaner over progs, which it shares, not copies, under
@@ -61,7 +68,14 @@ func NewCleaner(progs []*Program, opt Options, l Lists) (*Cleaner, []Unmatched) 
 		c.offs[i] = n
 		n += int32(len(p.rules))
 	}
-	c.active = make([]uint64, (n+63)/64)
+	c.scopeWords = int(n+63) / 64
+	c.active = make([]uint64, c.scopeWords)
+	if n > stackRules {
+		c.scopePool.New = func() any {
+			b := make([]uint64, 2*c.scopeWords)
+			return &b
+		}
+	}
 
 	if len(l.ExtraSignedParams) > 0 {
 		c.signed = make(map[string]struct{}, len(builtinSigned)+len(l.ExtraSignedParams))
@@ -132,13 +146,20 @@ func NewCleaner(progs []*Program, opt Options, l Lists) (*Cleaner, []Unmatched) 
 
 func (c *Cleaner) isActive(ord int32) bool { return c.active[ord/64]&(1<<(ord%64)) != 0 }
 
+// locate returns the program of the rule with global ordinal ord and its
+// ordinal there.
+func (c *Cleaner) locate(ord int32) (pi int, lo int32) {
+	pi = len(c.offs) - 1
+	for c.offs[pi] > ord {
+		pi--
+	}
+	return pi, ord - c.offs[pi]
+}
+
 // rule returns the rule with global ordinal ord.
 func (c *Cleaner) rule(ord int32) *crule {
-	i := len(c.offs) - 1
-	for c.offs[i] > ord {
-		i--
-	}
-	return &c.progs[i].rules[ord-c.offs[i]]
+	pi, lo := c.locate(ord)
+	return &c.progs[pi].rules[lo]
 }
 
 // builtinSigned is the signature parameter list of §5.5, canonical.

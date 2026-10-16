@@ -48,6 +48,7 @@ func canonHost(raw string, strict bool) (host string, isIP, idnaOK bool) {
 }
 
 // asciiLower returns s with A–Z lowercased; s itself if it has none.
+// matchpattern has the same function: the packages share no helpers.
 func asciiLower(s string) string {
 	i := 0
 	for i < len(s) && !('A' <= s[i] && s[i] <= 'Z') {
@@ -104,6 +105,7 @@ func endsInNumber(h string) bool {
 	return true
 }
 
+// isHex is query.isHex; see asciiLower.
 func isHex(c byte) bool {
 	return '0' <= c && c <= '9' || 'a' <= c && c <= 'f' || 'A' <= c && c <= 'F'
 }

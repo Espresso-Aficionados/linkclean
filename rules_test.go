@@ -518,10 +518,15 @@ func paramNames(u string) map[string]bool {
 		return m
 	}
 	for _, part := range []string{v.Query, v.Fragment} {
-		for _, s := range query.Parse(nil, part) {
+		for q := part; ; {
+			s, rest, ok := query.Next(q)
+			if !ok {
+				break
+			}
 			if s.Name != "" {
 				m[query.Canon(s.Name)] = true
 			}
+			q = rest
 		}
 	}
 	return m

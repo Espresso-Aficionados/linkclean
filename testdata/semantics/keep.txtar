@@ -73,6 +73,17 @@ want: https://shop.example.net/?a=1
 -- path-repeated --
 in: https://shop.example.net/p/ref=a/ref=b/amp
 want: https://shop.example.net/p
+-- nested-path --
+note: a nested URL's path removal is PartNested with CatPathSegment (§3 PartNested)
+in: https://example.com/?u=https%3A%2F%2Fshop.example.net%2Fp%2Fref%3Dx%3Fa%3D1
+want: https://example.com/?u=https%3A%2F%2Fshop.example.net%2Fp%3Fa%3D1
+removed: {"part":"nested","category":"path","name":"/ref","value":"x","text":"/ref=x","nestedIn":"u","rule":"semantics:shop-path"}
+-- nested-kept-not-reported --
+note: Kept covers the outer URL only; the nested utm_source kept by keep-page is not reported
+in: https://example.com/?u=https%3A%2F%2Fkeep.example.com%2Fx%3Futm_source%3D1%26gclid%3D1
+want: https://example.com/?u=https%3A%2F%2Fkeep.example.com%2Fx%3Futm_source%3D1
+removed: {"part":"nested","category":"tracker","name":"gclid","nestedIn":"u"}
+kept: none
 -- path-change-rebuilds-query --
 note: §5.1: once the path changed, the query is rebuilt from its non-empty segments
 in: https://shop.example.net/p/ref=a?&x=1&&y=2

@@ -69,7 +69,7 @@ type lockedFile struct {
 func DefaultSources() []RuleSet {
 	sets, err := decodeDefaults()
 	if err != nil {
-		panic("linkclean: embedded rules: " + err.Error())
+		panic(fmt.Errorf("linkclean: embedded rules: %w", err))
 	}
 	out := make([]RuleSet, len(sets))
 	for i := range sets {

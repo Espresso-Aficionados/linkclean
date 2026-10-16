@@ -319,7 +319,8 @@ func isASCII(s string) bool {
 
 // asciiLower lowercases ASCII letters only. strings.ToLower would fold some
 // non-ASCII runes into ASCII (U+212A KELVIN SIGN becomes 'k') differently
-// from IDNA mapping, which canonicalizes the rest.
+// from IDNA mapping, which canonicalizes the rest. rawurl has the same
+// function: the packages share no helpers.
 func asciiLower(s string) string {
 	for i := 0; i < len(s); i++ {
 		if 'A' <= s[i] && s[i] <= 'Z' {
@@ -336,7 +337,9 @@ func asciiLower(s string) string {
 }
 
 // parsePortNumber parses a decimal port in 0-65535 without allocating.
-// Leading zeros are accepted, as GURL accepts them in URLs.
+// Leading zeros are accepted, as GURL accepts them in URLs. It parses both
+// a pattern's port and a Target's; unlike rawurl.validPort, which gates a
+// URL's port, it accepts 0 and rejects "".
 func parsePortNumber(s string) (int, bool) {
 	if s == "" {
 		return 0, false

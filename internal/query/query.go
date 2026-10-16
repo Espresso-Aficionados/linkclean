@@ -1,9 +1,6 @@
 package query
 
-import (
-	"slices"
-	"strings"
-)
+import "strings"
 
 // Segment is one non-empty '&'-separated piece of a raw query or fragment.
 type Segment struct {
@@ -13,29 +10,12 @@ type Segment struct {
 	HasEq bool
 }
 
-// Parse appends the non-empty segments of q to dst. Empty segments ("&&", a
-// leading or trailing '&') carry no name, so no rule can act on them, and the
-// engine rebuilds a changed query without them (§5.1). ';' is not a
-// separator. Every string is a substring of q. Parse does not allocate when
-// dst has room, and grows dst at most once.
-func Parse(dst []Segment, q string) []Segment {
-	if room := cap(dst) - len(dst); len(q)/2+1 > room {
-		if n := Count(q); n > room {
-			dst = slices.Grow(dst, n)
-		}
-	}
-	for {
-		s, rest, ok := Next(q)
-		if !ok {
-			return dst
-		}
-		dst, q = append(dst, s), rest
-	}
-}
-
-// Next splits the first non-empty segment s off q, as Parse would parse it,
-// and returns the text after it. ok is false when q has none left. Next lets
-// a caller walk a query of any length without a segment buffer.
+// Next splits the first non-empty segment s off q and returns the text after
+// it. ok is false when q has none left. Empty segments ("&&", a leading or
+// trailing '&') carry no name, so no rule can act on them, and the engine
+// rebuilds a changed query without them (§5.1). ';' is not a separator.
+// Every string is a substring of q. Next lets a caller walk a query of any
+// length without a segment buffer.
 func Next(q string) (s Segment, rest string, ok bool) {
 	i := 0
 	for i < len(q) && q[i] == '&' {
@@ -77,8 +57,8 @@ func Next(q string) (s Segment, rest string, ok bool) {
 	return s, rest, true
 }
 
-// Count returns the number of non-empty segments of q, the length of
-// Parse(nil, q). A byte loop: separator runs are the expensive case for a
+// Count returns the number of non-empty segments of q, the number of Next
+// calls that return ok. A byte loop: separator runs are the expensive case for a
 // search per segment.
 func Count(q string) int {
 	n := 0
@@ -232,6 +212,8 @@ func escapeAt(s string, i int) bool {
 	return i+2 < len(s) && isHex(s[i+1]) && isHex(s[i+2])
 }
 
+// isHex and unhex: rawurl and matchpattern keep their own copies. unhex
+// assumes isHex(c); matchpattern's validates.
 func isHex(c byte) bool {
 	return '0' <= c && c <= '9' || 'a' <= c && c <= 'f' || 'A' <= c && c <= 'F'
 }

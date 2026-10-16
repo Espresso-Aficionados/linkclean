@@ -273,8 +273,10 @@ type Cleaner struct {
 	warnings []Warning
 }
 
-// Clean returns the cleaned URL. It is the fast path: no Result is built, and an
-// unchanged input allocates nothing.
+// Clean returns the cleaned URL. It is the fast path: no Result is built, and a
+// typical unchanged input allocates nothing. An unchanged input still
+// allocates when a rule scoped to a label.* host needs its site (once, inside
+// x/net/publicsuffix) or a query value holds a URL (to decode it).
 func (c *Cleaner) Clean(rawURL string) string { return c.eng.Clean(rawURL) }
 
 // Explain cleans rawURL and reports what was done and why.

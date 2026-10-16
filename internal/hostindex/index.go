@@ -8,9 +8,29 @@ import (
 )
 
 // Bucket holds the rules indexed under one host key: All of them, and the
-// subset that was added as special. Both are ascending and deduplicated.
+// subsets that were added as special and as having ParamRegexps. Each list
+// is ascending and deduplicated.
 type Bucket struct {
-	All, Special []int32
+	All, Special, ParamRx []int32
+}
+
+// List selects one of a Bucket's lists.
+type List uint8
+
+const (
+	ListAll List = iota
+	ListSpecial
+	ListParamRx
+)
+
+func (b *Bucket) list(l List) []int32 {
+	switch l {
+	case ListSpecial:
+		return b.Special
+	case ListParamRx:
+		return b.ParamRx
+	}
+	return b.All
 }
 
 // Builder collects Include patterns. The zero value is ready to use.
@@ -19,11 +39,12 @@ type Builder struct {
 }
 
 // Add registers rule ordinal ord under the host part of Include pattern p,
-// in the Special lists too when special is set. Calls may come in any order
+// in the Special and ParamRx lists too when special and paramRx are set.
+// Calls may come in any order
 // and repeat. Patterns with host "*" are not indexed: a rule with one is a
 // candidate for every host, which the caller knows without a lookup. Add
 // panics on such a pattern.
-func (b *Builder) Add(ord int32, p *matchpattern.Pattern, special bool) {
+func (b *Builder) Add(ord int32, p *matchpattern.Pattern, special, paramRx bool) {
 	var m *map[string]*Bucket
 	kind, host := p.Host()
 	switch kind {
@@ -48,6 +69,9 @@ func (b *Builder) Add(ord int32, p *matchpattern.Pattern, special bool) {
 	if special {
 		bk.Special = append(bk.Special, ord)
 	}
+	if paramRx {
+		bk.ParamRx = append(bk.ParamRx, ord)
+	}
 }
 
 // Build freezes the index. The Builder must not be used afterwards.
@@ -55,7 +79,7 @@ func (b *Builder) Build() *Index {
 	ix := &Index{exact: b.exact, suffix: b.suffix, label: b.label}
 	for _, m := range []map[string]*Bucket{b.exact, b.suffix, b.label} {
 		for _, bk := range m {
-			bk.All, bk.Special = sortedSet(bk.All), sortedSet(bk.Special)
+			bk.All, bk.Special, bk.ParamRx = sortedSet(bk.All), sortedSet(bk.Special), sortedSet(bk.ParamRx)
 		}
 	}
 	for k := range b.suffix {
@@ -117,16 +141,12 @@ func (ix *Index) Lookup(dst []*Bucket, host string, isIP bool) []*Bucket {
 	return dst
 }
 
-// Merge appends to dst the ordinals in bs, ascending and deduplicated: the
-// Special lists if special is set, else All. dst[:len(dst)] is left as is.
-func Merge(dst []int32, bs []*Bucket, special bool) []int32 {
+// Merge appends to dst list l of every bucket in bs, ascending and
+// deduplicated. dst[:len(dst)] is left as is.
+func Merge(dst []int32, bs []*Bucket, l List) []int32 {
 	start := len(dst)
 	for _, b := range bs {
-		if special {
-			dst = append(dst, b.Special...)
-		} else {
-			dst = append(dst, b.All...)
-		}
+		dst = append(dst, b.list(l)...)
 	}
 	if len(bs) > 1 {
 		out := dst[start:]
@@ -134,14 +154,4 @@ func Merge(dst []int32, bs []*Bucket, special bool) []int32 {
 		dst = dst[:start+len(slices.Compact(out))]
 	}
 	return dst
-}
-
-// Contains reports whether ord is in the All list of one of bs.
-func Contains(bs []*Bucket, ord int32) bool {
-	for _, b := range bs {
-		if _, ok := slices.BinarySearch(b.All, ord); ok {
-			return true
-		}
-	}
-	return false
 }

@@ -217,6 +217,8 @@ func FuzzExtraUnwrap(f *testing.F) {
 		"https://x.example.net/r?utm_medium=1&to=https%3A%2F%2Fd.example.org%2F",
 		"https://www.amazon.com/go/ref=abc?url=https%3A%2F%2Fd.example.org%2Fp",
 		"https://www.amazon.com/go/ref=a/ref=b?url=https%3A%2F%2Fw.example.net%2Fr%3Futm_source%3D1%26url%3Dhttps%253A%252F%252Fd.example.org",
+		"https://l.facebook.com/l.php?goto=https%3A%2F%2Fd.example.org%2Fa%2Ftrk%3D1&u=https%3A%2F%2Fe.example.org%2F",
+		"https://d.example.org/a/trk=1/b?goto=https%3A%2F%2Fe.example.org%2Ftrk%3D2%3Futm_source%3D1",
 	} {
 		f.Add(s)
 	}
@@ -224,6 +226,9 @@ func FuzzExtraUnwrap(f *testing.F) {
 		{ID: "glob", Action: Unwrap, Include: []string{"*://w.example.net/r?url=*"}, Unwrap: &UnwrapSpec{QueryParams: []string{"url"}}},
 		{ID: "re", Action: Unwrap, Include: []string{"*://x.example.net/*"}, URLRegexps: []string{`\?to=`}, Unwrap: &UnwrapSpec{QueryParams: []string{"to"}}},
 		{ID: "amz", Action: Unwrap, Include: []string{"*://www.amazon.com/go?*"}, Unwrap: &UnwrapSpec{QueryParams: []string{"url"}}},
+		// Global specials, merged with each host's (Q3-1).
+		{ID: "any", Action: Unwrap, Include: []string{"*://*/*"}, URLRegexps: []string{`[?&]goto=`}, Unwrap: &UnwrapSpec{QueryParams: []string{"goto"}}},
+		{ID: "trk", Action: Strip, Include: []string{"*://*/*"}, PathRegexps: []string{`/trk=[^/]*`}},
 	}})
 	f.Fuzz(func(t *testing.T, in string) {
 		checkFuzzInvariants(t, c, in, false)

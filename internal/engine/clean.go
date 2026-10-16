@@ -1,6 +1,7 @@
 package engine
 
 import (
+	"regexp"
 	"slices"
 	"strings"
 
@@ -14,6 +15,9 @@ import (
 const (
 	maxRounds     = 8 // §4.3 fixed-point cap
 	maxPathPasses = 8 // §5.2
+
+	// stackRules is the most rules whose scope memo fits in a call.
+	stackRules = 2048
 )
 
 // recorder collects what Explain reports. Clean passes nil and records
@@ -73,6 +77,10 @@ func (c *Cleaner) run(raw string, rec *recorder, inner bool) (string, Skip) {
 	}
 
 	cl := call{c: c, rec: rec}
+	if c.scopeWords > stackRules/64 {
+		cl.bigScope = c.scopePool.Get().(*[]uint64)
+		defer c.scopePool.Put(cl.bigScope)
+	}
 	cl.reset(&u)
 	if cl.archived() {
 		return raw, SkipArchive
@@ -133,7 +141,7 @@ func (c *Cleaner) run(raw string, rec *recorder, inner bool) (string, Skip) {
 
 // call is the state of cleaning one URL: its views, the rule candidates for
 // its host, and the scope memo of the current round. It lives on the stack
-// of run.
+// of run; cl never points into itself, so it stays there.
 type call struct {
 	c   *Cleaner
 	rec *recorder
@@ -145,26 +153,32 @@ type call struct {
 	t        matchpattern.Target
 	siteDone bool
 
-	// The host-index buckets of u's host, per program, and the special rules
-	// they hold (crule.special), as global ordinals, ascending. Both live in
-	// the fixed arrays unless they do not fit, in the big slices. cl never
-	// points into itself, so it stays on the stack.
+	// The host-index buckets of u's host, per program, and two lists of the
+	// rules they hold, as global ordinals, ascending: the special ones
+	// (crule.special) and those with ParamRegexps. Each lives in its fixed
+	// array unless it does not fit, in its big slice.
 	nb   int
 	bb   [16]hostBucket
 	bigB []hostBucket
 	ns   int
 	sb   [32]int32
 	bigS []int32
+	nr   int
+	rb   [16]int32
+	bigR []int32
 
-	// memo caches the current round's scope answers, direct-mapped by
-	// global ordinal, so its size does not depend on the number of rules.
-	// newRound invalidates every entry by advancing gen.
-	memo [64]memoEntry
-	gen  uint32
+	// scope memoizes the current round's scope answers by global ordinal:
+	// word i/64 of the first c.scopeWords words has bit i%64 set once rule i
+	// was evaluated, and the same bit of the next c.scopeWords words if it
+	// was in scope. bigScope replaces scope for a Cleaner of more than
+	// stackRules rules. newRound clears the evaluated bits.
+	scope    [2 * stackRules / 64]uint64
+	bigScope *[]uint64
 
 	ms      string // match string, valid iff msDone
 	msDone  bool
 	signed  bool
+	nameBuf []byte   // a canonical name too long for a stack buffer
 	rxBuf   []byte   // a name for ParamRegexps matching
 	dropBuf []uint64 // round's drop bits past its stack buffer, reused by later rounds
 }
@@ -174,44 +188,50 @@ type hostBucket struct {
 	b    *hostindex.Bucket
 }
 
-type memoEntry struct {
-	ord int32
-	tag uint32 // gen<<1, | 1 if in scope
-}
-
 // reset points cl at a new URL, keeping its buffers.
 func (cl *call) reset(u *rawurl.URL) {
 	cl.u = *u
 	cl.t = matchpattern.Target{Scheme: u.Scheme, Host: u.Host, IsIP: u.IsIP, Port: u.EffectivePort()}
 	cl.siteDone = false
 	var tmp [16]*hostindex.Bucket
-	bks, sp := cl.bb[:0], cl.sb[:0]
+	bks, sp, rx := cl.bb[:0], cl.sb[:0], cl.rb[:0]
 	for pi, p := range cl.c.progs {
 		bs := p.hosts.Lookup(tmp[:0], u.Host, u.IsIP)
 		for _, b := range bs {
 			bks = append(bks, hostBucket{pi, b})
 		}
-		start := len(sp)
-		sp = hostindex.Merge(sp, bs, true)
-		for k := start; k < len(sp); k++ {
-			sp[k] += cl.c.offs[pi]
-		}
+		sp = appendGlobal(sp, bs, hostindex.ListSpecial, cl.c.offs[pi])
+		rx = appendGlobal(rx, bs, hostindex.ListParamRx, cl.c.offs[pi])
 	}
-	cl.nb, cl.ns = len(bks), len(sp)
-	cl.bigB, cl.bigS = nil, nil
+	cl.nb, cl.ns, cl.nr = len(bks), len(sp), len(rx)
+	cl.bigB, cl.bigS, cl.bigR = nil, nil, nil
 	if len(bks) > len(cl.bb) {
 		cl.bigB = slices.Clone(bks)
 	}
 	if len(sp) > len(cl.sb) {
 		cl.bigS = slices.Clone(sp)
 	}
+	if len(rx) > len(cl.rb) {
+		cl.bigR = slices.Clone(rx)
+	}
 	cl.newRound()
+}
+
+// appendGlobal appends list l of bs, the buckets of the program whose first
+// rule has global ordinal off, to dst as global ordinals, ascending.
+func appendGlobal(dst []int32, bs []*hostindex.Bucket, l hostindex.List, off int32) []int32 {
+	start := len(dst)
+	dst = hostindex.Merge(dst, bs, l)
+	for k := start; k < len(dst); k++ {
+		dst[k] += off
+	}
+	return dst
 }
 
 // newRound resets the per-round state for cl.u.
 func (cl *call) newRound() {
 	cl.msDone = false
-	cl.gen++
+	clear(cl.scopeBits()[:cl.c.scopeWords])
 	if cl.u.Path == "" && cl.u.HasQuery {
 		cl.t.SetRootPath(cl.u.Query)
 	} else {
@@ -237,8 +257,8 @@ func (cl *call) split(raw string) {
 	cl.newRound()
 }
 
-// buckets and hostSpecials return the views reset built. The results point
-// into cl: they must not be stored.
+// buckets, hostSpecials, hostRx and scopeBits return the views reset built.
+// The results point into cl: they must not be stored.
 func (cl *call) buckets() []hostBucket {
 	if cl.bigB != nil {
 		return cl.bigB
@@ -251,6 +271,20 @@ func (cl *call) hostSpecials() []int32 {
 		return cl.bigS
 	}
 	return cl.sb[:cl.ns]
+}
+
+func (cl *call) hostRx() []int32 {
+	if cl.bigR != nil {
+		return cl.bigR
+	}
+	return cl.rb[:cl.nr]
+}
+
+func (cl *call) scopeBits() []uint64 {
+	if cl.bigScope != nil {
+		return *cl.bigScope
+	}
+	return cl.scope[:2*cl.c.scopeWords]
 }
 
 // specIter yields the special candidates in ascending global ordinal: the
@@ -317,20 +351,24 @@ func (cl *call) isCand(pi int, lo int32, r *crule) bool {
 
 // inScope reports whether candidate rule r, global ordinal ord, is in scope
 // for the current round (§4.2): an Include matches, no Exclude matches, and
-// some URLRegexps entry matches if there are any. The answer is memoized
-// for the round.
+// some URLRegexps entry matches if there are any. Each rule is evaluated at
+// most once per round.
 func (cl *call) inScope(ord int32, r *crule) bool {
 	if r.trivial {
 		return true
 	}
-	e := &cl.memo[uint32(ord)%uint32(len(cl.memo))]
-	if e.ord == ord && e.tag>>1 == cl.gen {
-		return e.tag&1 == 1
+	bits := cl.scopeBits()
+	w, m := int(ord/64), uint64(1)<<(ord%64)
+	in := &bits[cl.c.scopeWords+w]
+	if bits[w]&m != 0 {
+		return *in&m != 0
 	}
 	ok := cl.evalScope(r)
-	*e = memoEntry{ord: ord, tag: cl.gen << 1}
+	bits[w] |= m
 	if ok {
-		e.tag |= 1
+		*in |= m
+	} else {
+		*in &^= m
 	}
 	return ok
 }
@@ -367,20 +405,47 @@ func (cl *call) evalScope(r *crule) bool {
 }
 
 // archived reports whether the archive guard (§5.5) applies to cl's URL.
+// A run of '/' in the path is one separator to the archives' servers
+// (web.archive.org serves "//web/…" as "/web/…"), so the guard also matches
+// the path with each run collapsed to one '/'. Rule scopes do not.
 func (cl *call) archived() bool {
 	if cl.c.opt.DisableArchiveGuard {
 		return false
 	}
-	for _, p := range builtinArchive[cl.u.Host] {
-		if p.Match(&cl.t) {
+	if cl.matchArchive(&cl.t) {
+		return true
+	}
+	p := cl.u.Path
+	if !strings.Contains(p, "//") {
+		return false
+	}
+	var b strings.Builder
+	b.Grow(len(p) + 1 + len(cl.u.Query))
+	for i := 0; i < len(p); i++ {
+		if p[i] != '/' || i == 0 || p[i-1] != '/' {
+			b.WriteByte(p[i])
+		}
+	}
+	if cl.u.HasQuery {
+		b.WriteByte('?')
+		b.WriteString(cl.u.Query)
+	}
+	t := cl.t
+	t.SetPath(b.String())
+	return cl.matchArchive(&t)
+}
+
+func (cl *call) matchArchive(t *matchpattern.Target) bool {
+	for _, p := range builtinArchive[t.Host] {
+		if p.Match(t) {
 			return true
 		}
 	}
 	for _, p := range cl.c.opt.ExtraArchive {
 		if k, _ := p.Host(); k == matchpattern.HostLabel {
-			cl.site()
+			t.Site = cl.site()
 		}
-		if p.Match(&cl.t) {
+		if p.Match(t) {
 			return true
 		}
 	}
@@ -407,7 +472,7 @@ func (cl *call) decide(name string, frag bool) decision {
 		return d
 	}
 	var nb [128]byte
-	cn := query.AppendCanon(nb[:0], name)
+	cn := cl.canon(&nb, name)
 	cl.scan(cn, frag, rule.Strip, &d)
 	if d.strip >= 0 || d.signedOnly {
 		cl.scan(cn, frag, rule.Keep, &d)
@@ -415,13 +480,36 @@ func (cl *call) decide(name string, frag bool) decision {
 	return d
 }
 
-// scan considers every rule of the given action that names canonical name
-// cn, through the params index or a ParamRegexps entry.
+// canon returns canon(name) in nb, or in cl.nameBuf if it does not fit.
+// The result is valid until the next canon call of a name longer than nb.
+func (cl *call) canon(nb *[128]byte, name string) []byte {
+	if len(name) <= len(nb) { // canon never lengthens a name
+		return query.AppendCanon(nb[:0], name)
+	}
+	if cap(cl.nameBuf) < len(name) {
+		cl.nameBuf = make([]byte, 0, len(name))
+	}
+	cl.nameBuf = query.AppendCanon(cl.nameBuf[:0], name)
+	return cl.nameBuf
+}
+
+// scan considers every candidate rule of the given action that names
+// canonical name cn: through the params index, a global rule's ParamRegexps
+// entry, or a ParamRegexps entry of a rule the host index lists for u's
+// host. Rules scoped to other hosts cost nothing.
 func (cl *call) scan(cn []byte, frag bool, action rule.Action, d *decision) {
 	inBuf := false // cl.rxBuf holds cn
+	match := func(re *regexp.Regexp) bool {
+		if !inBuf {
+			// Match would leak cn, a stack buffer, so the name goes through
+			// one heap buffer per call, not one string per name.
+			cl.rxBuf, inBuf = append(cl.rxBuf[:0], cn...), true
+		}
+		return re.Match(cl.rxBuf)
+	}
 	for pi, p := range cl.c.progs {
 		for _, lo := range p.params[string(cn)] {
-			if r := &p.rules[lo]; r.action == action && cl.consider(pi, lo, r, frag, d) {
+			if r := &p.rules[lo]; r.action == action && cl.isCand(pi, lo, r) && cl.consider(pi, lo, r, frag, d) {
 				return
 			}
 		}
@@ -430,26 +518,31 @@ func (cl *call) scan(cn []byte, frag bool, action rule.Action, d *decision) {
 				break
 			}
 			for _, e := range p.paramRx[string(cn[:n])] {
-				// The candidate check runs before the regexp, so a rule
-				// scoped to other hosts costs no regexp run.
-				r := &p.rules[e.lo]
-				if r.action != action || !cl.isCand(pi, e.lo, r) {
-					continue
-				}
-				if !inBuf {
-					// Match would leak cn, a stack buffer, so the name goes
-					// through one heap buffer per call, not one string per name.
-					cl.rxBuf, inBuf = append(cl.rxBuf[:0], cn...), true
-				}
-				if e.re.Match(cl.rxBuf) && cl.consider(pi, e.lo, r, frag, d) {
+				if r := &p.rules[e.lo]; r.action == action && match(e.re) && cl.consider(pi, e.lo, r, frag, d) {
 					return
 				}
 			}
 		}
 	}
+	for _, ord := range cl.hostRx() {
+		pi, lo := cl.c.locate(ord)
+		r := &cl.c.progs[pi].rules[lo]
+		if r.action != action {
+			continue
+		}
+		for _, re := range r.paramRes {
+			if pre, _ := re.LiteralPrefix(); len(pre) > len(cn) || string(cn[:len(pre)]) != pre || !match(re) {
+				continue
+			}
+			if cl.consider(pi, lo, r, frag, d) {
+				return
+			}
+			break
+		}
+	}
 }
 
-// consider applies rule lo of program pi, r, to d if it is a candidate, active
+// consider applies candidate rule lo of program pi, r, to d if it is active
 // and in scope. It returns true when the answer can no longer change and
 // nothing is recorded.
 func (cl *call) consider(pi int, lo int32, r *crule, frag bool, d *decision) bool {
@@ -457,7 +550,7 @@ func (cl *call) consider(pi int, lo int32, r *crule, frag bool, d *decision) boo
 		return false
 	}
 	ord := cl.c.offs[pi] + lo
-	if !cl.c.isActive(ord) || !cl.isCand(pi, lo, r) || !cl.inScope(ord, r) {
+	if !cl.c.isActive(ord) || !cl.inScope(ord, r) {
 		return false
 	}
 	if r.action == rule.Keep {
@@ -480,19 +573,18 @@ func (cl *call) consider(pi int, lo int32, r *crule, frag bool, d *decision) boo
 }
 
 // isSigned reports whether some segment of query q has a signature
-// parameter as its canonical name (§5.5). Names of any length are compared:
-// AppendCanon grows past the stack buffer when it has to.
+// parameter as its canonical name (§5.5).
 func (cl *call) isSigned(q string) bool {
 	if cl.c.opt.DisableSignedGuard {
 		return false
 	}
-	var nb [64]byte
+	var nb [128]byte
 	for {
 		s, rest, ok := query.Next(q)
 		if !ok {
 			return false
 		}
-		if _, ok := cl.c.signed[string(query.AppendCanon(nb[:0], s.Name))]; ok {
+		if _, ok := cl.c.signed[string(cl.canon(&nb, s.Name))]; ok {
 			return true
 		}
 		q = rest
@@ -528,8 +620,9 @@ type replacement struct {
 
 // round runs one §4.3 round: path, query, fragment, nested. It returns the
 // rebuilt URL and whether anything changed. The query is walked segment by
-// segment, three times at most, so its length costs no buffer beyond one
-// bit per segment.
+// segment, four times at most (signed guard, decisions, nested values,
+// rebuild), so its length costs no buffer beyond one bit per segment. The
+// fragment is walked the same way.
 func (cl *call) round(nestedDone *bool) (string, bool) {
 	u := &cl.u
 	cl.signed = cl.isSigned(u.Query)
@@ -565,25 +658,34 @@ func (cl *call) round(nestedDone *bool) (string, bool) {
 		}
 	}
 
-	// §5.3: IsFragmentParams guarantees every segment a non-empty name.
+	// §5.3: the fragment goes only if every segment does. IsFragmentParams
+	// guarantees every segment a non-empty name.
 	fragGone := false
 	if u.HasFragment && query.IsFragmentParams(u.Fragment) {
-		var fb [16]query.Segment
-		fsegs := query.Parse(fb[:0], u.Fragment)
 		fragGone = true
-		for i := range fsegs {
-			if d := cl.decide(fsegs[i].Name, true); !d.removed() {
+		for q := u.Fragment; ; {
+			s, rest, ok := query.Next(q)
+			if !ok {
+				break
+			}
+			q = rest
+			if d := cl.decide(s.Name, true); !d.removed() {
 				fragGone = false
 				if cl.rec == nil {
 					break
 				}
-				cl.recordKept(fsegs[i].Name, &d)
+				cl.recordKept(s.Name, &d)
 			}
 		}
 		if fragGone && cl.rec != nil {
-			for i := range fsegs {
-				d := cl.decide(fsegs[i].Name, true)
-				cl.recordRemoval(PartFragment, &fsegs[i], &d)
+			for q := u.Fragment; ; {
+				s, rest, ok := query.Next(q)
+				if !ok {
+					break
+				}
+				q = rest
+				d := cl.decide(s.Name, true)
+				cl.recordRemoval(PartFragment, &s, &d)
 			}
 		}
 		changed = changed || fragGone
@@ -616,6 +718,8 @@ func (cl *call) round(nestedDone *bool) (string, bool) {
 			repl = append(repl, replacement{i, s.Name + "=" + query.EncodeComponent(out)})
 			changed = true
 			if cl.rec != nil {
+				// Inner path removals keep CatPathSegment (§3 PartNested).
+				// Inner Kept entries are not reported.
 				for _, r := range inner.removed {
 					r.Part = PartNested
 					r.NestedIn = s.Name

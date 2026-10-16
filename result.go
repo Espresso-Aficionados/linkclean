@@ -20,7 +20,10 @@ type Result struct {
 	// wrapper's removals are dropped with the wrapper, nested removals in the
 	// value that becomes the destination included.
 	Removed []Removal
-	Kept    []Kept // matched a strip rule but retained, and why
+	// Kept lists the params of the final URL's query and fragment that
+	// matched a strip rule but were retained, and why. Params retained inside
+	// a nested URL are not listed.
+	Kept []Kept
 }
 
 // Hop is one unwrap step. Rule is the full rule ID for offline hops. For
@@ -54,7 +57,7 @@ type Category uint8
 const (
 	CatTracker           Category = iota + 1 // Removal: query/fragment/nested param stripped as tracking
 	CatAffiliate                             // Removal or Hop: stripped/unwrapped because an Affiliate rule applied (AffiliateStrip only)
-	CatPathSegment                           // Removal: path text removed (PartPath)
+	CatPathSegment                           // Removal: path text removed (PartPath, or PartNested for a nested URL's path)
 	CatRedirectUnwrapped                     // Hop: offline unwrap of a redirect wrapper
 	CatUnshortened                           // Hop: network hop added by package unshorten
 )
@@ -113,7 +116,11 @@ const (
 	PartPath Part = iota + 1
 	PartQuery
 	PartFragment
-	PartNested // inside a URL-valued query param (depth 1)
+	// PartNested is a removal inside a URL-valued query param (depth 1),
+	// named by NestedIn: one of the nested URL's params (CatTracker or
+	// CatAffiliate, Name the param) or its path text (CatPathSegment, Name as
+	// for PartPath).
+	PartNested
 )
 
 // Removal describes one removed piece. Name and Value split Text at its first

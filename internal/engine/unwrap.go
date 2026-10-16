@@ -22,7 +22,7 @@ func (cl *call) unwrapOnce() (target string, ord int32, ok bool) {
 			continue
 		}
 		for _, qp := range r.unwrapParams {
-			v, found := firstValue(cl.u.Query, qp)
+			v, found := cl.firstValue(cl.u.Query, qp)
 			if !found {
 				continue
 			}
@@ -48,14 +48,14 @@ func (cl *call) unwrapOnce() (target string, ord int32, ok bool) {
 
 // firstValue returns the value of the first segment of query q whose
 // canonical name is cn.
-func firstValue(q, cn string) (string, bool) {
-	var nb [64]byte
+func (cl *call) firstValue(q, cn string) (string, bool) {
+	var nb [128]byte
 	for {
 		s, rest, ok := query.Next(q)
 		if !ok {
 			return "", false
 		}
-		if string(query.AppendCanon(nb[:0], s.Name)) == cn {
+		if string(cl.canon(&nb, s.Name)) == cn {
 			return s.Value, true
 		}
 		q = rest
@@ -73,7 +73,7 @@ func (cl *call) hop(to string, ord int32) Hop {
 	h.Beneficiary.Network = r.network
 	switch {
 	case r.idParam != "":
-		if v, ok := firstValue(cl.u.Query, r.idParam); ok {
+		if v, ok := cl.firstValue(cl.u.Query, r.idParam); ok {
 			h.Beneficiary.ID = query.DecodeValue(v)
 		}
 	case r.idPath != nil:

@@ -26,10 +26,12 @@ type Program struct {
 	hosts   *hostindex.Index
 	globals []int32
 	params  map[string][]int32 // canon(name) -> Strip and Keep rules naming it, ascending
-	// paramRx holds the ParamRegexps entries keyed by literal prefix. A name
-	// can only match an entry whose prefix it starts with, so it probes one
-	// key per distinct prefix length (rxLens, ascending; 0 for entries
-	// without a prefix).
+	// paramRx holds the ParamRegexps entries of the rules with a global
+	// Include, keyed by literal prefix. A name can only match an entry whose
+	// prefix it starts with, so it probes one key per distinct prefix length
+	// (rxLens, ascending; 0 for entries without a prefix). The host index
+	// lists the other rules with ParamRegexps (Bucket.ParamRx), so a URL
+	// visits only its own host's.
 	paramRx map[string][]rxEntry
 	rxLens  []int
 }
@@ -59,7 +61,7 @@ type crule struct {
 	include, exclude []*matchpattern.Pattern
 	urlRes           []lre
 
-	paramRes   []*regexp.Regexp // anchored; in Program.paramRx at run time
+	paramRes   []*regexp.Regexp // anchored; also in Program.paramRx if global
 	inFragment bool
 	pathRes    []lre
 
@@ -143,7 +145,7 @@ func (p *Program) add(cr crule, params []string, b *hostindex.Builder) {
 	switch {
 	case !cr.global:
 		for _, inc := range cr.include {
-			b.Add(ord, inc, cr.special())
+			b.Add(ord, inc, cr.special(), len(cr.paramRes) > 0)
 		}
 	case cr.special():
 		p.globals = append(p.globals, ord)
@@ -153,6 +155,9 @@ func (p *Program) add(cr crule, params []string, b *hostindex.Builder) {
 		if l := p.params[cn]; len(l) == 0 || l[len(l)-1] != ord {
 			p.params[cn] = append(l, ord)
 		}
+	}
+	if !cr.global {
+		return
 	}
 	for _, re := range cr.paramRes {
 		if p.paramRx == nil {

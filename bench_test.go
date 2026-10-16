@@ -179,11 +179,36 @@ func TestCleanUnchangedAllocs(t *testing.T) {
 	}
 }
 
+// Long unchanged inputs cost no allocation per segment: a parameter-shaped
+// fragment of thousands of segments allocates nothing (PERF3-3), and names
+// longer than the stack buffers share one buffer per call (PERF3-4).
+func TestCleanUnchangedAllocsLong(t *testing.T) {
+	c := Default()
+	long := strings.Repeat("n", 300)
+	for _, tc := range []struct {
+		in  string
+		max float64
+	}{
+		{"https://www.example.com/x#" + strings.Repeat("a&", 3980) + "a=1", 0},
+		{"https://www.example.com/x?" + strings.Repeat(long+"=1&", 25) + "id=1", 1},
+		{"https://www.example.com/x?" + strings.Repeat(long[:100]+"=1&", 70) + "id=1", 0},
+	} {
+		if c.Clean(tc.in) != tc.in {
+			t.Fatalf("%.40s… changed", tc.in)
+		}
+		if n := testing.AllocsPerRun(20, func() { benchSink = c.Clean(tc.in) }); n > tc.max {
+			t.Errorf("Clean(%.40s…): %v allocs, want <= %v", tc.in, n, tc.max)
+		}
+	}
+}
+
 // manyExtra returns n Extra rules of one shape, each naming its own param:
 //   - global: Strip, Include *://*/*, Params (trivial scope)
 //   - offHostRx: Strip, a host that is never cleaned, ParamRegexps
 //   - globalRx: Strip, Include *://*/*, ParamRegexps with a literal prefix
 //   - globalExclude: Strip, Include *://*/* with an Exclude, Params
+//   - offHostRxNoPrefix: offHostRx with a ParamRegexps entry without a
+//     literal prefix (PERF3-2)
 //   - sameHost: Strip, Include *://www.example.com/* (benchUnchanged's host), Params
 func manyExtra(n int, shape string) []Rule {
 	rs := make([]Rule, n)
@@ -193,6 +218,8 @@ func manyExtra(n int, shape string) []Rule {
 		switch shape {
 		case "offHostRx":
 			r.Include, r.Params, r.ParamRegexps = []string{"*://*.other-host.example/*"}, nil, rx
+		case "offHostRxNoPrefix":
+			r.Include, r.Params, r.ParamRegexps = []string{"*://*.other-host.example/*"}, nil, []string{fmt.Sprintf("(?i)zz%d_.*", i)}
 		case "globalRx":
 			r.Params, r.ParamRegexps = nil, rx
 		case "globalExclude":
@@ -205,7 +232,7 @@ func manyExtra(n int, shape string) []Rule {
 	return rs
 }
 
-var manyExtraShapes = []string{"global", "offHostRx", "globalRx", "globalExclude", "sameHost"}
+var manyExtraShapes = []string{"global", "offHostRx", "offHostRxNoPrefix", "globalRx", "globalExclude", "sameHost"}
 
 // No Extra rule shape costs an allocation per unchanged URL, at any n (§8,
 // PERF_REVIEW #8, PERF2-2).
@@ -227,7 +254,7 @@ func TestCleanUnchangedAllocsManyExtra(t *testing.T) {
 				in = "https://www.example.com/x?zz" + fmt.Sprint(n-1) + "=1&id=1"
 			}
 			want := "https://www.example.com/x?id=1"
-			if shape == "offHostRx" {
+			if shape == "offHostRx" || shape == "offHostRxNoPrefix" {
 				want = in
 			}
 			if got := c.Clean(in); got != want {
@@ -250,6 +277,27 @@ func BenchmarkManyExtra(b *testing.B) {
 				}
 			})
 		}
+	}
+}
+
+// BenchmarkScopeMemo: two global rules with URLRegexps, named alternately by
+// a 7.9 KiB query, with ordinals gap apart. The cost must not depend on gap
+// (PERF3-1); gap 4096 puts the memo in the pool.
+func BenchmarkScopeMemo(b *testing.B) {
+	in := "https://www.example.com/x?" + strings.Repeat("AA=1&BB=1&", 790) + "aa=1&bb=1"
+	for _, gap := range []int{63, 64, 4096} {
+		rs := []Rule{{ID: "A", Action: Strip, Include: []string{"*://*/*"}, URLRegexps: []string{`[?&]aa=`}, Params: []string{"aa"}}}
+		for i := 1; i < gap; i++ {
+			rs = append(rs, Rule{ID: fmt.Sprint("f", i), Action: Strip, Include: []string{"*://*.filler.example/*"}, Params: []string{fmt.Sprint("f", i)}})
+		}
+		rs = append(rs, Rule{ID: "B", Action: Strip, Include: []string{"*://*/*"}, URLRegexps: []string{`[?&]bb=`}, Params: []string{"bb"}})
+		c := MustNew(Config{Extra: rs, Sources: []RuleSet{}})
+		b.Run(fmt.Sprintf("gap=%d", gap), func(b *testing.B) {
+			b.ReportAllocs()
+			for b.Loop() {
+				benchSink = c.Clean(in)
+			}
+		})
 	}
 }
 

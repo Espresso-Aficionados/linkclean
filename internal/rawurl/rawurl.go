@@ -16,20 +16,6 @@ const (
 	Ambiguous        // a byte <= 0x20 or 0x7F; '\' in the authority; '%' in the host; malformed brackets
 )
 
-func (s Skip) String() string {
-	switch s {
-	case OK:
-		return "ok"
-	case Scheme:
-		return "scheme"
-	case Unparseable:
-		return "unparseable"
-	case Ambiguous:
-		return "ambiguous"
-	}
-	return "Skip(?)"
-}
-
 // URL is a span view of a raw URL. Every string field except Scheme and Host
 // is a substring of Raw. Scheme is the constant "http" or "https". A URL is
 // meaningful only as returned by Parse or ParseTarget.
@@ -198,7 +184,9 @@ func hasCTL(s string) bool {
 	return false
 }
 
-// validPort reports whether p is empty or a decimal number in 1–65535.
+// validPort reports whether p is empty or a decimal number in 1–65535,
+// leading zeros allowed. matchpattern.parsePortNumber is the pattern-side
+// parser and also accepts 0.
 func validPort(p string) bool {
 	if p == "" {
 		return true

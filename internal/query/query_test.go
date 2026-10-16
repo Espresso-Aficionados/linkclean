@@ -6,7 +6,19 @@ import (
 	"testing"
 )
 
-func TestParse(t *testing.T) {
+// segments returns the non-empty segments of q, as the engine walks them.
+func segments(q string) []Segment {
+	var out []Segment
+	for {
+		s, rest, ok := Next(q)
+		if !ok {
+			return out
+		}
+		out, q = append(out, s), rest
+	}
+}
+
+func TestNext(t *testing.T) {
 	tests := []struct {
 		q    string
 		want []Segment
@@ -23,38 +35,15 @@ func TestParse(t *testing.T) {
 		{"u=https://x/?a=1", []Segment{{Text: "u=https://x/?a=1", Name: "u", Value: "https://x/?a=1", HasEq: true}}},
 	}
 	for _, tt := range tests {
-		if got := Parse(nil, tt.q); !slices.Equal(got, tt.want) {
-			t.Errorf("Parse(%q) = %+v, want %+v", tt.q, got, tt.want)
-		}
-	}
-	// Parse appends.
-	if got := Parse([]Segment{{Text: "x", Name: "x"}}, "y"); len(got) != 2 || got[1].Name != "y" {
-		t.Errorf("Parse does not append: %+v", got)
-	}
-}
-
-// A long query grows dst at most once, sized by its non-empty segments.
-func TestParseGrowsOnce(t *testing.T) {
-	for _, c := range []struct {
-		q string
-		n int
-	}{
-		{strings.Repeat("&", 8100), 0},
-		{strings.Repeat("a=1&", 2025), 2025},
-		{"&" + strings.Repeat("a&&", 100), 100},
-	} {
-		if allocs := testing.AllocsPerRun(10, func() { Parse(nil, c.q) }); allocs > 1 && !raceEnabled {
-			t.Errorf("Parse(%.12q…): %v allocs, want <= 1", c.q, allocs)
-		}
-		if got := Parse(nil, c.q); len(got) != c.n {
-			t.Errorf("Parse(%.12q…): %d segments, want %d", c.q, len(got), c.n)
+		if got := segments(tt.q); !slices.Equal(got, tt.want) {
+			t.Errorf("segments(%q) = %+v, want %+v", tt.q, got, tt.want)
 		}
 	}
 }
 
 func TestCount(t *testing.T) {
 	for _, q := range []string{"", "&", "a", "a&", "&a", "a&&b", "&&a=1&b=&&c&", "=&=", strings.Repeat("a=1&&", 50)} {
-		if got, want := Count(q), len(Parse(nil, q)); got != want {
+		if got, want := Count(q), len(segments(q)); got != want {
 			t.Errorf("Count(%q) = %d, want %d", q, got, want)
 		}
 	}
@@ -164,19 +153,20 @@ func TestIsFragmentParams(t *testing.T) {
 
 func TestAllocs(t *testing.T) {
 	const q = "utm_source=newsletter&UTM_Medium=email&id=12345&utm%5Fcampaign=x&&b"
-	dst := make([]Segment, 0, 16)
-	if n := testing.AllocsPerRun(100, func() { dst = Parse(dst[:0], q) }); n != 0 {
-		t.Errorf("Parse allocs = %v, want 0", n)
-	}
 	m := map[string]bool{"utm_campaign": true}
 	var buf [64]byte
 	hit := false
 	if n := testing.AllocsPerRun(100, func() {
-		for _, s := range dst {
+		for q := q; ; {
+			s, rest, ok := Next(q)
+			if !ok {
+				break
+			}
 			hit = m[string(AppendCanon(buf[:0], s.Name))] || hit
+			q = rest
 		}
 	}); n != 0 {
-		t.Errorf("AppendCanon lookup allocs = %v, want 0", n)
+		t.Errorf("Next and AppendCanon lookup allocs = %v, want 0", n)
 	}
 	if !hit {
 		t.Error("AppendCanon lookup missed utm%5Fcampaign")
@@ -190,7 +180,7 @@ func TestAllocs(t *testing.T) {
 	}
 }
 
-// FuzzQuery checks that tokenizing (Parse, through Next) keeps every
+// FuzzQuery checks that tokenizing with Next keeps every
 // non-empty segment, that Count agrees, and that DecodeValue inverts
 // EncodeComponent (§14).
 func FuzzQuery(f *testing.F) {
@@ -198,7 +188,7 @@ func FuzzQuery(f *testing.F) {
 		f.Add(s)
 	}
 	f.Fuzz(func(t *testing.T, q string) {
-		segs := Parse(nil, q)
+		segs := segments(q)
 		texts := make([]string, len(segs))
 		for i, s := range segs {
 			texts[i] = s.Text
@@ -220,7 +210,7 @@ func FuzzQuery(f *testing.F) {
 			t.Fatalf("segments %q, want %q", texts, want)
 		}
 		if n := Count(q); n != len(segs) {
-			t.Fatalf("Count(%q) = %d, Parse has %d segments", q, n, len(segs))
+			t.Fatalf("Count(%q) = %d, Next yields %d segments", q, n, len(segs))
 		}
 		if got := DecodeValue(EncodeComponent(q)); got != q {
 			t.Fatalf("DecodeValue(EncodeComponent(%q)) = %q", q, got)
@@ -251,12 +241,17 @@ func BenchmarkAppendCanon(b *testing.B) {
 	}
 }
 
-func BenchmarkParse(b *testing.B) {
+func BenchmarkNext(b *testing.B) {
 	const q = "utm_source=newsletter&utm_medium=email&id=12345&utm_campaign=x"
-	dst := make([]Segment, 0, 16)
 	b.ReportAllocs()
 	for b.Loop() {
-		dst = Parse(dst[:0], q)
+		for q := q; ; {
+			_, rest, ok := Next(q)
+			if !ok {
+				break
+			}
+			q = rest
+		}
 	}
 }
 

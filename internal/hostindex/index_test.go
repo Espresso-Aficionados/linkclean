@@ -29,7 +29,7 @@ func build(tb testing.TB, rules [][]string, special ...int32) *Index {
 	for ord, incs := range rules {
 		for _, p := range incs {
 			if m := mustParse(tb, p); !isGlobal(m) {
-				b.Add(int32(ord), m, slices.Contains(special, int32(ord)))
+				b.Add(int32(ord), m, slices.Contains(special, int32(ord)), false)
 			}
 		}
 	}
@@ -42,7 +42,11 @@ func isGlobal(m *matchpattern.Pattern) bool {
 }
 
 func candidates(ix *Index, host string, isIP, special bool) []int32 {
-	return Merge(nil, ix.Lookup(nil, host, isIP), special)
+	l := ListAll
+	if special {
+		l = ListSpecial
+	}
+	return Merge(nil, ix.Lookup(nil, host, isIP), l)
 }
 
 func TestCandidates(t *testing.T) {
@@ -80,18 +84,32 @@ func TestCandidates(t *testing.T) {
 		if got := candidates(ix, c.host, c.isIP, true); !slices.Equal(got, c.special) {
 			t.Errorf("special candidates(%q, %v) = %v, want %v", c.host, c.isIP, got, c.special)
 		}
-		bs := ix.Lookup(nil, c.host, c.isIP)
-		for ord := range int32(9) {
-			if got, want := Contains(bs, ord), slices.Contains(c.want, ord); got != want {
-				t.Errorf("Contains(%q, %d) = %v, want %v", c.host, ord, got, want)
-			}
-		}
 	}
 
 	// The prefix of dst is preserved and not merged into the output order.
-	got := Merge([]int32{99, 3}, ix.Lookup(nil, "www.example.com", false), false)
+	got := Merge([]int32{99, 3}, ix.Lookup(nil, "www.example.com", false), ListAll)
 	if want := []int32{99, 3, 1, 2, 4}; !slices.Equal(got, want) {
 		t.Errorf("with prefix: %v, want %v", got, want)
+	}
+}
+
+// The ParamRx lists hold only the ordinals added with paramRx, merged
+// across a host's buckets like the others.
+func TestParamRxList(t *testing.T) {
+	var b Builder
+	b.Add(0, mustParse(t, "*://*.example.com/*"), false, true)
+	b.Add(1, mustParse(t, "*://www.example.com/*"), true, false)
+	b.Add(2, mustParse(t, "*://www.example.com/*"), true, true)
+	b.Add(3, mustParse(t, "*://*.other.example/*"), false, true)
+	ix := b.Build()
+	bs := ix.Lookup(nil, "www.example.com", false)
+	for _, c := range []struct {
+		l    List
+		want []int32
+	}{{ListAll, []int32{0, 1, 2}}, {ListSpecial, []int32{1, 2}}, {ListParamRx, []int32{0, 2}}} {
+		if got := Merge(nil, bs, c.l); !slices.Equal(got, c.want) {
+			t.Errorf("Merge(list %d) = %v, want %v", c.l, got, c.want)
+		}
 	}
 }
 
@@ -102,7 +120,7 @@ func TestAddGlobalPanics(t *testing.T) {
 		}
 	}()
 	var b Builder
-	b.Add(0, mustParse(t, "*://*/x*"), false)
+	b.Add(0, mustParse(t, "*://*/x*"), false, false)
 }
 
 func TestEmptyIndex(t *testing.T) {
@@ -121,7 +139,7 @@ func TestLookupAllocs(t *testing.T) {
 	dst := make([]int32, 0, 64)
 	if n := testing.AllocsPerRun(100, func() {
 		bs = ix.Lookup(bs[:0], "a.b.www.example.com", false)
-		dst = Merge(dst[:0], bs, false)
+		dst = Merge(dst[:0], bs, ListAll)
 	}); n != 0 {
 		t.Errorf("Lookup+Merge: %v allocs, want 0", n)
 	}
@@ -146,7 +164,7 @@ func naiveLookup(ix *Index, host string, isIP bool) []int32 {
 			add(ix.label[l])
 		}
 	}
-	return Merge(nil, bs, false)
+	return Merge(nil, bs, ListAll)
 }
 
 // The bounded parent walk finds what walking every parent finds, including
@@ -212,7 +230,7 @@ func TestCandidatesSuperset(t *testing.T) {
 			m := mustParse(t, p)
 			pats[ord] = append(pats[ord], m)
 			if !isGlobal(m) {
-				b.Add(int32(ord), m, false)
+				b.Add(int32(ord), m, false, false)
 			}
 			kind, h := m.Host()
 			switch kind {
@@ -286,9 +304,9 @@ func BenchmarkCandidates(b *testing.B) {
 			if i%2 == 0 {
 				pat = fmt.Sprintf("*://www.h%d.example/*", i)
 			}
-			bl.Add(int32(i), mustParse(b, pat), false)
+			bl.Add(int32(i), mustParse(b, pat), false, false)
 		}
-		bl.Add(int32(n+1), mustParse(b, "*://*.co.uk/*"), false)
+		bl.Add(int32(n+1), mustParse(b, "*://*.co.uk/*"), false, false)
 		ix := bl.Build()
 		hosts := []string{"www.unrelated.example.com", "a.b.h1.example"}
 		if n == 1000 {
@@ -307,7 +325,7 @@ func BenchmarkCandidates(b *testing.B) {
 				b.ReportAllocs()
 				for b.Loop() {
 					bs = ix.Lookup(bs[:0], host, false)
-					dst = Merge(dst[:0], bs, false)
+					dst = Merge(dst[:0], bs, ListAll)
 				}
 			})
 		}

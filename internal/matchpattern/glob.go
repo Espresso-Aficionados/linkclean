@@ -94,6 +94,7 @@ func decodable(s string, i int) (byte, bool) {
 	return v, true
 }
 
+// unhex is query.unhex with validation.
 func unhex(c byte) (byte, bool) {
 	switch {
 	case '0' <= c && c <= '9':
