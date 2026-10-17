@@ -1,0 +1,6 @@
+A pattern of a regex-path rule classed unwrap: Compile fails, because that
+action is not compiled in v1.
+-- ops --
+jset rules/overlay/debounce-classes.json ["patterns", "*://click.redditmail.com/*"] {"class": "unwrap"}
+run Compile
+fail "*://click.redditmail.com/*" classed unwrap but action "regex-path" is not compiled in v1

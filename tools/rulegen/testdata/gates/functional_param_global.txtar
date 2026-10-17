@@ -1,0 +1,21 @@
+Upstream adds variant globally (a never-strip name that is also a corpus
+functional_params name): Risky fails. So does psc, a corpus functional name
+only, and a name listed only in testdata/golden/risky-params.txt.
+-- ops --
+jappend rules/brave/clean-urls.json [{"include": "*://*/*"}, "params"] "variant"
+relock
+run Risky
+fail Risky: new global pair (global, variant)
+jremove rules/brave/clean-urls.json [{"include": "*://*/*"}, "params"] "variant"
+jappend rules/brave/clean-urls.json [{"include": "*://*/*"}, "params"] "psc"
+relock
+run Risky
+fail Risky: new global pair (global, psc): psc is a risky name (corpus functional_params)
+jremove rules/brave/clean-urls.json [{"include": "*://*/*"}, "params"] "psc"
+jappend rules/brave/clean-urls.json [{"include": "*://*/*"}, "params"] "fixture_risky"
+relock
+run Risky
+pass
+append testdata/golden/risky-params.txt "fixture_risky\n"
+run Risky
+fail Risky: new global pair (global, fixture_risky): fixture_risky is a risky name (risky-params.txt)

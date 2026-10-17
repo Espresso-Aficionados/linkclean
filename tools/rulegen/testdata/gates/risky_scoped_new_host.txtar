@@ -1,0 +1,8 @@
+Upstream adds t on a new host: a scoped risky pair passes Risky, with the ⚠
+note the summary and the routine's escalation build on.
+-- ops --
+jappend rules/brave/clean-urls.json [] {"include": ["*://*.newhost.example/*"], "exclude": [], "params": ["t"]}
+relock
+run Risky
+pass
+log ⚠ new scoped pair (*://*.newhost.example/*, t): t is a risky name (never-strip)

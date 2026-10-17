@@ -1,0 +1,25 @@
+Upstream changes clean-urls.json to Y while the hold on main for X is
+unexpired: the hold no longer matches and Provenance passes (the summary's
+"hold lapsed" line makes the routine escalate). The control run, with the
+PR proposing X, fails.
+-- ops --
+jappend rules/brave/clean-urls.json [0, "params"] "held_change"
+relock
+let x ${sha:rules/brave/clean-urls.json}
+-- head/rules/acks.json --
+{"schema": 1, "acks": [], "holds": [
+  {"file": "brave-lists/clean-urls.json", "sha256": "${var:x}",
+   "expires": "2026-11-15", "reason": "waiting on brave/adblock-lists#1", "by": "fixture"}
+]}
+-- base/rules/acks.json --
+{"schema": 1, "acks": [], "holds": [
+  {"file": "brave-lists/clean-urls.json", "sha256": "${var:x}",
+   "expires": "2026-11-15", "reason": "waiting on brave/adblock-lists#1", "by": "fixture"}
+]}
+-- ops --
+run Provenance
+fail held: brave-lists/clean-urls.json
+jappend rules/brave/clean-urls.json [0, "params"] "changed_again"
+relock
+run Provenance
+pass

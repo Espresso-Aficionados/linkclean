@@ -1,0 +1,8 @@
+Without LINKCLEAN_UPSTREAM_DIR the Upstream checks are skipped with a log
+line, and the local checks still fail on a hand edit.
+-- ops --
+jappend rules/brave/clean-urls.json [0, "params"] "hand_edit"
+run Provenance
+logcount 1 skipped (no LINKCLEAN_UPSTREAM_DIR): Provenance Upstream checks
+fail rules/brave/clean-urls.json: sha256
+fail rules/brave/clean-urls.json: git blob

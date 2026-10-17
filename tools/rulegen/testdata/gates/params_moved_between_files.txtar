@@ -1,0 +1,9 @@
+Global params moved from clean-urls.json to query-filter.json, enough that
+clean-urls alone loses far more than 15% of its params: the union is
+unchanged, so they are not removals and Counts passes.
+-- ops --
+move-global 70
+relock
+run Counts
+pass
+nolog more than 15%

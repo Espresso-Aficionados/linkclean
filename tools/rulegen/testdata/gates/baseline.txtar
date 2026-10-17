@@ -1,0 +1,21 @@
+The real data passes every gate, with base equal to it and without a base.
+This checks the harness itself: every other fixture starts from this state.
+-- ops --
+run Provenance
+pass
+log Provenance Upstream checks skipped: provenance inputs unchanged from base
+run Schema
+pass
+run Compile
+pass
+run Counts
+pass
+run Risky
+pass
+run Golden
+pass
+base none
+run Counts
+pass
+run Golden/b
+pass

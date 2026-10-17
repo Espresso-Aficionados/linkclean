@@ -1,0 +1,22 @@
+After the held PR was closed, Dependabot's next PR moves the gitlink to D (a
+commit to another list); after sync clean-urls.json is still X, so the hold
+on main still matches: Provenance fails "held", with no lapse note.
+-- ops --
+jappend rules/brave/clean-urls.json [0, "params"] "held_change"
+relock
+gitlink dddddddddddddddddddddddddddddddddddddddd
+base-gitlink bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+-- head/rules/acks.json --
+{"schema": 1, "acks": [], "holds": [
+  {"file": "brave-lists/clean-urls.json", "sha256": "${sha:rules/brave/clean-urls.json}",
+   "expires": "2026-11-15", "reason": "waiting on brave/adblock-lists#1", "by": "fixture"}
+]}
+-- base/rules/acks.json --
+{"schema": 1, "acks": [], "holds": [
+  {"file": "brave-lists/clean-urls.json", "sha256": "${sha:rules/brave/clean-urls.json}",
+   "expires": "2026-11-15", "reason": "waiting on brave/adblock-lists#1", "by": "fixture"}
+]}
+-- ops --
+run Provenance
+fail held: brave-lists/clean-urls.json ${short:rules/brave/clean-urls.json}
+nolog lapsed

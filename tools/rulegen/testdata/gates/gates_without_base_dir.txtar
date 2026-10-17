@@ -1,0 +1,57 @@
+A tree that breaks the relative param floor, adds a global risky pair and
+matches a hold, run without LINKCLEAN_BASE_DIR: those parts are skipped with
+one log line each, as is every other base-relative part. With a base the
+same tree fails all three. Without one, a broken absolute floor still fails
+Counts and a changed golden (a) row still fails Golden.
+-- ops --
+drop-global 40
+jappend rules/brave/clean-urls.json [{"include": "*://*/*"}, "params"] "id"
+relock
+-- head/rules/acks.json --
+{"schema": 1, "acks": [], "holds": [
+  {"file": "brave-lists/clean-urls.json", "sha256": "${sha:rules/brave/clean-urls.json}",
+   "expires": "2026-11-15", "reason": "fixture hold", "by": "fixture"}
+]}
+-- ops --
+base none
+run Counts
+pass
+logcount 1 skipped (no LINKCLEAN_BASE_DIR): Counts relative floor
+logcount 1 skipped (no LINKCLEAN_BASE_DIR): Counts debounce include-drop limit
+run Risky
+pass
+logcount 1 skipped (no LINKCLEAN_BASE_DIR): Risky
+run Provenance
+pass
+logcount 1 skipped (no LINKCLEAN_BASE_DIR): Provenance acks-changed check
+logcount 1 skipped (no LINKCLEAN_BASE_DIR): Provenance hold match
+logcount 1 skipped (no LINKCLEAN_BASE_DIR): Provenance Upstream checks
+run Golden/c
+pass
+logcount 1 skipped (no LINKCLEAN_BASE_DIR): Golden (c)
+run Schema
+pass
+nolog skipped
+run Compile
+nolog skipped
+
+# The same tree with a base: each skipped part was a real failure.
+base real
+run Counts
+fail Counts relative floor: union.global_params
+run Risky
+fail Risky: new global pair (global, id)
+run Provenance
+fail held: brave-lists/clean-urls.json ${short:rules/brave/clean-urls.json} (fixture hold, expires 2026-11-15)
+
+# Without a base, an absolute floor and a golden (a) row still fail.
+base none
+-- head/rules/brave/query-filter.json --
+[]
+-- ops --
+relock
+run Counts
+fail query-filter: 0 rules / 0 params, floors 3 / 57
+replace testdata/golden/positive.txtar "want: https://example.com/?id=7#top" "want: https://example.com/?id=8#top"
+run Golden/a
+fail 2 [keep]

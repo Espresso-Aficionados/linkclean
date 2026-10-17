@@ -1,0 +1,31 @@
+rules/acks.json is decoded strictly by Schema: an unknown field, a hold on a
+path that is not a locked Brave file, a bad sha256 or date, and an unknown
+check all fail; the empty file passes.
+-- ops --
+run Schema
+pass
+-- head/rules/acks.json --
+{"schema": 1, "acks": [], "holds": [], "notes": []}
+-- ops --
+run Schema
+fail rules/acks.json: json: unknown field "notes"
+-- head/rules/acks.json --
+{"schema": 1, "acks": [], "holds": [
+  {"file": "brave-lists/LICENSE", "sha256": "ABC", "expires": "2026-13-01", "reason": "x", "by": "fixture"}
+]}
+-- ops --
+run Schema
+fail holds[0]: file "brave-lists/LICENSE" is not a locked Brave path
+fail sha256 "ABC" is not 64-hex
+fail expires "2026-13-01"
+-- head/rules/acks.json --
+{"schema": 2, "acks": [
+  {"check": "vibes", "vendored_sha256": "${sha:rules/brave/clean-urls.json}", "expires": "2026-12-01", "reason": "x", "by": "fixture"}
+], "holds": []}
+-- ops --
+run Schema
+fail schema 2, want 1
+fail acks[0]: unknown check "vibes"
+rm rules/acks.json
+run Schema
+fail rules/acks.json: open rules/acks.json

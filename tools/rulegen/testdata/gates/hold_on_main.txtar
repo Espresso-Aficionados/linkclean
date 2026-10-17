@@ -1,0 +1,19 @@
+The hold on X sits on main, and the routine's freshness merge brought it
+into the PR: Provenance fails "held: …".
+-- ops --
+jappend rules/brave/clean-urls.json [0, "params"] "held_change"
+relock
+-- head/rules/acks.json --
+{"schema": 1, "acks": [], "holds": [
+  {"file": "brave-lists/clean-urls.json", "sha256": "${sha:rules/brave/clean-urls.json}",
+   "expires": "2026-11-15", "reason": "waiting on brave/adblock-lists#1", "by": "fixture"}
+]}
+-- base/rules/acks.json --
+{"schema": 1, "acks": [], "holds": [
+  {"file": "brave-lists/clean-urls.json", "sha256": "${sha:rules/brave/clean-urls.json}",
+   "expires": "2026-11-15", "reason": "waiting on brave/adblock-lists#1", "by": "fixture"}
+]}
+-- ops --
+run Provenance
+fail held: brave-lists/clean-urls.json ${short:rules/brave/clean-urls.json} (waiting on brave/adblock-lists#1, expires 2026-11-15)
+nofail acks.json

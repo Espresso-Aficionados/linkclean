@@ -1,0 +1,28 @@
+The held change was later accepted: Y reached main, the hold for X is still
+unexpired, and the PR proposes nothing for that file: no failure.
+-- ops --
+jappend rules/brave/clean-urls.json [0, "params"] "held_change"
+relock
+let x ${sha:rules/brave/clean-urls.json}
+jappend rules/brave/clean-urls.json [0, "params"] "accepted_change"
+relock
+-- head/rules/acks.json --
+{"schema": 1, "acks": [], "holds": [
+  {"file": "brave-lists/clean-urls.json", "sha256": "${var:x}",
+   "expires": "2026-11-15", "reason": "waiting on brave/adblock-lists#1", "by": "fixture"}
+]}
+-- ops --
+base head
+run Provenance
+pass
+nofail held
+# A hold on exactly the bytes main already has: the PR does not propose
+# them, so it raises nothing either.
+-- head/rules/acks.json --
+{"schema": 1, "acks": [], "holds": [
+  {"file": "brave-lists/clean-urls.json", "sha256": "${basesha:rules/brave/clean-urls.json}",
+   "expires": "2026-11-15", "reason": "left in place after Y reached main", "by": "fixture"}
+]}
+-- ops --
+run Provenance
+nofail held

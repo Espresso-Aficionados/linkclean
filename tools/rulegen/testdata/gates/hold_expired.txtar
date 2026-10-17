@@ -1,0 +1,25 @@
+The hold on main for X expires while upstream still serves X: the hold no
+longer matches and Provenance passes (the expired entry in the unchanged
+acks.json is a note; the summary's "hold expired" line makes the routine
+escalate). The day before, it still fails.
+-- ops --
+jappend rules/brave/clean-urls.json [0, "params"] "held_change"
+relock
+-- head/rules/acks.json --
+{"schema": 1, "acks": [], "holds": [
+  {"file": "brave-lists/clean-urls.json", "sha256": "${sha:rules/brave/clean-urls.json}",
+   "expires": "2026-10-15", "reason": "waiting on brave/adblock-lists#1", "by": "fixture"}
+]}
+-- base/rules/acks.json --
+{"schema": 1, "acks": [], "holds": [
+  {"file": "brave-lists/clean-urls.json", "sha256": "${sha:rules/brave/clean-urls.json}",
+   "expires": "2026-10-15", "reason": "waiting on brave/adblock-lists#1", "by": "fixture"}
+]}
+-- ops --
+now 2026-10-15
+run Provenance
+fail held: brave-lists/clean-urls.json
+now 2026-10-16
+run Provenance
+pass
+log holds[0] (brave-lists/clean-urls.json) expired on 2026-10-15

@@ -1,0 +1,6 @@
+A debounce rule with an unknown action: Schema fails.
+-- ops --
+jset rules/brave/debounce.json [{"include": "*://pvn.mediamarkt.de/trck/eclick/*"}, "action"] "rot13,redirect"
+relock
+run Schema
+fail action: unknown action "rot13,redirect"

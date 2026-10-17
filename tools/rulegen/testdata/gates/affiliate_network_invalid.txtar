@@ -1,0 +1,6 @@
+An overlay A-entry with a network outside the display charset: Compile
+fails.
+-- ops --
+jset rules/overlay/overlay.json [{"id": "amazon-affiliate-keep"}, "network"] "Amazon *Associates*"
+run Compile
+fail "Amazon *Associates*" does not match

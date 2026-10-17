@@ -1,0 +1,15 @@
+A hold on debounce.json bytes D that the PR proposes, while clean-urls.json
+also changes upstream: Provenance fails "held"; all three files stay at
+main's lock.
+-- ops --
+jset rules/brave/debounce.json [{"include": "*://t.cfjump.com/*"}, "param"] "UrlHeld"
+jappend rules/brave/clean-urls.json [0, "params"] "next_upstream_change"
+relock
+-- head/rules/acks.json --
+{"schema": 1, "acks": [], "holds": [
+  {"file": "brave-lists/debounce.json", "sha256": "${sha:rules/brave/debounce.json}",
+   "expires": "2026-11-15", "reason": "waiting on brave/adblock-lists#3", "by": "fixture"}
+]}
+-- ops --
+run Provenance
+fail held: brave-lists/debounce.json ${short:rules/brave/debounce.json} (waiting on brave/adblock-lists#3, expires 2026-11-15)

@@ -1,0 +1,22 @@
+Upstream adds id to an existing *://*/* rule (the DR-F10 hole: the rule
+already exists, the pair is new): Risky fails; passes with an ack bound to
+the new bytes; fails again with that ack expired.
+-- ops --
+jappend rules/brave/clean-urls.json [{"include": "*://*/*"}, "params"] "id"
+relock
+run Risky
+fail Risky: new global pair (global, id): id is a risky name (never-strip)
+-- head/rules/acks.json --
+{"schema": 1, "acks": [
+  {"check": "risky", "scope": "global", "param": "id",
+   "vendored_sha256": "${sha:rules/brave/clean-urls.json}", "expires": "2026-12-01",
+   "reason": "fixture: accepted after review", "by": "fixture"}
+], "holds": []}
+-- ops --
+run Risky
+pass
+log acked by fixture
+now 2026-12-02
+run Risky
+fail Risky: new global pair (global, id)
+log ack expired (2026-12-01)

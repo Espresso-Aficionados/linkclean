@@ -1,0 +1,31 @@
+A human commits a Counts ack on the PR branch: Counts passes. That PR is
+closed unmerged, and a later PR brings an upstream commit that changes the
+file again: the ack is lapsed (bound to the old sha256) and Counts fails
+until a human re-acks.
+-- ops --
+drop-global 40
+relock
+let old ${sha:rules/brave/clean-urls.json}
+-- head/rules/acks.json --
+{"schema": 1, "acks": [
+  {"check": "counts", "metric": "union.global_params", "min": 150,
+   "vendored_sha256": "${var:old}", "expires": "2026-12-01",
+   "reason": "upstream deduplicated the global list", "by": "fixture"}
+], "holds": []}
+-- ops --
+run Counts
+pass
+jappend rules/brave/clean-urls.json [0, "params"] "upstream_next_week"
+relock
+run Counts
+fail Counts relative floor: union.global_params
+log ack lapsed (bound to ${var:old})
+-- head/rules/acks.json --
+{"schema": 1, "acks": [
+  {"check": "counts", "metric": "union.global_params", "min": 150,
+   "vendored_sha256": "${sha:rules/brave/clean-urls.json}", "expires": "2026-12-01",
+   "reason": "re-acked for the new bytes", "by": "fixture"}
+], "holds": []}
+-- ops --
+run Counts
+pass

@@ -1,0 +1,7 @@
+An upstream include with a non-http(s) scheme: Compile fails, naming the
+set and rule.
+-- ops --
+jappend rules/brave/clean-urls.json [] {"include": ["ftp://*.example.com/*"], "exclude": [], "params": ["fixture_param"]}
+relock
+run Compile
+fail brave/clean-urls:ftp://*.example.com/*

@@ -1,0 +1,6 @@
+clean-urls.json truncated mid-document, re-locked: Schema fails.
+-- ops --
+truncate rules/brave/clean-urls.json 1000
+relock
+run Schema
+fail linkclean: brave/clean-urls: unexpected EOF

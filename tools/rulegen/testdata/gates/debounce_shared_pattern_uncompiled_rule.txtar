@@ -1,0 +1,13 @@
+Current data passes: the MediaMarkt pvn pattern (classed affiliate) compiles
+from redirect rule 0, and its instance in base64,redirect rule 29 is skipped
+(compiled + skipped instances = upstream instances is checked by Compile).
+Upstream drops the pattern from rule 0: Compile fails on its rule-29
+instance.
+-- ops --
+run Compile
+pass
+clean {"Affiliate": 1} "https://pvn.mediamarkt.de/trck/eclick/abc?url=https%3A%2F%2Fshop.example.com%2Fx" "https://shop.example.com/x"
+jremove rules/brave/debounce.json [{"action": "redirect", "include": "*://pvn.mediamarkt.de/trck/eclick/*"}, "include"] "*://pvn.mediamarkt.de/trck/eclick/*"
+relock
+run Compile
+fail brave/debounce:#29: include[0]: "*://pvn.mediamarkt.de/trck/eclick/*" classed affiliate but action "base64,redirect" is not compiled in v1

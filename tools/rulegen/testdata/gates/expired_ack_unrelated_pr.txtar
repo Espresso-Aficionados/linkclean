@@ -1,0 +1,36 @@
+An expired ack on main: a PR that does not touch rules/acks.json passes
+Provenance with a note; a PR that edits it and leaves the expired entry
+fails, as does one that leaves a malformed entry.
+-- head/rules/acks.json --
+{"schema": 1, "acks": [
+  {"check": "counts", "metric": "union.global_params", "min": 200,
+   "vendored_sha256": "${sha:rules/brave/clean-urls.json}", "expires": "2026-10-01",
+   "reason": "fixture ack", "by": "fixture"}
+], "holds": []}
+-- ops --
+base head
+run Provenance
+pass
+log note: rules/acks.json: acks[0] (counts union.global_params) expired on 2026-10-01
+-- head/rules/acks.json --
+{"schema": 1, "acks": [
+  {"check": "counts", "metric": "union.global_params", "min": 200,
+   "vendored_sha256": "${sha:rules/brave/clean-urls.json}", "expires": "2026-10-01",
+   "reason": "fixture ack", "by": "fixture"},
+  {"check": "risky", "scope": "*://*.example.com/*", "param": "t",
+   "vendored_sha256": "${sha:rules/brave/clean-urls.json}", "expires": "2026-12-01",
+   "reason": "share token on that host only", "by": "fixture"}
+], "holds": []}
+-- ops --
+run Provenance
+fail rules/acks.json: acks[0] (counts union.global_params) expired on 2026-10-01
+nofail acks[1]
+-- head/rules/acks.json --
+{"schema": 1, "acks": [
+  {"check": "counts", "metric": "union.everything", "min": 200,
+   "vendored_sha256": "${sha:rules/brave/clean-urls.json}", "expires": "2026-12-01",
+   "reason": "fixture ack", "by": "fixture"}
+], "holds": []}
+-- ops --
+run Provenance
+fail rules/acks.json: malformed entry: acks[0]: check counts: unknown metric "union.everything"

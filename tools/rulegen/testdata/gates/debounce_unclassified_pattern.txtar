@@ -1,0 +1,12 @@
+Upstream adds *://www.newnet.example/click?* to debounce rule 0 (the rule
+holding the MediaMarkt pattern): Compile fails naming the pattern and the
+rule index. With a human classification commit it passes.
+-- ops --
+jappend rules/brave/debounce.json [{"include": "*://pvn.mediamarkt.de/trck/eclick/*"}, "include"] "*://www.newnet.example/click?*"
+relock
+run Compile
+fail brave/debounce:#0: include[
+fail unclassified pattern "*://www.newnet.example/click?*": add it to debounce-classes.json
+jset rules/overlay/debounce-classes.json ["patterns", "*://www.newnet.example/click?*"] {"class": "affiliate", "network": "NewNet", "why": "fixture: one redirector per merchant, no single ID"}
+run Compile
+pass

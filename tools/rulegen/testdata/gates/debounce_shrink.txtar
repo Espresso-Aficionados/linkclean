@@ -1,0 +1,17 @@
+20% of the debounce include instances removed (the absolute floor still
+holds): Counts fails; passes with an ack bound to debounce.json.
+-- ops --
+drop-debounce 38
+relock
+run Counts
+fail Counts debounce include-drop limit: debounce.includes
+nofail floors 38 / 150
+-- head/rules/acks.json --
+{"schema": 1, "acks": [
+  {"check": "counts", "metric": "debounce.includes", "min": 140,
+   "vendored_sha256": "${sha:rules/brave/debounce.json}", "expires": "2026-12-01",
+   "reason": "upstream dropped dead Impact domains", "by": "fixture"}
+], "holds": []}
+-- ops --
+run Counts
+pass

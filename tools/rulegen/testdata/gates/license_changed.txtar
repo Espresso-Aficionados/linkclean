@@ -1,0 +1,14 @@
+The upstream LICENSE: bytes that differ from the lock fail; re-locked bytes
+whose text is not MPL-2.0 fail on the SPDX id; a missing file fails.
+-- ops --
+replace rules/brave/LICENSE "Mozilla Public License Version 2.0" "Mozilla Public License Version 2.1"
+run Provenance
+fail rules/brave/LICENSE: sha256
+fail rules/brave/LICENSE: git blob
+relock
+run Provenance
+fail rules/brave/LICENSE: SPDX id NOASSERTION, want MPL-2.0
+nofail sha256
+rm rules/brave/LICENSE
+run Provenance
+fail LICENSE: open rules/brave/LICENSE

@@ -1,0 +1,7 @@
+A query-filter include in url_pattern_index syntax (||example.com^):
+Compile fails, naming the set and rule.
+-- ops --
+jappend rules/brave/query-filter.json [] {"include": ["||example.com^"], "exclude": [], "params": ["fixture_param"]}
+relock
+run Compile
+fail brave/query-filter:||example.com^

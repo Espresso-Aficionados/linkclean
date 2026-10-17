@@ -1,0 +1,25 @@
+Upstream adds tag to a new rule *://*.shop.example.net/*: Compile fails
+naming (tag, include). It passes once an overlay Keep covers the include,
+or once the pair is exempted with a reason; an exemption without a reason
+fails Schema.
+-- ops --
+jappend rules/brave/clean-urls.json [] {"include": ["*://*.shop.example.net/*"], "exclude": [], "params": ["tag"]}
+relock
+run Compile
+fail keep coverage: brave/clean-urls strips "tag" at *://*.shop.example.net/*
+jappend rules/overlay/overlay.json [{"id": "amazon-affiliate-keep"}, "include"] "*://*.shop.example.net/*"
+run Compile
+nofail keep coverage
+jremove rules/overlay/overlay.json [{"id": "amazon-affiliate-keep"}, "include"] "*://*.shop.example.net/*"
+run Compile
+fail keep coverage: brave/clean-urls strips "tag" at *://*.shop.example.net/*
+-- ops --
+append testdata/keep-coverage-exempt.txt "tag *://*.shop.example.net/* # fixture: a first-party tracking tag, not an affiliate one\n"
+run Compile
+nofail keep coverage
+run Schema
+pass
+-- ops --
+replace testdata/keep-coverage-exempt.txt " # fixture: a first-party tracking tag, not an affiliate one" ""
+run Schema
+fail "tag *://*.shop.example.net/*" does not match

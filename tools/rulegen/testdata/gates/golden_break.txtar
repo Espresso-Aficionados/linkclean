@@ -1,0 +1,28 @@
+Upstream adds t to the Reddit rule, which strips the functional t of corpus
+items negatives-027 (a negative) and social-027: Golden (b) fails naming
+each item and passes once a human lists them in known-broken.txt. Golden (c) fails on the
+lower exact-or-alt count until acked.
+-- ops --
+jappend rules/brave/clean-urls.json [{"include": "*://www.reddit.com/*"}, "params"] "t"
+relock
+run Golden/b
+fail negatives-027 broken (not in known-broken.txt)
+fail social-027 broken (not in known-broken.txt)
+append testdata/corpus/eval-2026-10/known-broken.txt "negatives-027 # fixture: accepted break\n"
+run Golden/b
+nofail negatives-027
+fail social-027 broken
+append testdata/corpus/eval-2026-10/known-broken.txt "social-027 # fixture: accepted break\n"
+run Golden/b
+pass
+run Golden/c
+fail Golden (c): corpus exact-or-alt
+-- head/rules/acks.json --
+{"schema": 1, "acks": [
+  {"check": "golden", "metric": "corpus.exact", "min": 200,
+   "vendored_sha256": "${sha:rules/brave/clean-urls.json}", "expires": "2026-12-01",
+   "reason": "fixture: accepted break", "by": "fixture"}
+], "holds": []}
+-- ops --
+run Golden/c
+pass

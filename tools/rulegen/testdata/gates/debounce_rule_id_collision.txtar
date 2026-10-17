@@ -1,0 +1,12 @@
+Current data: the two clixGalore groups (rules 8 and 9 share their single
+include) compile to distinct IDs, the second with #2; every compiled rule ID
+is distinct; DisableRules naming the first disables only the rule-8 group,
+so the rule-9 group (param LP) unwraps instead.
+-- ops --
+run Compile
+pass
+rule-ids
+has-rule brave/debounce:*://www.clixgalore.com/Lead.aspx*
+has-rule brave/debounce:*://www.clixgalore.com/Lead.aspx*#2
+clean {"Affiliate": 1} "https://www.clixgalore.com/Lead.aspx?AffDirectURL=https%3A%2F%2Fshop.example.com%2Fa&LP=https%3A%2F%2Fother.example.org%2Fb" "https://shop.example.com/a"
+clean {"Affiliate": 1, "DisableRules": ["brave/debounce:*://www.clixgalore.com/Lead.aspx*"]} "https://www.clixgalore.com/Lead.aspx?AffDirectURL=https%3A%2F%2Fshop.example.com%2Fa&LP=https%3A%2F%2Fother.example.org%2Fb" "https://other.example.org/b"

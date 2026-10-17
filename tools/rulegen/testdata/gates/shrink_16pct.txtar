@@ -1,0 +1,49 @@
+About 16% of the union's global params removed upstream (the absolute
+floors still hold): Counts fails; passes with a matching ack; fails with a
+stale-sha ack, an expired ack, or an ack whose min is above the new count.
+-- ops --
+drop-global 40
+relock
+run Counts
+fail Counts relative floor: union.global_params
+nofail floor 196
+nofail union.params
+nofail union.scoped_params
+-- head/rules/acks.json --
+{"schema": 1, "acks": [
+  {"check": "counts", "metric": "union.global_params", "min": 150,
+   "vendored_sha256": "${sha:rules/brave/clean-urls.json}", "expires": "2026-12-01",
+   "reason": "upstream deduplicated the global list", "by": "fixture"}
+], "holds": []}
+-- ops --
+run Counts
+pass
+-- head/rules/acks.json --
+{"schema": 1, "acks": [
+  {"check": "counts", "metric": "union.global_params", "min": 150,
+   "vendored_sha256": "${basesha:rules/brave/clean-urls.json}", "expires": "2026-12-01",
+   "reason": "upstream deduplicated the global list", "by": "fixture"}
+], "holds": []}
+-- ops --
+run Counts
+fail Counts relative floor: union.global_params
+log ack lapsed (bound to ${basesha:rules/brave/clean-urls.json})
+-- head/rules/acks.json --
+{"schema": 1, "acks": [
+  {"check": "counts", "metric": "union.global_params", "min": 150,
+   "vendored_sha256": "${sha:rules/brave/clean-urls.json}", "expires": "2026-10-15",
+   "reason": "upstream deduplicated the global list", "by": "fixture"}
+], "holds": []}
+-- ops --
+run Counts
+fail Counts relative floor: union.global_params
+log ack expired (2026-10-15)
+-- head/rules/acks.json --
+{"schema": 1, "acks": [
+  {"check": "counts", "metric": "union.global_params", "min": 1000,
+   "vendored_sha256": "${sha:rules/brave/clean-urls.json}", "expires": "2026-12-01",
+   "reason": "upstream deduplicated the global list", "by": "fixture"}
+], "holds": []}
+-- ops --
+run Counts
+fail Counts relative floor: union.global_params

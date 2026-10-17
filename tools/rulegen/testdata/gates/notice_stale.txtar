@@ -1,0 +1,10 @@
+A re-locked data change whose NOTICE still names the old blobs fails;
+regenerating the NOTICE passes.
+-- ops --
+jappend rules/brave/clean-urls.json [0, "params"] "notice_fixture"
+relock-lock
+run Provenance
+fail rules/brave/NOTICE names other hashes than the lock
+relock
+run Provenance
+pass

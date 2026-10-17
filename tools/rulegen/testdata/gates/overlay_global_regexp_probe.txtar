@@ -1,0 +1,7 @@
+An overlay global-scope ParamRegexps "p.*": Compile fails, naming the
+never-strip names it matches.
+-- ops --
+jappend rules/overlay/overlay.json [] {"id": "fixture-p", "action": "strip", "include": ["*://*/*"], "paramRegexps": ["p.*"], "ref": "fixture"}
+run Compile
+fail linkclean/overlay:fixture-p: global paramRegexp "p.*" matches never-strip name "p"
+fail linkclean/overlay:fixture-p: global paramRegexp "p.*" matches never-strip name "page"

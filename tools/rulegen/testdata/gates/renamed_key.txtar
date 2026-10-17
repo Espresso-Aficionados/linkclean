@@ -1,0 +1,9 @@
+A renamed key (params → parameters) in clean-urls.json, re-locked as sync
+would write it: Schema fails with the unknown field and the missing
+required one.
+-- ops --
+jrename rules/brave/clean-urls.json [0] "params" "parameters"
+relock
+run Schema
+fail parameters: unknown field
+fail params: missing

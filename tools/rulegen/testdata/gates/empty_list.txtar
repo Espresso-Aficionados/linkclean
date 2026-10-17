@@ -1,0 +1,11 @@
+clean-urls.json is an empty list: the Counts absolute floor fails, with or
+without a base.
+-- head/rules/brave/clean-urls.json --
+[]
+-- ops --
+relock
+run Counts
+fail clean-urls: 0 rules / 0 params, floors 41 / 340
+base none
+run Counts
+fail clean-urls: 0 rules / 0 params, floors 41 / 340

@@ -1,0 +1,7 @@
+An upstream include outside the URLPattern subset (a '*' inside a host
+label): Compile fails, naming the set and rule.
+-- ops --
+jappend rules/brave/clean-urls.json [] {"include": ["*://exa*mple.com/*"], "exclude": [], "params": ["fixture_param"]}
+relock
+run Compile
+fail brave/clean-urls:*://exa*mple.com/*

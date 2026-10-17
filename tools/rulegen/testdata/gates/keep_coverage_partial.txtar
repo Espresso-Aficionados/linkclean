@@ -1,0 +1,16 @@
+The A-1 Keep (and the K-2 th Keep) reverted to *://*.amazon.*/* alone, which
+does not match amazon.com.be: Compile fails, naming (tag,
+*://*.amazon.com.be/*) and the other five protected names. With the AMZ fix
+(the real overlay) it passes.
+-- ops --
+run Compile
+pass
+jset rules/overlay/overlay.json [{"id": "amazon-affiliate-keep"}, "include"] ["*://*.amazon.*/*"]
+jset rules/overlay/overlay.json [{"id": "amazon-th"}, "include"] ["*://*.amazon.*/*"]
+run Compile
+fail strips "tag" at *://*.amazon.com.be/*
+fail strips "ascsubtag" at *://*.amazon.com.be/*
+fail strips "geniuslink" at *://*.amazon.com.be/*
+fail strips "linkCode" at *://*.amazon.com.be/*
+fail strips "linkId" at *://*.amazon.com.be/*
+fail strips "th" at *://*.amazon.com.be/*

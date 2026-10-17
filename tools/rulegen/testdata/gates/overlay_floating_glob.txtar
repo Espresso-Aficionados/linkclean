@@ -1,0 +1,6 @@
+An overlay path glob with a '*' before its last character: Compile fails
+(query reachability, §4.2).
+-- ops --
+jappend rules/overlay/overlay.json [] {"id": "fixture-floating", "action": "strip", "include": ["*://*/*viewtopic.php*"], "params": ["fixture_param"], "ref": "fixture"}
+run Compile
+fail linkclean/overlay:fixture-floating: path glob of "*://*/*viewtopic.php*" has a '*' before its last character

@@ -1,0 +1,21 @@
+A hold on query-filter.json bytes Q, which every PR keeps proposing because
+main never took them; this PR's upstream commit also changes clean-urls.json:
+Provenance fails "held", so all three files stay at main's lock.
+-- ops --
+jappend rules/brave/query-filter.json [0, "params"] "held_qf_change"
+relock
+-- base/rules/acks.json --
+{"schema": 1, "acks": [], "holds": [
+  {"file": "brave-lists/query-filter.json", "sha256": "${sha:rules/brave/query-filter.json}",
+   "expires": "2026-11-15", "reason": "waiting on brave/adblock-lists#2", "by": "fixture"}
+]}
+-- head/rules/acks.json --
+{"schema": 1, "acks": [], "holds": [
+  {"file": "brave-lists/query-filter.json", "sha256": "${sha:rules/brave/query-filter.json}",
+   "expires": "2026-11-15", "reason": "waiting on brave/adblock-lists#2", "by": "fixture"}
+]}
+-- ops --
+jappend rules/brave/clean-urls.json [0, "params"] "next_upstream_change"
+relock
+run Provenance
+fail held: brave-lists/query-filter.json ${short:rules/brave/query-filter.json} (waiting on brave/adblock-lists#2, expires 2026-11-15)
