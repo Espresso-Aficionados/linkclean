@@ -1,0 +1,27 @@
+{
+  "about": "Open #6 is unedited and older than 14 days; upstream has not moved past its gitlink. G includes open Dependabot PRs, so M == G: no alert.",
+  "upstream": [
+    {"name": "B", "date": "2026-09-01T09:00:00Z"},
+    {"name": "G1", "parent": "B", "date": "2026-09-18T09:00:00Z"}
+  ],
+  "master": "G1",
+  "main": "B",
+  "heads": {"h6": "G1"},
+  "prs": [
+    {
+      "number": 6,
+      "state": "OPEN",
+      "author": {"id": "MDM6Qm90NDk2OTkzMzM=", "is_bot": true, "login": "app/dependabot"},
+      "headRefName": "dependabot/submodules/tools/upstream/adblock-lists-4e5f6a7",
+      "headRefOid": "{{h6}}",
+      "createdAt": "2026-09-21T04:05:00Z",
+      "closedAt": null,
+      "comments": [],
+      "commits": [
+        {"authors": [{"email": "49699333+dependabot[bot]@users.noreply.github.com", "id": "MDM6Qm90NDk2OTkzMzM=", "login": "dependabot[bot]", "name": "dependabot[bot]"}], "messageHeadline": "Bump tools/upstream/adblock-lists from `1a2b3c4` to `4e5f6a7`", "oid": "3d1e2f3a4b5c6d7e8f9001122334455667788990"}
+      ]
+    }
+  ],
+  "want": "quiet (no change evidence)",
+  "code": 0
+}

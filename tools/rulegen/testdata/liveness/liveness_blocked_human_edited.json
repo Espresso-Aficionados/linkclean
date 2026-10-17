@@ -1,0 +1,50 @@
+{
+  "about": "No Dependabot PR in 14 days; upstream moved past the gitlink of open #5 by a commit older than 3 days, but #5 carries a maintainer commit: blocked, not dead (step 2 alerts \"data path waiting on #5\").",
+  "upstream": [
+    {"name": "B", "date": "2026-09-01T09:00:00Z"},
+    {"name": "G1", "parent": "B", "date": "2026-09-24T09:00:00Z"},
+    {"name": "M", "parent": "G1", "date": "2026-10-01T09:00:00Z"}
+  ],
+  "master": "M",
+  "main": "B",
+  "heads": {"h5": "G1"},
+  "prs": [
+    {
+      "number": 5,
+      "state": "OPEN",
+      "author": {"id": "MDM6Qm90NDk2OTkzMzM=", "is_bot": true, "login": "app/dependabot"},
+      "headRefName": "dependabot/submodules/tools/upstream/adblock-lists-9f3c2d1",
+      "headRefOid": "{{h5}}",
+      "createdAt": "2026-09-28T04:12:09Z",
+      "closedAt": null,
+      "comments": [
+        {"author": {"login": "maintainer"}, "body": "<!-- rulegen:summary -->\n## Rules update\n", "createdAt": "2026-09-29T11:20:00Z"}
+      ],
+      "commits": [
+        {
+          "authors": [{"email": "49699333+dependabot[bot]@users.noreply.github.com", "id": "MDM6Qm90NDk2OTkzMzM=", "login": "dependabot[bot]", "name": "dependabot[bot]"}],
+          "messageHeadline": "Bump tools/upstream/adblock-lists from `1a2b3c4` to `9f3c2d1`",
+          "oid": "0d1e2f3a4b5c6d7e8f9001122334455667788990"
+        },
+        {
+          "authors": [{"email": "maintainer@example.invalid", "id": "MDQ6VXNlcjE=", "login": "maintainer", "name": "Maintainer"}],
+          "messageHeadline": "rules: classify the new debounce include",
+          "oid": "1d1e2f3a4b5c6d7e8f9001122334455667788990"
+        }
+      ]
+    },
+    {
+      "number": 3,
+      "state": "MERGED",
+      "author": {"id": "MDM6Qm90NDk2OTkzMzM=", "is_bot": true, "login": "app/dependabot"},
+      "headRefName": "dependabot/submodules/tools/upstream/adblock-lists-1a2b3c4",
+      "headRefOid": "2222222222222222222222222222222222222222",
+      "createdAt": "2026-09-07T04:02:51Z",
+      "closedAt": "2026-09-08T11:40:00Z",
+      "comments": [],
+      "commits": []
+    }
+  ],
+  "want": "blocked #5",
+  "code": 0
+}

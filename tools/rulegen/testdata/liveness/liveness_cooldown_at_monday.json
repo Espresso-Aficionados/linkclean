@@ -1,0 +1,28 @@
+{
+  "about": "No PR in 14 days. M is one commit past main's gitlink, 2.0 days old at 00:00 UTC on Monday 2026-10-19 (3.46 days at this Tuesday 11:00 run): Dependabot's Monday run saw it inside the cooldown, so no alert.",
+  "now": "2026-10-20T11:00:00Z",
+  "upstream": [
+    {"name": "B", "date": "2026-09-01T09:00:00Z"},
+    {"name": "M", "parent": "B", "date": "2026-10-17T00:00:00Z"}
+  ],
+  "master": "M",
+  "main": "B",
+  "heads": {"h4": "B"},
+  "prs": [
+    {
+      "number": 4,
+      "state": "MERGED",
+      "author": {"id": "MDM6Qm90NDk2OTkzMzM=", "is_bot": true, "login": "app/dependabot"},
+      "headRefName": "dependabot/submodules/tools/upstream/adblock-lists-7c8d9e0",
+      "headRefOid": "{{h4}}",
+      "createdAt": "2026-09-02T04:01:00Z",
+      "closedAt": "2026-09-08T11:30:00Z",
+      "comments": [],
+      "commits": [
+        {"authors": [{"email": "49699333+dependabot[bot]@users.noreply.github.com", "id": "MDM6Qm90NDk2OTkzMzM=", "login": "dependabot[bot]", "name": "dependabot[bot]"}], "messageHeadline": "Bump tools/upstream/adblock-lists from `0a1b2c3` to `7c8d9e0`", "oid": "4d1e2f3a4b5c6d7e8f9001122334455667788990"}
+      ]
+    }
+  ],
+  "want": "quiet (no change evidence)",
+  "code": 0
+}
