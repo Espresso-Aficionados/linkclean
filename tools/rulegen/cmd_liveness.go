@@ -32,6 +32,14 @@ const (
 	// liveCheckPage ends the liveness alert: Dependabot's job errors have no
 	// documented API, so a human has to look.
 	liveCheckPage = "; check the repository's Dependabot page (Insights → Dependency graph → Dependabot) for errors"
+
+	// liveListLimit is the documented gh pr list --limit. GitHub refuses a
+	// query that may return more than 500,000 nodes, and gh asks for 100
+	// commits with 100 authors each, plus 100 comments, per PR: 10,201
+	// nodes a PR, so at most 49 PRs. The newest 40 rules-update PRs cover
+	// months of weekly PRs, far more than the 14-day window and the newest
+	// routine-closed PR need.
+	liveListLimit = 40
 )
 
 // livePRLogins are the logins gh reports for a PR that Dependabot opened.
@@ -57,11 +65,13 @@ Decides step 1 of the review routine: whether the lack of a recent
 Dependabot submodule PR means Dependabot's path is dead. It reads no
 network; its inputs are:
 
-  -prs: every rules-update PR, as written by
+  -prs: the newest rules-update PRs, as written by
       gh pr list --repo Espresso-Aficionados/linkclean --label rules-update \
-        --state all --limit 100 \
+        --state all --limit ` + strconv.Itoa(liveListLimit) + ` \
         --json ` + strings.Join(liveFields, ",") + ` \
         > "$TMP/prs.json"
+      (a larger --limit exceeds GitHub's GraphQL node limit and gh fails;
+      if gh fails, do not run liveness on its output)
   -root: a linkclean clone holding -main and the head commit of every
       PR whose gitlink is needed; fetch them first with
         git -C <root> fetch origin main '+refs/pull/*/head:refs/remotes/origin/pull/*'

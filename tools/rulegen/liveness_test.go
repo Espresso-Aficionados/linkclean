@@ -558,3 +558,40 @@ func TestLiveMonday(t *testing.T) {
 		}
 	}
 }
+
+// TestLivenessListCommand keeps the documented gh pr list within GitHub's
+// GraphQL budget: a query that may return more than 500,000 nodes is
+// refused outright, which would leave liveness nothing to read every run.
+// gh asks for up to 100 comments and 100 commits per PR and 100 authors per
+// commit, so each listed PR costs 1 + 100 + 100 + 100*100 nodes. The help
+// and ROUTINE.md must give the same command.
+func TestLivenessListCommand(t *testing.T) {
+	const budget, perPR = 500_000, 1 + 100 + 100 + 100*100
+	limitRe := regexp.MustCompile(`--label rules-update(?:\s|\\)+--state all --limit (\d+)(?:\s|\\)+--json (\S+)`)
+	e, _, stderr := newTestEnv(t, nil)
+	run(context.Background(), e, []string{"liveness", "-h"})
+	routine, err := os.ReadFile("ROUTINE.md")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var got []string
+	for name, text := range map[string]string{"help": stderr.String(), "ROUTINE.md": string(routine)} {
+		ms := limitRe.FindAllStringSubmatch(text, -1)
+		if len(ms) != 1 {
+			t.Errorf("%s: %d step-1 gh pr list commands, want 1", name, len(ms))
+			continue
+		}
+		var limit int
+		fmt.Sscan(ms[0][1], &limit)
+		if limit*perPR > budget {
+			t.Errorf("%s: --limit %d asks GitHub for up to %d nodes, over its %d limit", name, limit, limit*perPR, budget)
+		}
+		if ms[0][2] != strings.Join(liveFields, ",") {
+			t.Errorf("%s: --json %s, want %s", name, ms[0][2], strings.Join(liveFields, ","))
+		}
+		got = append(got, ms[0][1]+" "+ms[0][2])
+	}
+	if len(got) == 2 && got[0] != got[1] {
+		t.Errorf("help and ROUTINE.md disagree: %q", got)
+	}
+}
