@@ -1,0 +1,21 @@
+Tracing turned on from a quoted string (eval, sh -c) still traces the step
+that holds the credentials.
+-- rules-alert.yml --
+name: rules-alert
+on: workflow_dispatch
+permissions: {issues: write}
+jobs:
+  alert:
+    runs-on: ubuntu-24.04
+    steps:
+      - env: {PO_USER: "${{ secrets.PUSHOVER_USER_KEY }}"}
+        run: |
+          eval "set -x"
+          bash -c 'set -x; true'
+          sh -c "set -eux"
+          r=$(curl -sS --form-string "user=$PO_USER" https://api.pushover.net/1/messages.json)
+          echo "$r" | jq -e '.status == 1' >/dev/null
+-- want --
+rules-alert.yml:10 xtrace
+rules-alert.yml:11 xtrace
+rules-alert.yml:12 xtrace

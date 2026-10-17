@@ -1,0 +1,38 @@
+A matrix value built from an expression launders it: ${{ matrix.b }} in run:
+text is allowed, so the matrix itself must hold literals only, in the flow
+and the block form.
+-- rules-alert.yml --
+name: rules-alert
+on:
+  workflow_dispatch:
+    inputs:
+      body: {required: true, type: string}
+permissions: {issues: write}
+jobs:
+  alert:
+    runs-on: ubuntu-24.04
+    strategy: {matrix: {b: ["${{ inputs.body }}"]}}
+    steps:
+      - env: {PO_USER: "${{ secrets.PUSHOVER_USER_KEY }}"}
+        run: |
+          r=$(curl -sS --form-string "user=$PO_USER" --form-string "message=${{ matrix.b }}" https://api.pushover.net/1/messages.json)
+          echo "$r" | jq -e '.status == 1' >/dev/null
+-- ci.yml --
+name: ci
+on: push
+permissions: {contents: read}
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        t:
+          - "${{ github.event.head_commit.message }}"
+        include:
+          - {t: x, u: "${{ github.head_ref }}"}
+    steps:
+      - run: echo "${{ matrix.t }}"
+-- want --
+rules-alert.yml:10 matrix-expression
+ci.yml:10 matrix-expression
+ci.yml:12 matrix-expression

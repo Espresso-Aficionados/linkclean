@@ -18,7 +18,8 @@ import (
 // controls. It is a line scan with no YAML dependency: it understands the
 // workflow shapes this repository writes (block mappings, flow collections
 // on one key's line, block-scalar run: bodies) and reports anything else it
-// cannot place, such as anchors or run: inside a flow collection, as a
+// cannot place, such as anchors, aliases and tags (at the start of a value
+// or anywhere in a flow collection) or run: inside a flow collection, as a
 // violation, so an unusual form fails instead of slipping past. The rules,
 // one id each:
 //
@@ -36,12 +37,18 @@ import (
 //     |, >, |-, >-, |+, >+, with or without an indentation indicator) may
 //     reference only matrix.* and github.event_name, with literals and
 //     operators.
+//   - matrix-expression: no ${{ }} under a job's strategy:, so a matrix
+//     holds literals only and matrix.* in run: text inlines nothing a
+//     workflow input or event controls.
 //   - xtrace: no set -x (or an option cluster with x), bash -x or xtrace in
-//     run: or shell: text; xtrace nowhere.
-//   - secret-output: in a step holding secrets, nothing prints a credential
-//     variable or dumps the environment, curl runs only inside a
-//     V=$(curl ...) capture and without -v or --trace, and the response V is
-//     used only as echo "$V" | jq ... >/dev/null or grep -q... <<<"$V".
+//     run: or shell: text, quoted (eval "set -x", sh -c 'set -x') or not;
+//     xtrace nowhere.
+//   - secret-output: in a step holding secrets, a credential variable is
+//     referenced only inside the V=$(curl ...) capture, nothing dumps the
+//     environment (leading redirections and assignments do not hide the
+//     command), curl runs only inside that capture and without -v or
+//     --trace, and the response V is used only as
+//     echo "$V" | jq ... >/dev/null or grep -q... <<<"$V".
 //   - trigger-forbidden: no pull_request_target or workflow_run trigger.
 //   - alert-trigger: rules-alert.yml's only trigger is workflow_dispatch.
 //   - on-unparsed, yaml-unsupported: a form the scan cannot read.
@@ -180,6 +187,7 @@ const (
 	wfRuleInRun        = "secrets-in-run"
 	wfRuleWithUses     = "secrets-with-uses"
 	wfRuleRunExpr      = "run-expression"
+	wfRuleMatrixExpr   = "matrix-expression"
 	wfRuleXtrace       = "xtrace"
 	wfRuleOutput       = "secret-output"
 	wfRuleTrigger      = "trigger-forbidden"
@@ -318,6 +326,7 @@ func wfParse(name string, src []byte) *wfFile {
 	f := &wfFile{name: name}
 	var stack []wfNode
 	contentCol := -1
+	flow := false // the content lines continue a flow collection
 	started := false
 	for i, raw := range strings.Split(string(src), "\n") {
 		n := i + 1
@@ -327,6 +336,9 @@ func wfParse(name string, src []byte) *wfFile {
 		if contentCol >= 0 {
 			if trimmed == "" || indent > contentCol {
 				f.lines = append(f.lines, wfLine{n: n, text: text, path: slices.Clone(stack), content: true})
+				if flow && wfFlowProps(wfStripComment(trimmed), true) {
+					f.unsupported(n, "anchor, alias or tag in a flow collection")
+				}
 				continue
 			}
 			contentCol = -1
@@ -379,10 +391,9 @@ func wfParse(name string, src []byte) *wfFile {
 			// A scalar or flow-collection item.
 			stack[len(stack)-1].open = false
 			f.lines = append(f.lines, wfLine{n: n, text: text, path: slices.Clone(stack), value: rest})
-			if v := wfStripComment(rest); v != "" && strings.ContainsAny(v[:1], "&*!") {
-				f.unsupported(n, "anchor, alias or tag")
-			}
-			contentCol = stack[len(stack)-1].col
+			v := wfStripComment(rest)
+			f.props(n, v)
+			contentCol, flow = stack[len(stack)-1].col, wfIsFlow(v)
 			continue
 		}
 		key, value := wfUnquote(m[1]), m[2]
@@ -390,13 +401,58 @@ func wfParse(name string, src []byte) *wfFile {
 		stack = append(stack, wfNode{col: col, key: key, open: v == "", line: n})
 		f.lines = append(f.lines, wfLine{n: n, text: text, path: slices.Clone(stack), value: value})
 		if v != "" {
-			if strings.ContainsAny(v[:1], "&*!") {
-				f.unsupported(n, "anchor, alias or tag")
-			}
-			contentCol = col
+			f.props(n, v)
+			contentCol, flow = col, wfIsFlow(v)
 		}
 	}
 	return f
+}
+
+// props reports an anchor, alias or tag in the value v of line n: at its
+// start, or starting any node of a flow collection.
+func (f *wfFile) props(n int, v string) {
+	switch {
+	case v != "" && strings.ContainsAny(v[:1], "&*!"):
+		f.unsupported(n, "anchor, alias or tag")
+	case wfIsFlow(v) && wfFlowProps(v, false):
+		f.unsupported(n, "anchor, alias or tag in a flow collection")
+	}
+}
+
+func wfIsFlow(v string) bool { return v != "" && (v[0] == '{' || v[0] == '[') }
+
+// wfFlowProps reports an &, * or ! starting a node of a flow collection:
+// outside a quoted scalar, with nothing but blanks between it and the
+// "{", "[", "," or ":" before it (or the start of the line, if start is
+// set: a continued collection). Inside a plain scalar (a glob, a
+// background job, a && b) they are text.
+func wfFlowProps(v string, start bool) bool {
+	node := start
+	for i := 0; i < len(v); i++ {
+		c := v[i]
+		switch {
+		case c == ' ' || c == '\t':
+		case node && (c == '"' || c == '\''):
+			j := i + 1
+			for ; j < len(v); j++ {
+				if c == '"' && v[j] == '\\' {
+					j++
+				} else if v[j] == c {
+					if c == '\'' && j+1 < len(v) && v[j+1] == '\'' {
+						j++
+						continue
+					}
+					break
+				}
+			}
+			i, node = j, false
+		case node && (c == '&' || c == '*' || c == '!'):
+			return true
+		default:
+			node = strings.IndexByte("{[,:", c) >= 0
+		}
+	}
+	return false
 }
 
 func wfIsDash(s string) bool { return s == "-" || strings.HasPrefix(s, "- ") }
@@ -547,6 +603,9 @@ func (f *wfFile) check() []wfViolation {
 		if wfXtraceRe.MatchString(l.text) {
 			add(l.n, wfRuleXtrace, "xtrace")
 		}
+		if wfInStrategy(l.path) && strings.Contains(l.text, "${{") {
+			add(l.n, wfRuleMatrixExpr, "${{ }} under strategy: (matrix values must be literals)")
+		}
 		switch {
 		case isRun:
 			text := wfRunText(l)
@@ -583,6 +642,12 @@ func (f *wfFile) check() []wfViolation {
 		}
 	}
 	return out
+}
+
+// wfInStrategy reports a line under a job's strategy: key, its own line
+// included.
+func wfInStrategy(path []wfNode) bool {
+	return len(path) >= 3 && path[0].key == "jobs" && !path[1].item && path[2].key == "strategy"
 }
 
 // checkOn reads the top-level on: key in each form (scalar, flow sequence,
@@ -791,9 +856,16 @@ func wfExprAllowed(e string) bool {
 }
 
 // wfTraces reports shell tracing: set with an option cluster holding x, or
-// a shell (sh, bash, dash, ksh, zsh) started with one.
+// a shell (sh, bash, dash, ksh, zsh) started with one. Quote characters
+// are dropped from the tokens first, so set -x inside a quoted string run
+// by eval or sh -c counts too.
 func wfTraces(s string) bool {
-	toks := wfShellTokens(s)
+	var toks []string
+	for _, t := range wfShellTokens(s) {
+		if t = strings.Trim(t, `"'`); t != "" {
+			toks = append(toks, t)
+		}
+	}
 	for i, t := range toks {
 		switch {
 		case t == "set":
@@ -922,7 +994,34 @@ var (
 	wfKeywordsRe = regexp.MustCompile(`^(?:(?:!|if|then|else|elif|do|while|until|\{|\()\s+)*`)
 )
 
-var wfPrinters = []string{"echo", "printf", "cat", "tee", "print", "base64", "xxd", "od", "hexdump", "rev", "logger"}
+var (
+	wfAssignRe   = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*=`)
+	wfRedirectRe = regexp.MustCompile(`^[0-9]*(?:&>>|&>|>>|>\||>&|<&|<<<|<<|<>|>|<)`)
+)
+
+// wfCommand drops the leading assignments (A=1, A="x y") and redirections
+// (>&2, 2>/dev/null, > file) of a simple command's words, leaving the
+// command name first.
+func wfCommand(words []string) []string {
+	for len(words) > 0 {
+		w := words[0]
+		switch {
+		case wfAssignRe.MatchString(w):
+			words = words[1:]
+			for q := strings.Count(w, `"`)%2 + strings.Count(w, `'`)%2; q > 0 && len(words) > 0; words = words[1:] {
+				q -= strings.Count(words[0], `"`)%2 + strings.Count(words[0], `'`)%2
+			}
+		case wfRedirectRe.MatchString(w):
+			words = words[1:]
+			if w == wfRedirectRe.FindString(w) && len(words) > 0 {
+				words = words[1:] // the target is the next word
+			}
+		default:
+			return words
+		}
+	}
+	return words
+}
 
 // wfOutput applies the secret-output rule to a step that holds secrets.
 func wfOutput(s *wfStepInfo) []struct {
@@ -949,17 +1048,18 @@ func wfOutput(s *wfStepInfo) []struct {
 			if seg == "" {
 				continue
 			}
+			capture := wfCurlRe.MatchString(seg) && wfCaptureRe.MatchString(seg)
+			for _, v := range s.vars {
+				if ref(seg, v) && !capture {
+					add(l.n, "references the credential variable $"+v+" outside the curl capture")
+				}
+			}
 			body := strings.TrimSpace(seg[len(wfKeywordsRe.FindString(seg)):])
-			words := strings.Fields(body)
+			words := wfCommand(strings.Fields(body))
 			if len(words) == 0 {
 				continue
 			}
 			cmd := words[0]
-			for _, v := range s.vars {
-				if ref(seg, v) && slices.Contains(wfPrinters, cmd) {
-					add(l.n, "prints the credential variable $"+v)
-				}
-			}
 			switch {
 			case cmd == "printenv" || cmd == "env" || cmd == "set" && len(words) == 1,
 				slices.Contains([]string{"declare", "typeset", "export"}, cmd) && slices.Contains(words[1:], "-p"):

@@ -1,0 +1,30 @@
+An anchor defined in the allowed step-level env and aliased from inside a
+flow collection (a later action's with:, a job-level env:) would carry the
+credential where the word secrets never appears; anchors, aliases and tags
+anywhere in a flow collection are refused. A * or & inside a plain scalar
+(a glob, a background job) is not one.
+-- rules-alert.yml --
+name: rules-alert
+on: workflow_dispatch
+permissions: {issues: write}
+jobs:
+  alert:
+    runs-on: ubuntu-24.04
+    steps:
+      - env: {PO_USER: &u "${{ secrets.PUSHOVER_USER_KEY }}"}
+        run: |
+          r=$(curl -sS --form-string "user=$PO_USER" https://api.pushover.net/1/messages.json)
+          echo "$r" | jq -e '.status == 1' >/dev/null
+      - uses: some/action@0123456789abcdef0123456789abcdef01234567
+        with: {token: *u}
+      - run: ls *.go & wait
+      - with: [a, *u]
+    env: {A: 1,
+      LEAK: *u}
+    outputs: {x: !!str y, y: "*u", z: a*b}
+-- want --
+rules-alert.yml:8 yaml-unsupported
+rules-alert.yml:13 yaml-unsupported
+rules-alert.yml:15 yaml-unsupported
+rules-alert.yml:17 yaml-unsupported
+rules-alert.yml:18 yaml-unsupported
