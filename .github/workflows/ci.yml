@@ -1,0 +1,54 @@
+name: ci
+on:
+  pull_request: {}
+  push: {branches: [main]}
+permissions: {contents: read}
+jobs:
+  test:
+    strategy: {fail-fast: false, matrix: {go: ["1.26.x", "stable"]}}
+    name: test (${{ matrix.go }})
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1; submodules not checked out: nothing builds from them
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with: {go-version: "${{ matrix.go }}"}
+      - run: go vet ./... && go test -race ./...
+      - run: go -C tools vet ./... && go -C tools test ./...
+  rules:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {check: provenance, sub: Provenance}
+          - {check: schema,     sub: Schema}
+          - {check: compile,    sub: Compile}
+          - {check: counts,     sub: Counts}
+          - {check: risky,      sub: Risky}
+          - {check: golden,     sub: Golden}
+    name: rules-${{ matrix.check }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: {fetch-depth: 0}                 # full history: basedir reads the base commit with git show/ls-tree
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with: {go-version: "1.26.x"}
+      - name: upstream clone for the provenance checks (URL pinned in Go; commits and trees only)
+        if: matrix.check == 'provenance'
+        run: |
+          go -C tools run ./rulegen upstream -root .. -out "$RUNNER_TEMP/upstream"
+          echo "LINKCLEAN_UPSTREAM_DIR=$RUNNER_TEMP/upstream" >> "$GITHUB_ENV"
+      - name: materialise base data (base resolution is in Go)
+        run: >
+          go -C tools run ./rulegen basedir -root ..
+          -event "$GITHUB_EVENT_NAME" -event-path "$GITHUB_EVENT_PATH"
+          -out "$RUNNER_TEMP/base"
+      - name: gate
+        shell: bash                            # -eo pipefail: a failing go test is not hidden by tee
+        run: LINKCLEAN_BASE_DIR="$RUNNER_TEMP/base" go test -run "^TestRules$/^${{ matrix.sub }}$" -v . | tee "$RUNNER_TEMP/gate.log"
+      - name: the gate subtest ran (-run passes vacuously when it does not exist)
+        run: grep -qxF "=== RUN   TestRules/${{ matrix.sub }}" "$RUNNER_TEMP/gate.log"
+      - name: summary (informational)
+        if: always() && matrix.check == 'provenance'
+        run: >
+          go -C tools run ./rulegen summary -root .. -base "$RUNNER_TEMP/base"
+          -out ../out/summary.md && cat out/summary.md >> "$GITHUB_STEP_SUMMARY" || true

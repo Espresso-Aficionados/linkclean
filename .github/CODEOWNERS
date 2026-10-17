@@ -1,0 +1,11 @@
+# Informational: the main ruleset requires no approvals. These paths hold the
+# vendored rule data, its provenance and the human-owned rule decisions.
+/rules/overlay/ @sadbox
+/rules/brave/ @sadbox
+/rules.lock.json @sadbox
+/rules/acks.json @sadbox
+/testdata/corpus/ @sadbox
+/testdata/keep-coverage-exempt.txt @sadbox
+/.gitmodules @sadbox
+/tools/upstream/ @sadbox
+/tools/rulegen/ROUTINE.md @sadbox

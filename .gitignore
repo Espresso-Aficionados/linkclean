@@ -34,3 +34,6 @@ go.work.sum
 
 # Claude Code local state
 .claude/
+
+# rulegen summary output (ci.yml writes out/summary.md)
+/out/
