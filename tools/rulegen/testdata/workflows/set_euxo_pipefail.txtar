@@ -1,0 +1,15 @@
+set -euxo pipefail turns on xtrace: every expanded command, credentials
+included, goes to the log.
+-- ci.yml --
+name: ci
+on: push
+permissions: {contents: read}
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          set -euxo pipefail
+          go test ./...
+-- want --
+ci.yml:9 xtrace

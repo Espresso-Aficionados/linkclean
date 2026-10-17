@@ -1,0 +1,17 @@
+workflow_run runs with secrets on another run's outputs; here on: is a
+block mapping.
+-- ci.yml --
+name: ci
+on:
+  push: {branches: [main]}
+  workflow_run:
+    workflows: [ci]
+    types: [completed]
+permissions: {contents: read}
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - run: go test ./...
+-- want --
+ci.yml:4 trigger-forbidden

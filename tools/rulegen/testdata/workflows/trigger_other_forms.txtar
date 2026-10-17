@@ -1,0 +1,24 @@
+The forbidden triggers are found in a flow sequence, a block sequence and
+a quoted on: key too, and a workflow with no on: is not read.
+-- a.yml --
+name: a
+on: [push, workflow_run]
+jobs: {}
+-- b.yml --
+name: b
+on:
+  - push
+  - pull_request_target
+jobs: {}
+-- c.yml --
+name: c
+"on": {pull_request_target: {types: [opened]}}
+jobs: {}
+-- d.yml --
+name: d
+jobs: {}
+-- want --
+a.yml:2 trigger-forbidden
+b.yml:4 trigger-forbidden
+c.yml:2 trigger-forbidden
+d.yml:1 on-unparsed

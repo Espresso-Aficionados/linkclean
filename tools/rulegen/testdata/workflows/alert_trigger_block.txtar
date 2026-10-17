@@ -1,0 +1,16 @@
+The same with on: as a block mapping, and with a schedule.
+-- rules-alert.yml --
+name: rules-alert
+on:
+  workflow_dispatch:
+    inputs:
+      body: {required: true, type: string}
+  schedule: [{cron: "0 11 * * 2"}]
+permissions: {issues: write}
+jobs:
+  alert:
+    runs-on: ubuntu-24.04
+    steps:
+      - run: echo ok
+-- want --
+rules-alert.yml:2 alert-trigger

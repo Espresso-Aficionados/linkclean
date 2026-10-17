@@ -1,0 +1,19 @@
+The body of a run: |- block scalar is run: text.
+-- rules-alert.yml --
+name: rules-alert
+on:
+  workflow_dispatch:
+    inputs:
+      body: {required: true, type: string}
+permissions: {issues: write}
+jobs:
+  alert:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: issue
+        env: {GH_TOKEN: "${{ github.token }}"}
+        run: |-
+          n=$(gh issue list --label rules-alert --state open --json number --jq '.[0].number // empty')
+          gh issue comment "$n" --body "${{ inputs.body }}"
+-- want --
+rules-alert.yml:15 run-expression

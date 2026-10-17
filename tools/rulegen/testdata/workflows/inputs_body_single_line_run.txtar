@@ -1,0 +1,18 @@
+inputs.body carries third-party text; inlined into a single-line run: it
+can inject shell. It must reach the script through env:.
+-- rules-alert.yml --
+name: rules-alert
+on:
+  workflow_dispatch:
+    inputs:
+      body: {required: true, type: string}
+permissions: {issues: write}
+jobs:
+  alert:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: issue
+        env: {GH_TOKEN: "${{ github.token }}", BODY: "${{ inputs.body }}"}
+        run: gh issue create --label rules-alert --title alert --body "${{ inputs.body }}"
+-- want --
+rules-alert.yml:13 run-expression

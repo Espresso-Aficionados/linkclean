@@ -1,0 +1,31 @@
+Passes: the alert workflow with its env as a block mapping, the inputs
+through env:, the response used only by jq >/dev/null and grep -q, and a
+second step (not holding secrets) that prints freely.
+-- rules-alert.yml --
+# secrets are named only in step-level env below.
+name: rules-alert
+on:
+  workflow_dispatch:
+    inputs:
+      title: {required: true, type: string}
+      body:  {required: true, type: string}
+permissions: {issues: write}
+jobs:
+  alert:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: pushover
+        continue-on-error: true
+        env:
+          PO_USER: ${{ secrets.PUSHOVER_USER_KEY }}
+          PO_TOKEN: ${{ secrets.PUSHOVER_APP_TOKEN }}
+          BODY: ${{ inputs.body }}
+        run: |
+          set -eu -o pipefail
+          r=$(curl -sS --form-string "token=$PO_TOKEN" --form-string "user=$PO_USER" \
+                --form-string "message=${BODY:0:1000}" \
+                https://api.pushover.net/1/messages.json)
+          echo "$r" | jq -e '.status == 1 and (.errors | not)' >/dev/null && ! grep -qi 'no active devices' <<<"$r"
+      - env: {TITLE: "${{ inputs.title }}"}
+        run: echo "$TITLE"; env | sort
+-- want --

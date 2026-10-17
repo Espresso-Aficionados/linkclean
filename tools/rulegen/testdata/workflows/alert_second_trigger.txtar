@@ -1,0 +1,13 @@
+rules-alert.yml must be dispatched by hand only: a second trigger (here in
+a flow sequence) would run it on events.
+-- rules-alert.yml --
+name: rules-alert
+on: [workflow_dispatch, push]
+permissions: {issues: write}
+jobs:
+  alert:
+    runs-on: ubuntu-24.04
+    steps:
+      - run: echo ok
+-- want --
+rules-alert.yml:2 alert-trigger

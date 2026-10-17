@@ -1,0 +1,27 @@
+Passes: matrix.* and github.event_name with literals and operators in every
+run: form; ${{ }} outside run: text; secrets only in YAML comment lines
+outside rules-alert.yml; a same-indent steps sequence.
+-- ci.yml --
+name: ci
+# secrets.X in a comment line is not a mention.
+on:
+  pull_request: {}
+  push: {branches: [main]}
+permissions: {contents: read}
+jobs:
+  test:
+    strategy: {fail-fast: false, matrix: {go: ["1.26.x", "stable"], include: [{sub: Golden}]}}
+    name: test (${{ matrix.go }})
+    if: ${{ github.event.pull_request.title != 'x' }}
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+      with: {go-version: "${{ matrix.go }}"}
+    - run: go test -run "^TestRules$/^${{ matrix.sub }}$" -v .
+    - run: >
+        go test -fuzztime "${{ github.event_name == 'pull_request' && '2m' || '10m' }}"
+        -run '^$' "${{ matrix.pkg }}"
+    - run: |-
+        test "${{ !(matrix.n >= 2) }}" = true || echo "it's ${{ matrix.go }}" # a comment
+      shell: bash
+-- want --

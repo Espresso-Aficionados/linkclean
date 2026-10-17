@@ -1,0 +1,27 @@
+The other ways to turn on tracing: a separate -x after other options, set -o
+xtrace, a shell started with -x, a shell: with -x, and xtrace in an env
+value. set +x, set -o pipefail and grep -x are not tracing.
+-- ci.yml --
+name: ci
+on: push
+permissions: {contents: read}
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env: {SHELLOPTS: xtrace}
+    steps:
+      - run: |
+          set -eu -o pipefail -x
+          set -o xtrace
+          bash -ex ./script.sh
+          /bin/sh -x ./script.sh
+          set +x; set -o pipefail; grep -x ok out.txt
+      - shell: bash -eux {0}
+        run: go test ./...
+-- want --
+ci.yml:7 xtrace
+ci.yml:10 xtrace
+ci.yml:11 xtrace
+ci.yml:12 xtrace
+ci.yml:13 xtrace
+ci.yml:15 xtrace

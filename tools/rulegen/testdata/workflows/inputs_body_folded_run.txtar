@@ -1,0 +1,23 @@
+The body of a run: > block scalar is run: text: every line indented deeper
+than the run: key.
+-- rules-alert.yml --
+name: rules-alert
+on:
+  workflow_dispatch:
+    inputs:
+      body: {required: true, type: string}
+permissions: {issues: write}
+jobs:
+  alert:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: issue
+        env: {GH_TOKEN: "${{ github.token }}"}
+        run: >
+          gh issue create --label rules-alert --title alert
+
+          --body "${{ inputs.body }}"
+      - name: after
+        run: echo done
+-- want --
+rules-alert.yml:16 run-expression

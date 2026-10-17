@@ -1,0 +1,25 @@
+Shapes the scan cannot place fail instead of passing unread: run: inside a
+flow-mapping step, a plain run: value starting on the next line, anchors
+and aliases, and a tab in the indentation.
+-- ci.yml --
+name: ci
+on: push
+permissions: {contents: read}
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env: &shared
+      A: b
+    steps:
+      - {name: flow, run: "echo ${{ inputs.body }}"}
+      - run:
+          echo ${{ inputs.body }}
+      - env: *shared
+        run: echo ok
+	  - run: echo tab
+-- want --
+ci.yml:7 yaml-unsupported
+ci.yml:10 yaml-unsupported
+ci.yml:12 yaml-unsupported
+ci.yml:13 yaml-unsupported
+ci.yml:15 yaml-unsupported

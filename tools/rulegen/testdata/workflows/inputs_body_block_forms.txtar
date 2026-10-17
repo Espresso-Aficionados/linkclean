@@ -1,0 +1,38 @@
+Every block-scalar form of run:, with chomping and indentation indicators in
+either order and a comment after the indicator, is scanned; so is a step
+whose run: is on its "- " line, and a quoted single-line value continued on
+the next line.
+-- ci.yml --
+name: ci
+on: push
+permissions: {contents: read}
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          echo "${{ inputs.body }}"
+      - run: >-
+          echo "${{ inputs.body }}"
+      - run: |+   # keep trailing newlines
+          echo "${{ inputs.body }}"
+      - run: >+
+          echo "${{ inputs.body }}"
+      - run: |2
+            echo "${{ inputs.body }}"
+      - run: >-2
+            echo "${{ inputs.body }}"
+      - run: |2-
+            echo "${{ inputs.body }}"
+      - name: quoted
+        run: "echo one
+          ${{ inputs.body }}"
+-- want --
+ci.yml:9 run-expression
+ci.yml:11 run-expression
+ci.yml:13 run-expression
+ci.yml:15 run-expression
+ci.yml:17 run-expression
+ci.yml:19 run-expression
+ci.yml:21 run-expression
+ci.yml:24 run-expression

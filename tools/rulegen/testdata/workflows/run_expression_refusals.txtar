@@ -1,0 +1,27 @@
+Only matrix.* and github.event_name may be inlined into run: text: other
+github.* values (a PR title), functions, index syntax, a bare matrix and an
+unterminated expression are refused.
+-- ci.yml --
+name: ci
+on: pull_request
+permissions: {contents: read}
+jobs:
+  test:
+    strategy: {matrix: {go: ["1.26.x"]}}
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "${{ github.event.pull_request.title }}"
+      - run: echo "${{ format('{0}', matrix.go) }}"
+      - run: echo "${{ matrix['go'] }}"
+      - run: echo "${{ matrix }}"
+      - run: echo "${{ env.HOME }}"
+      - run: |
+          echo "${{ matrix.go
+          }}"
+-- want --
+ci.yml:9 run-expression
+ci.yml:10 run-expression
+ci.yml:11 run-expression
+ci.yml:12 run-expression
+ci.yml:13 run-expression
+ci.yml:15 run-expression
