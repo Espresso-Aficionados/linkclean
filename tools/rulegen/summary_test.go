@@ -669,6 +669,24 @@ func TestSummaryFixtures(t *testing.T) {
 		sumNotWant(t, out, data.SumHoldLapsed)
 	})
 
+	t.Run("hold_on_main", func(t *testing.T) {
+		// The hold lands on main after the PR was synced; the routine's
+		// freshness merge brings it into the PR head.
+		t.Parallel()
+		w, x, _ := holdWorld(t)
+		w.l.Run("checkout", "--quiet", "-b", "pr")
+		w.up[cleanURLs] = x
+		w.sync(w.upCommit("X"))
+		w.commit("sync X")
+		w.l.Run("checkout", "--quiet", "main")
+		w.l.Write(data.AcksPath, holdJSON(sumSHA(x), "2026-11-15"))
+		w.base = w.commit("hold X on main")
+		w.l.Run("checkout", "--quiet", "pr")
+		w.l.Run("merge", "--quiet", "--no-ff", "--no-edit", "main")
+		out := w.mustSummary("-base", w.base)
+		sumWant(t, sumSection(t, out, "Header"), "- **Held**: "+fmt.Sprintf(data.MsgHeld, cleanURLs, sumSHA(x)[:12], "waiting on brave/adblock-lists#1", "2026-11-15"))
+	})
+
 	t.Run("hold_lapsed_bytes_changed", func(t *testing.T) {
 		t.Parallel()
 		w, x, y := holdWorld(t)
