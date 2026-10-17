@@ -16,7 +16,9 @@ import (
 // summaryData is what `rulegen summary` needs from the engine (§11.1), which
 // the stdlib-only tools module cannot import: TestSummaryData writes it as
 // JSON, and summary runs that test through `go test`. Field names are the
-// contract; schema changes with any incompatible change.
+// contract, mirrored by tools/rulegen/internal/data.SummaryData (a tools test
+// decodes this test's output strictly); schema changes with any
+// incompatible change.
 type summaryData struct {
 	Schema    int    `json:"schema"`     // 1
 	BaseError string `json:"base_error"` // "" when base's data compiles; "no base" without LINKCLEAN_BASE_DIR

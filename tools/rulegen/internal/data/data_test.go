@@ -400,10 +400,12 @@ func TestExpired(t *testing.T) {
 
 func TestSummaryDataRoundTrip(t *testing.T) {
 	d := SummaryData{
-		HeadErrors:   []string{"x"},
-		Corpus:       []CorpusRow{{ID: "a-1", Input: "https://a/?x=1&y=<2>", Base: "https://a/", Head: "https://a/", Expected: "https://a/", BrokenHead: true}},
-		CorpusScopes: map[string]bool{"*://*.a.com/*": true},
-		Hygiene:      []HygieneNote{{Kind: HygieneStaleKeep, RuleID: "K-1", Text: "t"}},
+		Schema:         SummarySchema,
+		HeadError:      "x",
+		Corpus:         []CorpusRow{{ID: "a-1", Input: "https://a/?x=1&y=<2>", Base: "https://a/", Head: "https://a/", Expected: "https://a/", Alt: []string{}, BrokenHead: true}},
+		CorpusScopes:   map[string]bool{"*://*.a.com/*": true},
+		Hygiene:        []HygieneNote{{Kind: HygieneStaleKeep, RuleID: "K-1", Param: "st"}},
+		AffiliateHosts: map[string]string{"a.example": "Net"},
 	}
 	got, err := ParseSummaryData(d.Encode())
 	if err != nil {
@@ -415,7 +417,10 @@ func TestSummaryDataRoundTrip(t *testing.T) {
 	if !bytes.Contains(d.Encode(), []byte("y=<2>")) {
 		t.Error("Encode escapes HTML")
 	}
-	if _, err := ParseSummaryData([]byte(`{"corpus": [], "extra": 1}`)); err == nil {
+	if _, err := ParseSummaryData([]byte(`{"schema": 1, "corpus": [], "extra": 1}`)); err == nil {
 		t.Error("unknown field accepted")
+	}
+	if _, err := ParseSummaryData([]byte(`{"schema": 2}`)); err == nil {
+		t.Error("schema 2 accepted")
 	}
 }
