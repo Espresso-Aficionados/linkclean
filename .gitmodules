@@ -1,0 +1,4 @@
+[submodule "tools/upstream/adblock-lists"]
+	path = tools/upstream/adblock-lists
+	url = https://github.com/brave/adblock-lists
+	branch = master
