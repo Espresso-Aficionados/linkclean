@@ -1,0 +1,13 @@
+version: 2
+updates:
+  - {package-ecosystem: gomod, directory: "/", schedule: {interval: weekly},
+     groups: {golang-x: {patterns: ["golang.org/x/*"]}}}
+  - {package-ecosystem: gomod, directory: "/tools", schedule: {interval: weekly}}
+  - {package-ecosystem: github-actions, directory: "/", schedule: {interval: weekly},
+     groups: {actions: {update-types: [minor, patch]}}}
+  # The upstream-change detector. Tracks tools/upstream/adblock-lists, whose .gitmodules entry
+  # says branch = master. No cooldown key: Dependabot's default 3-day cooldown is kept on purpose.
+  # No open-pull-requests-limit: the default (5) is kept. It does not matter for the data path: an
+  # edited open PR blocks newer ones whatever the limit, and the routine closes held PRs.
+  - {package-ecosystem: gitsubmodule, directory: "/", schedule: {interval: weekly, day: monday},
+     labels: [rules-update]}
