@@ -114,16 +114,21 @@ func (r *gateRecorder) SkipNow()                  { panic(gateAbort{}) }
 func (r *gateRecorder) Skipped() bool             { return false }
 
 // recordGate runs one gate check on e and returns what it reported.
-func recordGate(t testing.TB, e *gateEnv, check string) (r *gateRecorder) {
+func recordGate(t testing.TB, e *gateEnv, check string) *gateRecorder {
+	return recordFunc(t, check, func(r testing.TB) { checkRules(r, e, check) })
+}
+
+// recordFunc runs f with a recorder; a FailNow in f ends f only.
+func recordFunc(t testing.TB, what string, f func(testing.TB)) (r *gateRecorder) {
 	r = &gateRecorder{TB: t}
 	defer func() {
 		if v := recover(); v != nil {
 			if _, ok := v.(gateAbort); !ok {
-				t.Fatalf("%s panicked: %v\n%s", check, v, debug.Stack())
+				t.Fatalf("%s panicked: %v\n%s", what, v, debug.Stack())
 			}
 		}
 	}()
-	checkRules(r, e, check)
+	f(r)
 	return r
 }
 

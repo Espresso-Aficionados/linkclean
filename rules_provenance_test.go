@@ -3,11 +3,13 @@ package linkclean
 import (
 	"bufio"
 	"bytes"
+	"cmp"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"io/fs"
+	"maps"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -601,4 +603,224 @@ func parseGitmodules(data []byte) ([]map[string]string, error) {
 		cur[k] = v
 	}
 	return out, sc.Err()
+}
+
+// upstreamRepo is a local stand-in for the clone `rulegen upstream` makes: a
+// repository with refs/remotes/origin/master and a STATUS file.
+type upstreamRepo struct {
+	t   *testing.T
+	dir string
+	env []string
+}
+
+func newUpstreamRepo(t *testing.T) *upstreamRepo {
+	if _, err := exec.LookPath("git"); err != nil {
+		t.Skip("no git")
+	}
+	home := t.TempDir()
+	u := &upstreamRepo{t: t, dir: t.TempDir(), env: append(os.Environ(),
+		"HOME="+home, "GIT_CONFIG_GLOBAL=/dev/null", "GIT_CONFIG_NOSYSTEM=1", "LC_ALL=C",
+		"GIT_AUTHOR_NAME=fixture", "GIT_AUTHOR_EMAIL=fixture@example.com",
+		"GIT_COMMITTER_NAME=fixture", "GIT_COMMITTER_EMAIL=fixture@example.com",
+		"GIT_AUTHOR_DATE=2026-10-14T19:19:33Z", "GIT_COMMITTER_DATE=2026-10-14T19:19:33Z",
+		"GIT_INDEX_FILE="+filepath.Join(home, "index"))}
+	u.git(nil, "init", "-q")
+	return u
+}
+
+func (u *upstreamRepo) git(stdin []byte, args ...string) string {
+	u.t.Helper()
+	cmd := exec.Command("git", append([]string{"-C", u.dir}, args...)...)
+	cmd.Env = u.env
+	cmd.Stdin = bytes.NewReader(stdin)
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		u.t.Fatalf("git %v: %v\n%s", args, err, out)
+	}
+	return strings.TrimSpace(string(out))
+}
+
+// commit writes a commit with exactly files, on parent ("" for a root).
+func (u *upstreamRepo) commit(parent string, files map[string][]byte, msg string) string {
+	u.t.Helper()
+	u.git(nil, "read-tree", "--empty")
+	for _, p := range slices.Sorted(maps.Keys(files)) {
+		blob := u.git(files[p], "hash-object", "-w", "--stdin")
+		u.git(nil, "update-index", "--add", "--cacheinfo", "100644,"+blob+","+p)
+	}
+	args := []string{"commit-tree", u.git(nil, "write-tree"), "-m", msg}
+	if parent != "" {
+		args = append(args, "-p", parent)
+	}
+	return u.git(nil, args...)
+}
+
+func (u *upstreamRepo) status(s string) {
+	u.t.Helper()
+	if err := os.WriteFile(filepath.Join(u.dir, statusFile), []byte(s+"\n"), 0o644); err != nil {
+		u.t.Fatal(err)
+	}
+}
+
+const testGitmodules = "[submodule \"tools/upstream/adblock-lists\"]\n\tpath = tools/upstream/adblock-lists\n\turl = https://github.com/brave/adblock-lists\n\tbranch = master\n"
+
+// TestRulesUpstream runs the Upstream part of Provenance against local git
+// repositories: the gate side of the sync_*, gitlink_*, gitmodules_changed
+// and provenance_* rows of §11.8 (their end-to-end halves run in
+// tools/rulegen through `go test`).
+func TestRulesUpstream(t *testing.T) {
+	u := newUpstreamRepo(t)
+	real, err := realInputs()
+	if err != nil {
+		t.Fatal(err)
+	}
+	files := map[string][]byte{}
+	for _, p := range lockedPaths {
+		files[p.upstream] = real[p.vendored]
+	}
+	x0 := u.commit("", files, "x0: the locked bytes")
+	files["brave-lists/other.txt"] = []byte("another list\n")
+	x1 := u.commit(x0, files, "x1: another list only")
+	changed := append(slices.Clone(real[lockedPaths[0].vendored]), '\n')
+	files[lockedPaths[0].upstream] = changed
+	x2 := u.commit(x1, files, "x2: clean-urls changed")
+	delete(files, "brave-lists/other.txt")
+	files[lockedPaths[0].upstream] = real[lockedPaths[0].vendored]
+	files["README"] = []byte("unmerged\n")
+	pr := u.commit(x0, files, "pr: unmerged head, same blobs")
+	u.git(nil, "update-ref", upstreamRef, x2)
+	u.git(nil, "update-ref", "refs/pull/1/head", pr)
+	const gone = "ffffffffffffffffffffffffffffffffffffffff"
+
+	baseLock, err := readLock(mapFS(real, embedded))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, tc := range []struct {
+		name          string
+		g, b, x       string // head gitlink, base GITLINK ("" none), lock commit
+		synced        bool   // the lock holds x2's clean-urls blob
+		status        string // "" = ok
+		headGM        string // "" = testGitmodules
+		baseNoGM      bool
+		noUpstreamDir bool
+		noBase        bool
+		fail, log     []string
+	}{
+		{name: "sync_no_change", g: x1, b: x0, x: x0},
+		{name: "provenance_unsynced", g: x2, b: x1, x: x0, fail: []string{fmt.Sprintf(msgNotSynced, x2)}},
+		{name: "provenance_synced", g: x2, b: x1, x: x2, synced: true},
+		{name: "sync_gitlink_not_ancestor", g: pr, b: x0, x: x0, fail: []string{fmt.Sprintf(msgNotOnMaster, pr)}},
+		{name: "gitlink_moved_backwards", g: x0, b: x1, x: x0, fail: []string{fmt.Sprintf(msgGitlinkBackwards, x1, x0)}},
+		{name: "sync_after_upstream_rewrite", g: x1, b: gone, x: x0, log: []string{fmt.Sprintf(msgHistoryRewritten, gone)}},
+		{name: "base_gitlink_off_master", g: x1, b: pr, x: x0, log: []string{fmt.Sprintf(msgHistoryRewritten, pr)}},
+		{name: "provenance_lock_commit_not_ancestor", g: x1, b: x0, x: pr, fail: []string{fmt.Sprintf(msgLockNotAncestor, pr, x1)}},
+		{name: "lock_commit_gone", g: x1, b: x0, x: gone, fail: []string{fmt.Sprintf(msgLockNotAncestor, gone, x1)}},
+		{name: "lock_commit_blobs", g: x2, b: x1, x: x1, synced: true,
+			fail: []string{fmt.Sprintf(msgLockBlobs, lockedPaths[0].upstream, gitBlobSHA1(real[lockedPaths[0].vendored]), x1, gitBlobSHA1(changed))}},
+		{name: "sync_fetch_fails", g: x1, b: x0, x: x0, status: "unreachable: fatal: unable to access", fail: []string{msgUnreachable}},
+		{name: "gitlink_missing", g: x1, b: x0, x: x0, status: statusGitlinkMissing, fail: []string{fmt.Sprintf(msgGitlinkMissing, x1)}},
+		{name: "gitlink_not_in_clone", g: gone, b: x0, x: x0, fail: []string{fmt.Sprintf(msgGitlinkMissing, gone)}},
+		{name: "gitmodules_fork", g: x1, b: x0, x: x0, headGM: strings.Replace(testGitmodules, "brave/", "fork/", 1),
+			fail: []string{msgGitmodulesChanged, `url "https://github.com/fork/adblock-lists"`}},
+		{name: "gitmodules_branch_main", g: x1, b: x0, x: x0, headGM: strings.Replace(testGitmodules, "= master", "= main", 1),
+			fail: []string{msgGitmodulesChanged, `branch "main"`}},
+		{name: "gitmodules_added", g: x1, b: x0, x: x0, baseNoGM: true},
+		{name: "not_a_gitlink", g: "", b: x0, x: x0, fail: []string{fmt.Sprintf(msgNotGitlink, submodulePath)}},
+		{name: "provenance_unrelated_pr_upstream_down", g: x0, b: x0, x: x0, status: "unreachable: fatal: unable to access",
+			log: []string{msgInputsUnchanged}},
+		{name: "provenance_no_upstream_dir", g: x1, b: x0, x: x0, noUpstreamDir: true,
+			log: []string{fmt.Sprintf(msgSkipNoUpstream, partUpstream)}},
+		{name: "gates_without_base_dir", g: x1, x: x0, noBase: true, log: []string{fmt.Sprintf(msgSkipNoBase, partUpstream)}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			lock := baseLock
+			lock.Upstream.Files = maps.Clone(baseLock.Upstream.Files)
+			lock.Upstream.Commit = tc.x
+			if tc.synced {
+				lf := lock.Upstream.Files[lockedPaths[0].upstream]
+				lf.GitBlobSHA1 = gitBlobSHA1(changed)
+				lock.Upstream.Files[lockedPaths[0].upstream] = lf
+			}
+			lockJSON, err := json.Marshal(lock)
+			if err != nil {
+				t.Fatal(err)
+			}
+			head := cloneFiles(real, nil)
+			head[lockPath] = lockJSON
+			head[".gitmodules"] = []byte(cmp.Or(tc.headGM, testGitmodules))
+			base := cloneFiles(head, inBase)
+			base[".gitmodules"] = []byte(testGitmodules)
+			if tc.baseNoGM {
+				delete(base, ".gitmodules")
+			}
+			if tc.b != "" {
+				base["GITLINK"] = []byte(tc.b + "\n")
+			}
+			u.status(cmp.Or(tc.status, statusOK))
+			e := &gateEnv{data: mapFS(head, embedded), tree: mapFS(head, nil), base: mapFS(base, nil),
+				headGitlink: tc.g, upstream: u.dir, now: time.Now(), key: "upstream"}
+			if tc.noUpstreamDir {
+				e.upstream = ""
+			}
+			if tc.noBase {
+				e.base = nil
+			}
+			r := recordFunc(t, tc.name, func(r testing.TB) { checkUpstream(r, e, &lock) })
+			for _, want := range tc.fail {
+				if !slices.ContainsFunc(r.errs, func(s string) bool { return strings.Contains(s, want) }) {
+					t.Errorf("want error %q; errors %q", want, r.errs)
+				}
+			}
+			if len(tc.fail) == 0 && len(r.errs) > 0 {
+				t.Errorf("want pass; errors %q", r.errs)
+			}
+			for _, want := range tc.log {
+				if !slices.ContainsFunc(r.logs, func(s string) bool { return strings.Contains(s, want) }) {
+					t.Errorf("want log %q; logs %q", want, r.logs)
+				}
+			}
+		})
+	}
+}
+
+func TestGitmodulesMapping(t *testing.T) {
+	for _, tc := range []struct {
+		in, err string
+	}{
+		{testGitmodules, ""},
+		{strings.Replace(testGitmodules, "adblock-lists\n\tbranch", "adblock-lists.git\n\tbranch", 1), ""},
+		{"# comment\n[submodule \"x\"]\n\tPath = \"tools/upstream/adblock-lists\"\n\tURL = https://github.com/brave/adblock-lists\n\tbranch = master\n", ""},
+		{strings.Replace(testGitmodules, "https://github.com/brave/adblock-lists", "https://github.com/brave/adblock-lists-fork", 1), "url"},
+		{strings.Replace(testGitmodules, "\tbranch = master\n", "", 1), "branch"},
+		{testGitmodules + strings.Replace(testGitmodules, "\"tools", "\"other", 1), "2 submodules"},
+		{strings.Replace(testGitmodules, "tools/upstream/adblock-lists\n", "tools/upstream/other\n", 1), "no submodule"},
+		{testGitmodules + "\turl = https://example.com/x\n", "set twice"},
+		{"[core]\n\tbare = false\n", "unexpected section"},
+	} {
+		err := checkGitmodulesMapping([]byte(tc.in))
+		if tc.err == "" && err != nil || tc.err != "" && (err == nil || !strings.Contains(err.Error(), tc.err)) {
+			t.Errorf("%q: err %v, want %q", tc.in, err, tc.err)
+		}
+	}
+}
+
+func TestAcksExpiry(t *testing.T) {
+	for _, tc := range []struct {
+		now  string
+		want bool
+	}{
+		{"2026-12-01T00:00:00Z", false},
+		{"2026-12-01T23:59:59Z", false},
+		{"2026-12-02T00:00:00Z", true},
+		{"2026-12-01T20:00:00-05:00", true}, // 01:00 UTC on Dec 2
+	} {
+		now, _ := time.Parse(time.RFC3339, tc.now)
+		if got := expired("2026-12-01", now); got != tc.want {
+			t.Errorf("expired(2026-12-01, %s) = %v, want %v", tc.now, got, tc.want)
+		}
+	}
+	if !expired("2026-02-30", time.Now()) {
+		t.Error("an invalid date does not count as expired")
+	}
 }
