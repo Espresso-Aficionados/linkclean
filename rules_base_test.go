@@ -107,6 +107,26 @@ func countData(fsys fs.FS) dataCounts {
 // dropsMore reports whether head is more than pct percent below base.
 func dropsMore(base, head, pct int) bool { return head*100 < base*(100-pct) }
 
+// TestDropsMore pins the boundary: exactly pct below base is allowed, only
+// "more than" fails (§11.3).
+func TestDropsMore(t *testing.T) {
+	for _, tt := range []struct {
+		base, head, pct int
+		want            bool
+	}{
+		{100, 85, 15, false},
+		{100, 84, 15, true},
+		{200, 170, 15, false},
+		{200, 169, 15, true},
+		{0, 0, 15, false},
+		{100, 100, 15, false},
+	} {
+		if got := dropsMore(tt.base, tt.head, tt.pct); got != tt.want {
+			t.Errorf("dropsMore(%d, %d, %d) = %v, want %v", tt.base, tt.head, tt.pct, got, tt.want)
+		}
+	}
+}
+
 func dropPct(base, head int) float64 { return 100 * float64(base-head) / float64(max(base, 1)) }
 
 // metricAcked reports whether a counts or golden ack accepts value for

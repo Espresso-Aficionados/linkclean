@@ -58,7 +58,7 @@ var gateFixtures = []string{
 	// Risky.
 	"risky_added_to_existing_global", "risky_scoped_new_host", "functional_param_global",
 	// Golden.
-	"golden_break",
+	"golden_break", "golden_recall_drop",
 }
 
 func TestRulesFixtures(t *testing.T) {

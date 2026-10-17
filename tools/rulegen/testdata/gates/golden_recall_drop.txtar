@@ -1,0 +1,46 @@
+Upstream drops crid from the Amazon rule, so six corpus items keep a
+tracker: Golden (c) fails on tracker recall (down more than 1 point) as
+well as on exact-or-alt. A corpus.exact ack clears only the exact-or-alt
+half; recall passes once a corpus.recall_removed ack bound to the new bytes
+covers the new count, and fails with one whose min is above it.
+-- ops --
+jremove rules/brave/clean-urls.json [{"include": "*://*.amazon.ca/*"}, "params"] "crid"
+relock
+run Golden/c
+fail Golden (c): corpus exact-or-alt
+fail Golden (c): tracker recall
+-- head/rules/acks.json --
+{"schema": 1, "acks": [
+  {"check": "golden", "metric": "corpus.exact", "min": 200,
+   "vendored_sha256": "${sha:rules/brave/clean-urls.json}", "expires": "2026-12-01",
+   "reason": "fixture: accepted break", "by": "fixture"}
+], "holds": []}
+-- ops --
+run Golden/c
+nofail Golden (c): corpus exact-or-alt
+fail Golden (c): tracker recall
+-- head/rules/acks.json --
+{"schema": 1, "acks": [
+  {"check": "golden", "metric": "corpus.exact", "min": 200,
+   "vendored_sha256": "${sha:rules/brave/clean-urls.json}", "expires": "2026-12-01",
+   "reason": "fixture: accepted break", "by": "fixture"},
+  {"check": "golden", "metric": "corpus.recall_removed", "min": 300,
+   "vendored_sha256": "${sha:rules/brave/clean-urls.json}", "expires": "2026-12-01",
+   "reason": "fixture: accepted recall drop", "by": "fixture"}
+], "holds": []}
+-- ops --
+run Golden/c
+pass
+-- head/rules/acks.json --
+{"schema": 1, "acks": [
+  {"check": "golden", "metric": "corpus.exact", "min": 200,
+   "vendored_sha256": "${sha:rules/brave/clean-urls.json}", "expires": "2026-12-01",
+   "reason": "fixture: accepted break", "by": "fixture"},
+  {"check": "golden", "metric": "corpus.recall_removed", "min": 1000,
+   "vendored_sha256": "${sha:rules/brave/clean-urls.json}", "expires": "2026-12-01",
+   "reason": "fixture: accepted recall drop", "by": "fixture"}
+], "holds": []}
+-- ops --
+run Golden/c
+nofail Golden (c): corpus exact-or-alt
+fail Golden (c): tracker recall

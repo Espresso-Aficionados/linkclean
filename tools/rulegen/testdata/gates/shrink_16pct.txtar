@@ -1,6 +1,7 @@
 About 16% of the union's global params removed upstream (the absolute
 floors still hold): Counts fails; passes with a matching ack; fails with a
-stale-sha ack, an expired ack, or an ack whose min is above the new count.
+stale-sha ack, an expired ack, an ack whose min is above the new count, or
+an otherwise matching ack for another metric.
 -- ops --
 drop-global 40
 relock
@@ -43,6 +44,18 @@ log ack expired (2026-10-15)
   {"check": "counts", "metric": "union.global_params", "min": 1000,
    "vendored_sha256": "${sha:rules/brave/clean-urls.json}", "expires": "2026-12-01",
    "reason": "upstream deduplicated the global list", "by": "fixture"}
+], "holds": []}
+-- ops --
+run Counts
+fail Counts relative floor: union.global_params
+-- head/rules/acks.json --
+{"schema": 1, "acks": [
+  {"check": "counts", "metric": "union.params", "min": 150,
+   "vendored_sha256": "${sha:rules/brave/clean-urls.json}", "expires": "2026-12-01",
+   "reason": "an ack for another metric", "by": "fixture"},
+  {"check": "counts", "metric": "debounce.includes", "min": 150,
+   "vendored_sha256": "${sha:rules/brave/clean-urls.json}", "expires": "2026-12-01",
+   "reason": "an ack for another metric", "by": "fixture"}
 ], "holds": []}
 -- ops --
 run Counts
