@@ -1,0 +1,48 @@
+Upstream history of the sync fixtures (sync_test.go), a stand-in for
+brave/adblock-lists. Each section is a file of one commit, named
+<commit>/<upstream path>; a commit holds its parent's files plus its own:
+
+  x0  the base: the four vendored files and another list
+  x1  child of x0: only the other list changes (a no-op bump)
+  x2  child of x1: clean-urls.json changes
+  x3  child of x2: clean-urls.json changes again
+  pr  child of x0: an unmerged PR head (refs/pull/1/head), same four blobs
+  r0  a new root with x0's files: upstream master after a history rewrite
+
+master is x3 unless a fixture rewrites it.
+-- x0/LICENSE --
+Mozilla Public License Version 2.0
+==================================
+
+(A synthetic fixture license text.)
+-- x0/brave-lists/clean-urls.json --
+[
+  {"include": ["*://*/*"], "exclude": [], "params": ["utm_source", "utm_medium"]},
+  {"include": ["*://*.example.com/*"], "exclude": [], "params": ["ref_src"]}
+]
+-- x0/brave-lists/query-filter.json --
+[
+  {"include": ["*://*/*"], "exclude": [], "params": ["fbclid", "gclid"]}
+]
+-- x0/brave-lists/debounce.json --
+[
+  {"include": ["*://click.example.net/*", "*://go.example.net/out*"], "exclude": [], "action": "redirect", "param": "url"}
+]
+-- x0/brave-lists/other.txt --
+another list, v0
+-- x1/brave-lists/other.txt --
+another list, v1
+-- x2/brave-lists/clean-urls.json --
+[
+  {"include": ["*://*/*"], "exclude": [], "params": ["utm_source", "utm_medium", "utm_campaign"]},
+  {"include": ["*://*.example.com/*"], "exclude": [], "params": ["ref_src"]}
+]
+-- x3/brave-lists/clean-urls.json --
+[
+  {"include": ["*://*/*"], "exclude": [], "params": ["utm_source", "utm_medium", "utm_campaign"]},
+  {"include": ["*://*.example.com/*", "*://*.example.org/*"], "exclude": [], "params": ["ref_src", "ref_url"]}
+]
+-- pr/README --
+an unmerged pull request
+-- r0/brave-lists/other.txt --
+another list, rewritten

@@ -1,0 +1,58 @@
+The lock and NOTICE that sync writes for the sync_bump_ok fixture: main is
+synced to x0 of upstream.txtar, Dependabot moves the gitlink to x2, and
+sync runs. Regenerate with go test -run TestSyncFixtures/sync_bump_ok
+-sync.update, and review the diff.
+-- want/rules.lock.json --
+{
+  "schema": 4,
+  "upstream": {
+    "repo": "github.com/brave/adblock-lists",
+    "submodule": "tools/upstream/adblock-lists",
+    "branch": "master",
+    "commit": "2332a5be37783e3810c618a21632aac29bf0816d",
+    "commit_date": "2026-10-14T19:19:33-07:00",
+    "files": {
+      "brave-lists/clean-urls.json": {
+        "vendored": "rules/brave/clean-urls.json",
+        "git_blob_sha1": "3d54c56a72ac703a3abe48efd1cc5aee3861c98d",
+        "sha256": "48cca2729119ea12205beb03796cb840ac4278ce07295583ac1a1815c28e3ae9",
+        "counts": {"rules": 2, "params": 4, "global_params": 3}
+      },
+      "brave-lists/query-filter.json": {
+        "vendored": "rules/brave/query-filter.json",
+        "git_blob_sha1": "de9ce898e62fdf9e703e759482bc09abd2c779da",
+        "sha256": "3b48dbe4cdb50591bd02754b5ca39cf90a1bb4c2ada3f54509221d7c6bc06654",
+        "counts": {"rules": 1, "params": 2, "global_params": 2}
+      },
+      "brave-lists/debounce.json": {
+        "vendored": "rules/brave/debounce.json",
+        "git_blob_sha1": "3b2008c3568c45527e43032e1c6cfa0c5059193f",
+        "sha256": "5eca44a0c239e6d1662d073060560fa780b41c8d496a584ed3cbdf39f66d79ae",
+        "counts": {"rules": 1, "includes": 2}
+      },
+      "LICENSE": {
+        "vendored": "rules/brave/LICENSE",
+        "git_blob_sha1": "765d934c29934bf43bed396a2cfde54d81a39d59",
+        "sha256": "00813976490815a7eaa087a49724639a71a0b4739dea3cfa3624a35ac0aacea4",
+        "spdx": "MPL-2.0"
+      }
+    }
+  }
+}
+-- want/rules/brave/NOTICE --
+The files in this directory are copied verbatim from Brave's adblock-lists
+repository. They are licensed under the Mozilla Public License 2.0 (MPL-2.0);
+the upstream license text at the commit below is in LICENSE.
+
+Repository: https://github.com/brave/adblock-lists
+Commit:     2332a5be37783e3810c618a21632aac29bf0816d
+Date:       2026-10-14T19:19:33-07:00
+Source:     https://github.com/brave/adblock-lists/tree/2332a5be37783e3810c618a21632aac29bf0816d/brave-lists
+
+Files (upstream path, git blob sha1, sha256):
+brave-lists/clean-urls.json 3d54c56a72ac703a3abe48efd1cc5aee3861c98d 48cca2729119ea12205beb03796cb840ac4278ce07295583ac1a1815c28e3ae9
+brave-lists/query-filter.json de9ce898e62fdf9e703e759482bc09abd2c779da 3b48dbe4cdb50591bd02754b5ca39cf90a1bb4c2ada3f54509221d7c6bc06654
+brave-lists/debounce.json 3b2008c3568c45527e43032e1c6cfa0c5059193f 5eca44a0c239e6d1662d073060560fa780b41c8d496a584ed3cbdf39f66d79ae
+LICENSE 765d934c29934bf43bed396a2cfde54d81a39d59 00813976490815a7eaa087a49724639a71a0b4739dea3cfa3624a35ac0aacea4
+
+Its hashes must equal those in rules.lock.json; TestRules/Provenance checks them.
