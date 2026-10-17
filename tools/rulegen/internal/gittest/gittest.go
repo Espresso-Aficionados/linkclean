@@ -258,8 +258,9 @@ type Opts struct {
 }
 
 // NewLinkclean copies the working tree's files into a new repository,
-// commits them as "initial" and pushes main to a new bare origin. The copy
-// has no .gitmodules and no gitlink unless the working tree has one.
+// commits them as "initial" and pushes main to a new bare origin. Only
+// regular files are copied, so the copy never has the gitlink (SetGitlink
+// adds one); a FullModule copy has the working tree's .gitmodules.
 func NewLinkclean(t testing.TB, g repo.Git, o Opts) *Linkclean {
 	t.Helper()
 	root := Root(t)
