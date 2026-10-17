@@ -1,13 +1,15 @@
 // Command rulegen maintains linkclean's vendored Brave rule data: it clones
 // the pinned upstream, syncs the vendored bytes, the lock and the NOTICE
 // from the submodule gitlink, writes base inputs and the PR summary for the
-// rules gates, and cuts data releases. Run it from the tools module:
+// rules gates, cuts data releases, and decides the routine's liveness
+// verdict. Run it from the tools module:
 //
 //	go -C tools run ./rulegen <command> -root .. [flags]
 //
-// Every path comes from -root; nothing depends on the working directory.
-// Exit codes: 0 success, 1 failure, 2 unverifiable (sync -check -content),
-// 64 usage error.
+// Repository paths come from -root; output and clone directories given as
+// flags are resolved against the working directory.
+// Exit codes: 0 success, 1 failure, 2 unverifiable (sync -check -content)
+// or undecidable (liveness), 64 usage error.
 package main
 
 import (
