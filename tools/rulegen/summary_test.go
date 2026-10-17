@@ -220,6 +220,33 @@ func (w *sumWorld) commit(msg string) string {
 	return w.l.Commit(msg)
 }
 
+// rulegen runs one rulegen command against the world's git.
+func (w *sumWorld) rulegen(args ...string) (code int, stdout, stderr string) {
+	w.t.Helper()
+	e, o, errs := newTestEnv(w.t, nil)
+	e.Git = w.g
+	code = run(context.Background(), e, args)
+	return code, o.String(), errs.String()
+}
+
+// upstream runs `rulegen upstream` for the copy's HEAD with the world's
+// upstream as the pinned URL, and returns the clone. It holds syncCloneMu,
+// as every test that sets data.CloneURL must.
+func (w *sumWorld) upstream() string {
+	w.t.Helper()
+	dir := filepath.Join(w.t.TempDir(), "upstream")
+	syncCloneMu.Lock()
+	saved := data.CloneURL
+	data.CloneURL = w.u.URL
+	code, out, errs := w.rulegen("upstream", "-root", w.l.Work.Dir, "-out", dir)
+	data.CloneURL = saved
+	syncCloneMu.Unlock()
+	if code != exitOK {
+		w.t.Fatalf("rulegen upstream: exit %d\n%s%s", code, out, errs)
+	}
+	return dir
+}
+
 // RoundTrip serves the fake brave-core file for any request.
 func (w *sumWorld) RoundTrip(r *http.Request) (*http.Response, error) {
 	w.mu.Lock()
@@ -385,9 +412,23 @@ func TestSummaryFixtures(t *testing.T) {
 		_, files := sumParseTxtar(t, "sync_bump_ok.txtar")
 		w.apply(files)
 		g := w.upCommit("bump")
-		w.sync(g)
-		w.commit("rules: sync")
-		up := w.u.Clone(t, data.StatusOK)
+		// main is base; Dependabot's bump, then the routine's sync commit as
+		// rulegen upstream and rulegen sync make it.
+		w.l.Push("main")
+		w.l.SetGitlink(g)
+		w.commit("Bump tools/upstream/adblock-lists")
+		up := w.upstream()
+		if code, out, errs := w.rulegen("sync", "-root", w.l.Work.Dir, "-upstream", up); code != exitOK {
+			t.Fatalf("sync: exit %d\n%s%s", code, out, errs)
+		}
+		date, err := w.u.Repo().CommitDate(context.Background(), g)
+		if err != nil {
+			t.Fatal(err)
+		}
+		w.l.Commit(fmt.Sprintf(data.SyncSubject, g[:data.ShortLen], date[:10]), data.TrailerSync+": "+g)
+		if code, out, errs := w.rulegen("sync", "-root", w.l.Work.Dir, "-upstream", up, "-check"); code != exitOK {
+			t.Errorf("sync -check after the sync commit: exit %d\n%s%s", code, out, errs)
+		}
 		out := w.mustSummary("-base", w.base, "-upstream", up)
 		sumWant(t, out, fmt.Sprintf("- Synced: the vendored bytes are upstream@%s's", g[:12]))
 		sumGolden(t, "sync_bump_ok", out)
