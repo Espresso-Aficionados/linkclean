@@ -1,0 +1,11 @@
+Golden cases for the release fixtures; written to testdata/golden/positive.txtar.
+-- 1 --
+note: basic
+in: https://example.com/?utm_source=x&id=7
+want: https://example.com/?id=7
+-- 2 --
+in: https://example.com/?utm_source=x
+want: https://example.com/
+-- 28b --
+in: https://example.com/?x=1
+want: unchanged

@@ -1,0 +1,22 @@
+release_data_only: push CI success on S → tag vX.Y.(Z+1) on S; release
+created with the routine's summary comment as notes (a marker comment by
+someone without write access is ignored); proxy warm called. Run again,
+nothing changed since the new tag.
+-- want --
+exit 0
+tag v0.3.2
+notes notes
+-- notes --
+Rules data refresh from #101.
+
+## rulegen summary
+
+clean-urls.json: +1 param
+
+### Inert changes since v0.3.1
+
+- `tools/upstream/adblock-lists`
+-- want-again --
+exit 1
+refuse no data change since v0.3.2; nothing to release
+tag none

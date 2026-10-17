@@ -1,0 +1,18 @@
+release_golden_or_changelog_refuses: since the last tag, a
+testdata/golden/positive.txtar change, a CHANGELOG.md change, or a non-test
+.go change (doc.go) → refuses "unreleased non-data changes"; no tag.
+-- want-golden --
+exit 1
+refuse unreleased non-data changes since v0.3.1: testdata/golden/positive.txtar; release manually (§11.7 manual)
+manual
+tag none
+-- want-changelog --
+exit 1
+refuse unreleased non-data changes since v0.3.1: CHANGELOG.md; release manually (§11.7 manual)
+manual
+tag none
+-- want-doc_go --
+exit 1
+refuse unreleased non-data changes since v0.3.1: doc.go; release manually (§11.7 manual)
+manual
+tag none

@@ -1,0 +1,9 @@
+release_no_data_change: since the last tag only the gitlink (merged no-op
+bumps) and another inert path changed → refuses "no data change since
+vX.Y.Z; nothing to release"; not a manual-release case.
+-- acks.json --
+{"schema": 1, "acks": [], "holds": []}
+-- want --
+exit 1
+refuse no data change since v0.3.1; nothing to release
+tag none

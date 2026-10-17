@@ -1,0 +1,35 @@
+release_after_test_only_change: a PR touching only semantics_test.go,
+testdata/corpus/eval-2026-10/known-broken.txt,
+testdata/keep-coverage-exempt.txt and README.md merged since the last tag,
+then the data PR → patch tag.
+-- semantics_test.go --
+package linkclean
+
+import "testing"
+
+func TestNothing(t *testing.T) {}
+-- known-broken.txt --
+commerce-001 # accepted: upstream strips a functional param
+-- keep-coverage-exempt.txt --
+linkid *://*.cbs.com/* # CBS keeps its own link ids
+tag *://*.shop.example.net/* # no affiliate program
+-- README.md --
+# linkclean
+
+Removes tracking parameters.
+-- want --
+exit 0
+tag v0.3.2
+notes notes
+-- notes --
+Rules data refresh from #101.
+
+summary
+
+### Inert changes since v0.3.1
+
+- `README.md`
+- `semantics_test.go`
+- `testdata/corpus/eval-2026-10/known-broken.txt`
+- `testdata/keep-coverage-exempt.txt`
+- `tools/upstream/adblock-lists`

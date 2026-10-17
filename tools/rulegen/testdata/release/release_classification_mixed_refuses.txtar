@@ -1,0 +1,9 @@
+release_classification_mixed_refuses: one commit adds the entry for new
+upstream pattern P and changes existing entry Q's locator → refuses
+"unreleased non-data changes", naming Q only: the diff is judged as a
+whole, and the allowed part does not launder the rest.
+-- want --
+exit 1
+refuse unreleased non-data changes since v0.3.1: rules/overlay/debounce-classes.json (changes existing entry "*://*.3anx.net/c/*"); release manually (§11.7 manual)
+manual
+tag none

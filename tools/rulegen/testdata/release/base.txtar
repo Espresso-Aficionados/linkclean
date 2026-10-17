@@ -1,0 +1,54 @@
+The tree every release fixture starts from, written over the repository's
+rules/** and rules.lock.json: small stand-ins for the module's files, one
+of each release class. testdata/golden/positive.txtar comes from
+golden-positive.txt (a txtar cannot nest).
+-- go.mod --
+module github.com/Espresso-Aficionados/linkclean
+
+go 1.26.0
+
+require golang.org/x/net v0.59.0
+
+require golang.org/x/text v0.42.0 // indirect
+-- go.sum --
+golang.org/x/net v0.59.0 h1:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+golang.org/x/net v0.59.0/go.mod h1:BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB=
+golang.org/x/text v0.42.0 h1:CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC=
+golang.org/x/text v0.42.0/go.mod h1:DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD=
+-- doc.go --
+// Package linkclean removes tracking parameters from URLs.
+package linkclean
+-- clean.go --
+package linkclean
+
+func Clean(s string) string { return s }
+-- semantics_test.go --
+package linkclean
+-- README.md --
+# linkclean
+-- CHANGELOG.md --
+# Changelog
+
+Every manual (non-data) release has a `## vX.Y.Z` section here.
+
+## Unreleased
+
+- Work in progress.
+
+## v0.3.1
+
+- An earlier release.
+-- testdata/golden/negative.txt --
+# Golden negatives.
+25 https://example.com/?var=1&adid=2
+26 https://example.com/?x=1
+-- testdata/corpus/eval-2026-10/known-broken.txt --
+-- testdata/keep-coverage-exempt.txt --
+linkid *://*.cbs.com/* # CBS keeps its own link ids
+-- rules/acks.json --
+{"schema": 1, "acks": [
+  {"check": "counts", "metric": "clean-urls.params", "min": 400, "vendored_sha256": "0000000000000000000000000000000000000000000000000000000000000000", "expires": "2026-09-30", "reason": "old shrink", "by": "maintainer"}
+], "holds": []}
+-- .github/workflows/ci.yml --
+name: ci
+on: [push, pull_request]

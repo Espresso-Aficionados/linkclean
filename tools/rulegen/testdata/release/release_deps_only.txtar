@@ -1,0 +1,61 @@
+release_deps_only: data plus a golang-x require bump → patch tag, the bump
+listed in the notes. With a go directive change, or a newly required
+module → refuses.
+-- go.mod.require --
+module github.com/Espresso-Aficionados/linkclean
+
+go 1.26.0
+
+require golang.org/x/net v0.60.0
+
+require golang.org/x/text v0.42.0 // indirect
+-- go.sum.require --
+golang.org/x/net v0.60.0 h1:EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE=
+golang.org/x/net v0.60.0/go.mod h1:FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF=
+golang.org/x/text v0.42.0 h1:CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC=
+golang.org/x/text v0.42.0/go.mod h1:DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD=
+-- go.mod.directive --
+module github.com/Espresso-Aficionados/linkclean
+
+go 1.27.0
+
+require golang.org/x/net v0.59.0
+
+require golang.org/x/text v0.42.0 // indirect
+-- go.mod.added --
+module github.com/Espresso-Aficionados/linkclean
+
+go 1.26.0
+
+require (
+	golang.org/x/net v0.59.0
+	golang.org/x/sync v0.10.0
+)
+
+require golang.org/x/text v0.42.0 // indirect
+-- want-require --
+exit 0
+tag v0.3.2
+notes notes-require
+-- notes-require --
+Rules data refresh from #101.
+
+summary
+
+### Dependencies
+
+- golang.org/x/net v0.59.0 → v0.60.0
+
+### Inert changes since v0.3.1
+
+- `tools/upstream/adblock-lists`
+-- want-directive --
+exit 1
+refuse unreleased non-data changes since v0.3.1: go.mod (go or toolchain directive changed); release manually (§11.7 manual)
+manual
+tag none
+-- want-added --
+exit 1
+refuse unreleased non-data changes since v0.3.1: go.mod (required modules added or removed); release manually (§11.7 manual)
+manual
+tag none

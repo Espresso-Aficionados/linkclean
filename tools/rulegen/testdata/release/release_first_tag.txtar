@@ -1,0 +1,24 @@
+release_first_tag: no prior tag. A data release refuses (the first release
+is manual); -manual -bump patch is below the minimum (everything is new);
+-manual -bump minor → v0.1.0.
+-- CHANGELOG.md --
+# Changelog
+
+## v0.1.0
+
+- First release.
+-- want-data --
+exit 1
+refuse no vX.Y.Z tag is reachable from {S}; the first release is manual (§11.7 manual)
+manual
+tag none
+-- want-patch --
+exit 1
+refuse -bump patch is below the minimum minor for the changes since the first commit (no vX.Y.Z tag): clean.go, doc.go, rules/overlay/debounce-classes.json, rules/overlay/debounce-classes.json.license, rules/overlay/overlay.json, testdata/golden/negative.txt, testdata/golden/positive.txtar, go.mod (go or toolchain directive)
+tag none
+-- want-minor --
+exit 0
+tag v0.1.0
+notes notes
+-- notes --
+- First release.

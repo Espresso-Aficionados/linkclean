@@ -1,0 +1,19 @@
+release_classification_only: since the last tag, a data PR adds debounce
+pattern P upstream plus a human commit adding P's entry to
+debounce-classes.json → patch tag; release notes list P and its class.
+-- want --
+exit 0
+tag v0.3.2
+notes notes
+-- notes --
+Rules data refresh from #101.
+
+summary
+
+### Debounce classifications
+
+- `*://www.newnet.example/click?*`: affiliate
+
+### Inert changes since v0.3.1
+
+- `tools/upstream/adblock-lists`

@@ -1,0 +1,8 @@
+release_unreleased_non_data: an overlay commit landed on main since the last
+tag; the data PR merges → refuses "unreleased non-data changes since
+vX.Y.Z"; no tag; the routine is told a manual release is needed.
+-- want --
+exit 1
+refuse unreleased non-data changes since v0.3.1: rules/overlay/overlay.json; release manually (§11.7 manual)
+manual
+tag none

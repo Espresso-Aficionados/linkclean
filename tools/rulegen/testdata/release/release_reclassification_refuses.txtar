@@ -1,0 +1,8 @@
+release_reclassification_refuses: since the last tag, an edit changing an
+existing entry's class, or its locator → refuses "unreleased non-data
+changes".
+-- want --
+exit 1
+refuse unreleased non-data changes since v0.3.1: rules/overlay/debounce-classes.json (changes existing entry "*://*.3anx.net/c/*"); release manually (§11.7 manual)
+manual
+tag none

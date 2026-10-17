@@ -1,0 +1,18 @@
+release_after_acks_cleanup: the routine's monthly cleanup PR (edits only
+rules/acks.json) merged since the last tag, then the data PR → patch tag;
+release notes list the inert paths.
+-- acks.json --
+{"schema": 1, "acks": [], "holds": []}
+-- want --
+exit 0
+tag v0.3.2
+notes notes
+-- notes --
+Rules data refresh from #101.
+
+summary
+
+### Inert changes since v0.3.1
+
+- `rules/acks.json`
+- `tools/upstream/adblock-lists`

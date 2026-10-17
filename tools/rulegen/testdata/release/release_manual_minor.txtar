@@ -1,0 +1,29 @@
+release_manual_minor: an overlay change since the last tag: -bump patch is
+refused; -bump minor without a CHANGELOG section is refused; with the
+section → tag v0.4.0 with the section as notes.
+-- CHANGELOG.md --
+# Changelog
+
+Every manual (non-data) release has a `## vX.Y.Z` section here.
+
+## v0.4.0
+
+- Overlay: the Google redirect rule is now `google-url-v2`.
+
+## v0.3.1
+
+- An earlier release.
+-- want-patch --
+exit 1
+refuse -bump patch is below the minimum minor for the changes since v0.3.1: rules/overlay/overlay.json
+tag none
+-- want-no-section --
+exit 1
+refuse CHANGELOG.md has no ## v0.4.0 section
+tag none
+-- want-minor --
+exit 0
+tag v0.4.0
+notes notes
+-- notes --
+- Overlay: the Google redirect rule is now `google-url-v2`.

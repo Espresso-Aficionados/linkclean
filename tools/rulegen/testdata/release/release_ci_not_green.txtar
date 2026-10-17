@@ -1,0 +1,18 @@
+release_ci_not_green: push CI failure, still pending after the 30-minute
+poll, or never started → refuses; no tag. A run that turns green while
+polled releases.
+-- want-failure --
+exit 1
+refuse push CI on {S} is failure
+tag none
+-- want-pending --
+exit 1
+refuse push CI on {S} is in_progress
+tag none
+-- want-missing --
+exit 1
+refuse push CI on {S} is missing
+tag none
+-- want-green --
+exit 0
+tag v0.3.2
