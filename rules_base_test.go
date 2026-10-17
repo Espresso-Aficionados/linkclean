@@ -182,14 +182,13 @@ func checkRisky(t testing.TB, e *gateEnv) {
 	}
 	head, base := countData(e.data).pairs, countData(e.base).pairs
 	names := riskyNames(t, e)
-	var added []scopePair
+	added := map[scopePair]bool{}
 	for p := range head {
 		if !base[p] {
-			added = append(added, p)
+			added[p] = true
 		}
 	}
-	slices.SortFunc(added, func(a, b scopePair) int { return cmp.Or(cmp.Compare(a.scope, b.scope), cmp.Compare(a.param, b.param)) })
-	for _, p := range added {
+	for _, p := range sortedPairs(added) {
 		src, risky := names[p.param]
 		switch {
 		case !risky:
@@ -241,7 +240,7 @@ func checkCorpusDelta(t testing.TB, e *gateEnv) {
 	t.Logf("corpus: exact-or-alt %d → %d; tracker recall %.1f%% → %.1f%%", b.Exact, h.Exact, b.recall(), h.recall())
 }
 
-// sortedPairs is for messages and the summary data.
+// sortedPairs orders pairs by scope, then param.
 func sortedPairs(m map[scopePair]bool) []scopePair {
 	return slices.SortedFunc(maps.Keys(m), func(a, b scopePair) int {
 		return cmp.Or(cmp.Compare(a.scope, b.scope), cmp.Compare(a.param, b.param))
