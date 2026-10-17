@@ -1,0 +1,7 @@
+{
+  "source": "https://raw.githubusercontent.com/brave/brave-core/06cd65a7e4fcea784e73c6deb9e4ce52889dc710/components/query_filter/browser/utils.cc",
+  "blocks": {
+    "kConditionalQueryStringTrackers": "6613052d7b1b105169abc8d6be4d823d99d13a40d51ec2a719c1beef3cf0feb6",
+    "kExemptedHostnames": "dd996658092d754c253ca869d813ec4b3f5144ce7361c972e694911942063b9e"
+  }
+}
