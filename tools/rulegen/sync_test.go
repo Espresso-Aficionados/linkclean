@@ -600,6 +600,18 @@ func TestSyncFixtures(t *testing.T) {
 		c = f.l.Commit("rules: brave/adblock-lists@"+g[:12], data.TrailerSync+": "+g)
 		code, msg = f.verify(dir, c)
 		syncWant(t, "verify clean", code, exitOK, msg)
+		// The same bytes with one write-set file made executable.
+		f.l.Run("reset", "--quiet", "--soft", "HEAD^")
+		if err := os.Chmod(filepath.Join(f.l.Work.Dir, "rules", "brave", "clean-urls.json"), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		c = f.l.Commit("rules: brave/adblock-lists@"+g[:12], data.TrailerSync+": "+g)
+		if mode := strings.Fields(f.l.Run("ls-tree", c, "rules/brave/clean-urls.json")); len(mode) == 0 || mode[0] != "100755" {
+			t.Fatalf("ls-tree: %q, want mode 100755", mode)
+		}
+		code, msg = f.verify(dir, c)
+		syncWant(t, "verify executable", code, exitFail, msg)
+		syncContains(t, "verify executable", msg, fmt.Sprintf(msgContentDiffers, g, "rules/brave/clean-urls.json"))
 	})
 
 	t.Run("merge_commit_after_main_moved", func(t *testing.T) {
@@ -652,6 +664,20 @@ func TestSyncFixtures(t *testing.T) {
 		code, msg = f.verify(dir, f.l.Run("rev-parse", "HEAD"))
 		syncWant(t, "verify merge of a side branch", code, exitFail, msg)
 		syncContains(t, "verify merge of a side branch", msg, "is not on origin/main")
+
+		// A merge whose parents conflict, committed with merge-tree's own
+		// (conflicted) tree: the tree matches, but merge-tree exits 1.
+		f.l.Run("reset", "--quiet", "--hard", m+"^1")
+		f.l.Write(data.OverlayPath, append(bytes.Clone(overlay), "x\n"...))
+		p1 := f.l.Commit("overlay: conflicting edit")
+		tree, clean, err := f.l.Work.MergeTree(context.Background(), p1, a)
+		if err != nil || clean {
+			t.Fatalf("merge-tree %s %s: clean %v, %v; want a conflict", p1, a, clean, err)
+		}
+		cm := f.l.Run("commit-tree", tree, "-p", p1, "-p", a, "-m", "Merge origin/main\n\n"+data.TrailerMerge+": main")
+		code, msg = f.verify(dir, cm)
+		syncWant(t, "verify conflicted merge", code, exitFail, msg)
+		syncContains(t, "verify conflicted merge", msg, fmt.Sprintf(msgMergeConflict, p1, a))
 
 		// The routine's merge with a wrong trailer value, or a non-merge
 		// commit carrying the merge trailer.

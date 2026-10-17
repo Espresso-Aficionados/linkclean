@@ -263,6 +263,14 @@ func TestLivenessFixtures(t *testing.T) {
 		liveSetDate(t, &g, "M", "2026-10-15T23:00:00Z")
 		g.Want, g.Code = liveAlert("B", "M"), exitFail
 		liveCheck(t, &g)
+		// Boundary: exactly 3 days old at Monday 00:00 is no longer "less
+		// than 3 days old", so Dependabot could have proposed it; one
+		// second younger is still inside the cooldown.
+		liveSetDate(t, &g, "M", "2026-10-16T00:00:00Z")
+		liveCheck(t, &g)
+		liveSetDate(t, &g, "M", "2026-10-16T00:00:01Z")
+		g.Want, g.Code = "quiet (no change evidence)", exitOK
+		liveCheck(t, &g)
 		// Control: a week later the most recent Monday is 2026-10-26.
 		f.Now = "2026-10-27T11:00:00Z"
 		f.Want, f.Code = liveAlert("B", "M"), exitFail
