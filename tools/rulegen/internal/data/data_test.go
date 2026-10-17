@@ -303,13 +303,13 @@ func TestParseAcks(t *testing.T) {
   "acks": [
     {"check": "counts", "metric": "union.global_params", "min": 200,
      "vendored_sha256": "` + hex64 + `", "expires": "2026-12-01",
-     "reason": "upstream deduplicated the global list", "by": "jbm"},
+     "reason": "upstream deduplicated the global list", "by": "maintainer"},
     {"check": "risky", "scope": "*://*.example.com/*", "param": "t",
-     "vendored_sha256": "` + hex64 + `", "expires": "2026-12-01", "reason": "share token on that host only", "by": "jbm"}
+     "vendored_sha256": "` + hex64 + `", "expires": "2026-12-01", "reason": "share token on that host only", "by": "maintainer"}
   ],
   "holds": [
     {"file": "brave-lists/clean-urls.json", "sha256": "` + hex64 + `",
-     "expires": "2026-11-15", "reason": "waiting on upstream", "by": "jbm"}
+     "expires": "2026-11-15", "reason": "waiting on upstream", "by": "maintainer"}
   ]
 }`
 	a, errs := ParseAcks([]byte(good))

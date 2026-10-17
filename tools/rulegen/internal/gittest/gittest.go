@@ -419,8 +419,9 @@ func (l *Linkclean) Push(refspec string) {
 // GoTest runs `go test -count=1 -v -run <run> .` in Work, which needs
 // FullModule. The module proxy is off (GOPROXY=off, GOFLAGS=-mod=mod), so
 // the root module's dependencies must already be in the module cache; git
-// is isolated as by Isolate. env adds variables. ok reports a zero exit; out
-// is the combined output.
+// is isolated as by Isolate. LINKCLEAN_* variables of the process are
+// dropped; env adds variables. ok reports a zero exit; out is the combined
+// output.
 func (l *Linkclean) GoTest(t testing.TB, run string, env map[string]string) (out string, ok bool) {
 	t.Helper()
 	gp, err := goPaths()
@@ -429,7 +430,9 @@ func (l *Linkclean) GoTest(t testing.TB, run string, env map[string]string) (out
 	}
 	cmd := exec.Command("go", "test", "-count=1", "-v", "-run", run, ".")
 	cmd.Dir = l.Work.Dir
-	cmd.Env = append(slices.Concat(os.Environ(), l.env, gp),
+	// The gate variables come only from env, never from the caller's shell.
+	inherited := slices.DeleteFunc(os.Environ(), func(kv string) bool { return strings.HasPrefix(kv, "LINKCLEAN_") })
+	cmd.Env = append(slices.Concat(inherited, l.env, gp),
 		"GOPROXY=off", "GOFLAGS=-mod=mod", "GOWORK=off", "GOTOOLCHAIN=local")
 	for _, k := range slices.Sorted(maps.Keys(env)) {
 		cmd.Env = append(cmd.Env, k+"="+env[k])

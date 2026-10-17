@@ -198,7 +198,8 @@ func TestGoTest(t *testing.T) {
 		}
 	}
 	const run = "^TestRules$/^Provenance$"
-	out, ok := l.GoTest(t, run, map[string]string{"LINKCLEAN_BASE_DIR": ""})
+	t.Setenv("LINKCLEAN_BASE_DIR", filepath.Join(t.TempDir(), "absent")) // must not leak into the run
+	out, ok := l.GoTest(t, run, nil)
 	if !ok || !strings.Contains(out, "--- PASS: TestRules/Provenance") {
 		t.Errorf("go test failed:\n%s", out)
 	}
