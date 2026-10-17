@@ -28,18 +28,18 @@ func init() { register("sync", runSync) }
 // as it spells them (msgGitlinkMissing, msgNotOnMaster,
 // msgHistoryRewritten), so the routine can match either.
 const (
-	msgNoOriginMain     = "no local origin/main; fetch it first (git fetch origin main)"                                   //
-	msgGitmodulesMain   = ".gitmodules differs from origin/main's"                                                         //
-	msgGitmodulesMap    = ".gitmodules does not map %s to %s with branch = master: %v"                                     // path, URL, problem
-	msgGitlinkMissing   = "upstream does not serve the gitlink %s (gitlink-missing)"                                       // G
-	msgNotInClone       = "the upstream clone has no commit %s; run rulegen upstream for HEAD"                             // G
-	msgNotOnMaster      = "gitlink %s is not an ancestor of upstream master"                                               // G
-	msgHistoryRewritten = "upstream history rewritten: %s is no longer on master"                                          // B
-	msgCloneStatus      = "upstream clone: STATUS %q"                                                                      // line
-	msgRefused          = "refusing to write the sync write set: %s"                                                       // problem
-	msgLockRewrite      = "lock commit %s is no longer an ancestor of %s; rewriting only the lock's commit and the NOTICE" // X, G
-	msgLockUntrue       = "lock commit %s does not hold the locked blobs; locking %s"                                      // X, G
-	msgInSync           = "in sync: the sync write set is sync's output for upstream@%s"                                   // G
+	msgNoOriginMain     = "no local origin/main; fetch it first (git fetch origin main)"                                                           //
+	msgGitmodulesMain   = ".gitmodules differs from origin/main's"                                                                                 //
+	msgGitmodulesMap    = ".gitmodules does not map %s to %s with branch = master: %v"                                                             // path, URL, problem
+	msgGitlinkMissing   = "upstream does not serve the gitlink %s (gitlink-missing)"                                                               // G
+	msgNotInClone       = "the upstream clone has no commit %s; run rulegen upstream for HEAD"                                                     // G
+	msgNotOnMaster      = "gitlink %s is not an ancestor of upstream master"                                                                       // G
+	msgHistoryRewritten = "upstream history rewritten: %s is no longer on master"                                                                  // B
+	msgCloneStatus      = "upstream clone: STATUS %q"                                                                                              // line
+	msgRefused          = "refusing to write the sync write set: %s"                                                                               // problem
+	msgLockRewrite      = "lock commit %s is not an ancestor of %s (upstream history rewritten?); rewriting only the lock's commit and the NOTICE" // X, G
+	msgLockUntrue       = "lock commit %s does not hold the locked blobs; locking %s"                                                              // X, G
+	msgInSync           = "in sync: the sync write set is sync's output for upstream@%s"                                                           // G
 )
 
 // runSync is `rulegen sync -root R -upstream DIR [-check [-content -rev C]]`.

@@ -440,14 +440,23 @@ func TestSyncFixtures(t *testing.T) {
 		for _, tc := range []struct {
 			name string
 			edit func(f *syncFix)
+			to   string // the gitlink; "" for x2
 		}{
+			{"lock_commit_moved", func(f *syncFix) {
+				// x1 has x0's blobs: sync on the bump keeps the lock at x0
+				// and writes nothing, so a commit moving the lock to x1 is
+				// not its output. -check passes on the result (sync would
+				// now change nothing, and x1 is a true source pointer);
+				// the verifier, which judges C against C^1, does not.
+				f.l.SyncedTo(f.up, f.c["x1"])
+			}, "x1"},
 			{"lock_counts", func(f *syncFix) {
 				l, _ := data.ParseLock(f.l.Read(data.LockPath))
 				lf := l.Upstream.Files["brave-lists/clean-urls.json"]
 				lf.Counts.Params++
 				l.Upstream.Files["brave-lists/clean-urls.json"] = lf
 				f.l.Write(data.LockPath, l.Encode())
-			}},
+			}, ""},
 			{"vendored_relocked", func(f *syncFix) {
 				// A hand edit with the lock and NOTICE rewritten to match.
 				b := append(f.l.Read("rules/brave/clean-urls.json"), '\n')
@@ -458,19 +467,20 @@ func TestSyncFixtures(t *testing.T) {
 				l.Upstream.Files["brave-lists/clean-urls.json"] = lf
 				f.l.Write(data.LockPath, l.Encode())
 				f.l.Write(data.NoticePath, data.Notice(&l))
-			}},
+			}, ""},
 			{"notice", func(f *syncFix) {
 				f.l.Write(data.NoticePath, append(f.l.Read(data.NoticePath), "extra\n"...))
-			}},
+			}, ""},
 			{"extra_file", func(f *syncFix) {
 				f.l.Write("rules/brave/extra.json", []byte("[]\n"))
-			}},
+			}, ""},
 		} {
 			t.Run(tc.name, func(t *testing.T) {
 				t.Parallel()
 				f := syncNewFix(t)
-				f.branch("dependabot/x2")
-				f.bump("x2")
+				to := cmp.Or(tc.to, "x2")
+				f.branch("dependabot/" + to)
+				f.bump(to)
 				dir := f.upstream("")
 				if code, out, errs := f.sync(dir); code != exitOK {
 					t.Fatalf("sync: %d %s%s", code, out, errs)
@@ -479,7 +489,11 @@ func TestSyncFixtures(t *testing.T) {
 				g := f.gitlink("HEAD")
 				c := f.l.Commit("rules: brave/adblock-lists@"+g[:12], data.TrailerSync+": "+g)
 				code, out, errs := f.sync(dir, "-check")
-				syncWant(t, "sync -check", code, exitFail, out+errs)
+				if tc.name == "lock_commit_moved" {
+					syncWant(t, "sync -check", code, exitOK, out+errs)
+				} else {
+					syncWant(t, "sync -check", code, exitFail, out+errs)
+				}
 				code, msg := f.verify(dir, c)
 				syncWant(t, "verify", code, exitFail, msg)
 				syncContains(t, "verify", msg, "differs from sync's output")
@@ -1047,6 +1061,47 @@ func syncObjectTypes(t *testing.T, f *syncFix, dir string) map[string][]string {
 	return m
 }
 
+// TestVerifyTrailers covers the verifier's dispatch on trailers: only one
+// Rulegen-Sync naming C's own full gitlink, or one Rulegen-Merge: main,
+// can make a commit routine.
+func TestVerifyTrailers(t *testing.T) {
+	f := syncNewFix(t)
+	f.branch("dependabot/x2")
+	f.bump("x2")
+	dir := f.upstream("")
+	if code, out, errs := f.sync(dir); code != exitOK {
+		t.Fatalf("sync: %d %s%s", code, out, errs)
+	}
+	f.l.Run("add", "--all")
+	g := f.c["x2"]
+	for _, tc := range []struct {
+		name     string
+		trailers []string
+		code     int
+		want     string
+	}{
+		{"ok", []string{data.TrailerSync + ": " + g}, exitOK, "verified"},
+		{"none", nil, exitFail, msgNoTrailer},
+		{"other_commit", []string{data.TrailerSync + ": " + f.c["x1"]}, exitFail, fmt.Sprintf(msgTrailerNotG, f.c["x1"], g)},
+		{"short_id", []string{data.TrailerSync + ": " + g[:12]}, exitFail, "but the gitlink is"},
+		{"twice", []string{data.TrailerSync + ": " + g, data.TrailerSync + ": " + g}, exitFail, fmt.Sprintf(msgTrailerTwice, 2, data.TrailerSync)},
+		{"both", []string{data.TrailerSync + ": " + g, data.TrailerMerge + ": main"}, exitFail, msgBothTrailers},
+		{"merge_value", []string{data.TrailerMerge + ": master"}, exitFail, fmt.Sprintf(msgMergeValue, "master", "main")},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			tree := f.l.Run("write-tree")
+			msg := "rules: sync"
+			if len(tc.trailers) > 0 {
+				msg += "\n\n" + strings.Join(tc.trailers, "\n")
+			}
+			c := f.l.Run("commit-tree", tree, "-p", "HEAD", "-m", msg)
+			code, out := f.verify(dir, c)
+			syncWant(t, "verify", code, tc.code, out)
+			syncContains(t, "verify", out, tc.want)
+		})
+	}
+}
+
 // TestUpstreamCommand covers the upstream command's edges.
 func TestUpstreamCommand(t *testing.T) {
 	f := syncNewFix(t)
@@ -1116,7 +1171,7 @@ func TestSyncCompute(t *testing.T) {
 			l := lockAt("x0")
 			l.Upstream.Commit = f.c["pr"]
 			return l
-		}(), "x1", "no longer an ancestor"},
+		}(), "x1", "is not an ancestor"},
 		{"lock_commit_untrue", "x2", func() *data.Lock {
 			// The lock names x1 but carries x2's blobs.
 			l := lockAt("x2")
