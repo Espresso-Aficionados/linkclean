@@ -225,7 +225,7 @@ func caseCleaner(t testing.TB, c *goldenCase, p AffiliatePolicy, sources []RuleS
 }
 
 // checkCase runs every assertion of the §6.3 grammar for c.
-func checkCase(t *testing.T, c *goldenCase, sources []RuleSet, srcKey string) {
+func checkCase(t testing.TB, c *goldenCase, sources []RuleSet, srcKey string) {
 	t.Helper()
 	for _, pw := range c.policies() {
 		cl := caseCleaner(t, c, pw.p, sources, srcKey)
@@ -331,7 +331,7 @@ func keptMaps(ks []Kept) []map[string]any {
 }
 
 // compareMaps compares got with want entry by entry, on the keys want lists.
-func compareMaps(t *testing.T, what string, got, want []map[string]any) {
+func compareMaps(t testing.TB, what string, got, want []map[string]any) {
 	t.Helper()
 	if len(got) != len(want) {
 		t.Errorf("%s: got %d entries, want %d:\n  got  %v\n  want %v", what, len(got), len(want), got, want)
