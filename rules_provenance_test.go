@@ -37,7 +37,7 @@ const (
 	msgLockBlobs         = "%s: blob %s at lock commit %s, lock %s"                         // upstream path, blob, X, locked blob
 	msgNotGitlink        = "%s is not a gitlink (mode 160000)"                              // submodule path
 	msgGitmodulesChanged = ".gitmodules differs from base's"
-	msgGitmodulesMapping = ".gitmodules does not map %s to %s with branch = master: %v" // path, URL, problem
+	msgGitmodulesMapping = ".gitmodules does not map %s to %s with branch = master: %s" // path, URL, problem
 	msgHistoryRewritten  = "upstream history rewritten: %s is no longer on master"      // B
 	msgAckLapsed         = "ack lapsed (bound to %s)"                                   // the ack's vendored_sha256
 	msgAckExpired        = "ack expired (%s)"                                           // expires

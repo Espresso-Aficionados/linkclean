@@ -15,8 +15,8 @@ import (
 
 // Messages only the root provenance gate prints (rules_provenance_test.go).
 const (
-	syncRootGitmodulesChanged = ".gitmodules differs from base's"
-	syncRootLockNotAncestor   = "lock commit %s is neither the gitlink %s nor an ancestor of it" // X, G
+	syncRootGitmodulesChanged = data.MsgGitmodulesChanged
+	syncRootLockNotAncestor   = data.MsgLockNotAncestor // X, G
 )
 
 // syncRealLayers is the upstream history of upstream.txtar over the real

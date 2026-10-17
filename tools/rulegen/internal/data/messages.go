@@ -17,10 +17,22 @@ const (
 	MsgUnverifiable     = "unverifiable: %s"                                             // StatusGitlinkMissing or "unreachable"
 	MsgUnverifiableDown = "unverifiable: unreachable"                                    //
 	MsgUnverifiableGone = "unverifiable: gitlink-missing"                                //
+
+	MsgGitlinkMissing    = "upstream does not serve the gitlink %s (gitlink-missing)"       // G
+	MsgNotOnMaster       = "gitlink %s is not an ancestor of upstream master"               // G
+	MsgHistoryRewritten  = "upstream history rewritten: %s is no longer on master"          // B
+	MsgGitmodulesMapping = ".gitmodules does not map %s to %s with branch = master: %s"     // path, URL, problem
+	MsgGitmodulesChanged = ".gitmodules differs from base's"                                // root gate only
+	MsgLockNotAncestor   = "lock commit %s is neither the gitlink %s nor an ancestor of it" // X, G; root gate only
+	MsgNotGitlink        = "%s is not a gitlink (mode 160000)"                              // submodule path; root gate only
 )
 
 // Shared lists the formats the root provenance gate must spell identically.
-var Shared = []string{MsgHeld, MsgBackwards, MsgUnsynced, MsgUnreachable, MsgInputsUnchanged}
+var Shared = []string{
+	MsgHeld, MsgBackwards, MsgUnsynced, MsgUnreachable, MsgInputsUnchanged,
+	MsgGitlinkMissing, MsgNotOnMaster, MsgHistoryRewritten, MsgGitmodulesMapping,
+	MsgGitmodulesChanged, MsgLockNotAncestor, MsgNotGitlink,
+}
 
 // The routine's sync commit.
 const (

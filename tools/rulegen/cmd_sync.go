@@ -24,17 +24,17 @@ import (
 
 func init() { register("sync", runSync) }
 
-// sync's messages. Those the root provenance gate also prints are spelled
-// as it spells them (msgGitlinkMissing, msgNotOnMaster,
-// msgHistoryRewritten), so the routine can match either.
+// sync's messages. Those the root provenance gate also prints come from
+// data.Shared, which a data test checks against the gate's copy, so the
+// routine can match either.
 const (
-	msgNoOriginMain     = "no local origin/main; fetch it first (git fetch origin main)"                                                           //
-	msgGitmodulesMain   = ".gitmodules differs from origin/main's"                                                                                 //
-	msgGitmodulesMap    = ".gitmodules does not map %s to %s with branch = master: %v"                                                             // path, URL, problem
-	msgGitlinkMissing   = "upstream does not serve the gitlink %s (gitlink-missing)"                                                               // G
-	msgNotInClone       = "the upstream clone has no commit %s; run rulegen upstream for HEAD"                                                     // G
-	msgNotOnMaster      = "gitlink %s is not an ancestor of upstream master"                                                                       // G
-	msgHistoryRewritten = "upstream history rewritten: %s is no longer on master"                                                                  // B
+	msgNoOriginMain     = "no local origin/main; fetch it first (git fetch origin main)" //
+	msgGitmodulesMain   = ".gitmodules differs from origin/main's"                       //
+	msgGitmodulesMap    = data.MsgGitmodulesMapping
+	msgGitlinkMissing   = data.MsgGitlinkMissing
+	msgNotInClone       = "the upstream clone has no commit %s; run rulegen upstream for HEAD" // G
+	msgNotOnMaster      = data.MsgNotOnMaster
+	msgHistoryRewritten = data.MsgHistoryRewritten
 	msgCloneStatus      = "upstream clone: STATUS %q"                                                                                              // line
 	msgRefused          = "refusing to write the sync write set: %s"                                                                               // problem
 	msgLockRewrite      = "lock commit %s is not an ancestor of %s (upstream history rewritten?); rewriting only the lock's commit and the NOTICE" // X, G
