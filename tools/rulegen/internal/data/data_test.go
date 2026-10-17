@@ -377,6 +377,14 @@ func TestParseAcks(t *testing.T) {
 	}
 }
 
+// TestRealAcks parses the committed rules/acks.json, which the root gate
+// also reads.
+func TestRealAcks(t *testing.T) {
+	if _, errs := ParseAcks(readRoot(t, AcksPath)); len(errs) > 0 {
+		t.Errorf("%s: %v", AcksPath, errs)
+	}
+}
+
 func TestExpired(t *testing.T) {
 	tests := []struct {
 		expires string
