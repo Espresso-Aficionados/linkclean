@@ -1,0 +1,9 @@
+sync_bump_ok (summary part): Dependabot moves the gitlink to a commit that
+adds one global param, and the routine syncs it. upstream/* replaces
+upstream files for head's commit.
+-- upstream/brave-lists/clean-urls.json --
+[
+  {"include": ["*://*/*"], "exclude": [], "params": ["utm_source", "fbclid", "utm_medium"]},
+  {"include": ["*://*.shop.example/*"], "exclude": [], "params": ["sref"]},
+  {"include": ["*://*.news.example/*"], "exclude": [], "params": ["share", "st"]}
+]

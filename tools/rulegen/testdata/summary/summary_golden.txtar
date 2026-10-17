@@ -1,0 +1,43 @@
+summary_golden: a mixed diff over the synthetic data. upstream/* replaces
+upstream files for head's commit (synced); tree/* replaces head files.
+
+- shop gains id: a scoped risky pair on a corpus host (⚠★) that breaks shop-1;
+- the global rule gains irpid (★⚑) and mc_cid (improves other-1);
+- fbclid moves from clean-urls to query-filter (not a removal);
+- the news rule loses share (a risky-params.txt name) and st, so the
+  news-keep-st keep-override is stale and news-1 changes;
+- debounce rule 0 gains an exact-path pattern, classified on the branch;
+- acks.json carries a lapsed, expired ack and an unexpired hold whose bytes
+  upstream changed again.
+-- upstream/brave-lists/clean-urls.json --
+[
+  {"include": ["*://*/*"], "exclude": [], "params": ["utm_source", "irpid", "mc_cid"]},
+  {"include": ["*://*.shop.example/*"], "exclude": [], "params": ["sref", "id"]},
+  {"include": ["*://*.news.example/*"], "exclude": [], "params": ["ns_mchannel"]}
+]
+-- upstream/brave-lists/query-filter.json --
+[
+  {"include": ["*://*/*"], "exclude": [], "params": ["gclid", "fbclid"]}
+]
+-- upstream/brave-lists/debounce.json --
+[
+  {"include": ["*://*.affnet.example/click?*", "*://r.mail.example/c?*", "*://x.affnet.example/go"], "exclude": [], "action": "redirect", "param": "url"},
+  {"include": ["*://t.redir.example/x/*"], "exclude": [], "action": "regex-path", "param": "^/x/(.*)$"}
+]
+-- tree/rules/overlay/debounce-classes.json --
+{"schema": 1, "patterns": {
+  "*://*.affnet.example/click?*": {"class": "affiliate", "network": "AffNet", "why": "fixture: no single beneficiary ID"},
+  "*://x.affnet.example/go": {"class": "affiliate", "network": "AffNet", "why": "fixture: no single beneficiary ID"},
+  "*://r.mail.example/c?*": {"class": "unwrap", "why": "fixture: mail click tracker"},
+  "*://t.redir.example/x/*": {"class": "off", "why": "action \"regex-path\" not supported in v1"}
+}}
+-- tree/rules/acks.json --
+{"schema": 1, "acks": [
+  {"check": "counts", "metric": "union.global_params", "min": 1,
+   "vendored_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+   "expires": "2026-10-01", "reason": "fixture: an old ack", "by": "fixture"}
+], "holds": [
+  {"file": "brave-lists/clean-urls.json",
+   "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+   "expires": "2026-12-01", "reason": "fixture: waiting on upstream", "by": "fixture"}
+]}

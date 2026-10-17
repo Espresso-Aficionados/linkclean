@@ -1,0 +1,63 @@
+A small synthetic data set for the summary goldens, so they do not change
+when the real vendored data, overlay or corpus does. upstream/* is the
+upstream commit base is synced to; tree/* replaces files of the linkclean
+copy (the real corpus files are removed first).
+-- upstream/brave-lists/clean-urls.json --
+[
+  {"include": ["*://*/*"], "exclude": [], "params": ["utm_source", "fbclid"]},
+  {"include": ["*://*.shop.example/*"], "exclude": [], "params": ["sref"]},
+  {"include": ["*://*.news.example/*"], "exclude": [], "params": ["share", "st"]}
+]
+-- upstream/brave-lists/query-filter.json --
+[
+  {"include": ["*://*/*"], "exclude": [], "params": ["gclid"]}
+]
+-- upstream/brave-lists/debounce.json --
+[
+  {"include": ["*://*.affnet.example/click?*", "*://r.mail.example/c?*"], "exclude": [], "action": "redirect", "param": "url"},
+  {"include": ["*://t.redir.example/x/*"], "exclude": [], "action": "regex-path", "param": "^/x/(.*)$"}
+]
+-- upstream/brave-lists/other.txt --
+another list, which the vendored set does not include
+-- upstream/LICENSE --
+Mozilla Public License Version 2.0
+==================================
+
+(Synthetic fixture text: only the first line is read.)
+-- tree/rules/overlay/overlay.json --
+[
+  {"id": "news-keep-st", "action": "keep",
+   "include": ["*://*.news.example/*"],
+   "params": ["st"],
+   "ref": "fixture"},
+  {"id": "shop-strip-promo", "action": "strip",
+   "include": ["*://*.shop.example/*"],
+   "params": ["promo"],
+   "ref": "fixture"}
+]
+-- tree/rules/overlay/debounce-classes.json --
+{"schema": 1, "patterns": {
+  "*://*.affnet.example/click?*": {"class": "affiliate", "network": "AffNet", "why": "fixture: no single beneficiary ID"},
+  "*://r.mail.example/c?*": {"class": "unwrap", "why": "fixture: mail click tracker"},
+  "*://t.redir.example/x/*": {"class": "off", "why": "action \"regex-path\" not supported in v1"}
+}}
+-- tree/rules/acks.json --
+{"schema": 1, "acks": [], "holds": []}
+-- tree/testdata/golden/risky-params.txt --
+# fixture
+share
+-- tree/testdata/corpus/eval-2026-10/synthetic.json --
+[
+  {"id": "shop-1", "input": "https://www.shop.example/p?id=7&sref=a&utm_source=x",
+   "expected": "https://www.shop.example/p?id=7", "alt_expected": [],
+   "tracking_params": ["sref", "utm_source"], "functional_params": ["id"]},
+  {"id": "news-1", "input": "https://www.news.example/a?st=gift&share=1",
+   "expected": "https://www.news.example/a?st=gift", "alt_expected": [],
+   "tracking_params": ["share"], "functional_params": ["st"]},
+  {"id": "other-1", "input": "https://www.other.example/?page=2&mc_cid=5",
+   "expected": "https://www.other.example/?page=2", "alt_expected": [],
+   "tracking_params": ["mc_cid"], "functional_params": ["page"]},
+  {"id": "mail-1", "input": "https://r.mail.example/c?url=https%3A%2F%2Fdest.example%2Fpage",
+   "expected": "https://dest.example/page", "alt_expected": [],
+   "tracking_params": [], "functional_params": []}
+]
