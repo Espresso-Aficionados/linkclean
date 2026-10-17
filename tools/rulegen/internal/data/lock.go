@@ -331,7 +331,7 @@ func decodeStrict(b []byte, v any) error {
 	dec := json.NewDecoder(bytes.NewReader(b))
 	dec.DisallowUnknownFields()
 	if err := dec.Decode(v); err != nil {
-		return err
+		return truncated(err)
 	}
 	if _, err := dec.Token(); err != io.EOF {
 		return errors.New("trailing data after the JSON value")
@@ -379,7 +379,17 @@ func checkDuplicateKeys(b []byte) error {
 		}
 		return nil
 	}
-	return walk()
+	return truncated(walk())
+}
+
+// truncated reports truncated input the same way on every Go version:
+// encoding/json returns io.EOF or io.ErrUnexpectedEOF depending on the
+// version and on where the input ends.
+func truncated(err error) error {
+	if errors.Is(err, io.EOF) || errors.Is(err, io.ErrUnexpectedEOF) {
+		return errors.New("unexpected end of JSON input")
+	}
+	return err
 }
 
 func sortedKeys[V any](m map[string]V) []string {
