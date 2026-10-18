@@ -1,7 +1,12 @@
 version: 2
 updates:
+  # code.dny.dev/ssrf is pinned to v0.3.x: a minor or major release can change which addresses
+  # unshorten's dial guard denies, so moving to one is a reviewed change, not a routine bump.
+  # Patch updates still come.
   - {package-ecosystem: gomod, directory: "/", schedule: {interval: weekly},
-     groups: {golang-x: {patterns: ["golang.org/x/*"]}}}
+     groups: {golang-x: {patterns: ["golang.org/x/*"]}},
+     ignore: [{dependency-name: code.dny.dev/ssrf,
+               update-types: [version-update:semver-minor, version-update:semver-major]}]}
   - {package-ecosystem: gomod, directory: "/tools", schedule: {interval: weekly}}
   - {package-ecosystem: github-actions, directory: "/", schedule: {interval: weekly},
      groups: {actions: {update-types: [minor, patch]}}}
