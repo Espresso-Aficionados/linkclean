@@ -19,6 +19,7 @@ jobs:
           - {target: FuzzExtraUnwrap,  pkg: .}
           - {target: FuzzHostView,     pkg: ./internal/rawurl}
           - {target: FuzzReserialize,  pkg: ./internal/rawurl}
+          - {target: FuzzRequestForm,  pkg: ./internal/rawurl}
           - {target: FuzzQuery,        pkg: ./internal/query}
           - {target: FuzzMatchPattern, pkg: ./internal/matchpattern}
           - {target: FuzzFind,         pkg: ./discordlink}
