@@ -2,6 +2,7 @@ package unshorten
 
 import (
 	"context"
+	"log/slog"
 
 	"github.com/Espresso-Aficionados/linkclean"
 )
@@ -31,7 +32,35 @@ import (
 // negotiation (the caller's TLSNextProto and RegisterProtocol entries are not
 // used), disables compression, and caps response headers at 32 KiB.
 func New(cfg Config) (*Resolver, error) {
-	panic("unshorten: not implemented")
+	rc, err := resolveConfig(cfg)
+	if err != nil {
+		return nil, err
+	}
+	log := cfg.Logger
+	if log == nil {
+		log = slog.Default()
+	}
+	reg := cfg.Registry
+	if reg == nil {
+		reg = DefaultRegistry()
+	}
+	cache := cfg.Cache
+	if cache == nil {
+		cache = NewMemoryCache(defaultCacheEntries)
+	}
+	lim := cfg.Limiter
+	if lim == nil {
+		lim = NewHostLimiter(2, 4)
+	}
+	rt, err := checkTransport(cfg.Transport, cfg.AllowUnguardedTransport, log)
+	if err != nil {
+		return nil, err
+	}
+	c := cfg.Cleaner
+	if c == nil {
+		c = linkclean.Default()
+	}
+	return &Resolver{st: newState(rc, reg, cache, lim, rt, log), c: c}, nil
 }
 
 // Resolver is immutable and safe for concurrent use. It owns the network state:
@@ -49,7 +78,10 @@ type Resolver struct {
 // bound and coalesced lookup is shared. Use one Resolver per process and one
 // view per policy. It performs no I/O.
 func (r *Resolver) WithCleaner(c *linkclean.Cleaner) *Resolver {
-	panic("unshorten: not implemented")
+	if c == nil {
+		c = linkclean.Default()
+	}
+	return &Resolver{st: r.st, c: c}
 }
 
 // Resolve offline-cleans rawURL. If the result matches a non-intermediate registry
@@ -64,7 +96,15 @@ func (r *Resolver) WithCleaner(c *linkclean.Cleaner) *Resolver {
 // errors.Is(err, ErrUnresolved) holds, the specific sentinel is also wrapped, and
 // errors.Is keeps working after a cache hit.
 func (r *Resolver) Resolve(ctx context.Context, rawURL string) (Result, error) {
-	panic("unshorten: not implemented")
+	ch := r.resolve(ctx, rawURL)
+	return Result{
+		Input:    rawURL,
+		URL:      ch.url,
+		Resolved: len(ch.hops) > 0 && ch.url != ch.off.URL,
+		Cached:   ch.cached && len(ch.hops) > 0,
+		Hops:     ch.hops,
+		Clean:    ch.lastClean(),
+	}, ch.err
 }
 
 // Process implements discordlink.Processor. The returned linkclean.Result has
@@ -79,7 +119,8 @@ func (r *Resolver) Resolve(ctx context.Context, rawURL string) (Result, error) {
 // URL != Input, Skipped is the first clean's, Signed is the last clean's, and
 // UnwrapAbandoned is true if any clean abandoned an unwrap.
 func (r *Resolver) Process(ctx context.Context, rawURL string) (linkclean.Result, error) {
-	panic("unshorten: not implemented")
+	ch := r.resolve(ctx, rawURL)
+	return ch.assemble(rawURL), ch.err
 }
 
 // Match reports, offline and without I/O, whether rawURL would trigger network
@@ -87,7 +128,15 @@ func (r *Resolver) Process(ctx context.Context, rawURL string) (linkclean.Result
 // URL matches: one with userinfo, an IP host, or a port other than its
 // scheme's default never does.
 func (r *Resolver) Match(rawURL string) (entry string, ok bool) {
-	panic("unshorten: not implemented")
+	off := r.c.Explain(rawURL)
+	if off.Skipped != linkclean.NotSkipped {
+		return "", false
+	}
+	e, _, ok := r.st.lookup(off.URL, false)
+	if !ok {
+		return "", false
+	}
+	return e.Name, true
 }
 
 // Result is the outcome of Resolve.
