@@ -575,3 +575,60 @@ func TestProcessOffline(t *testing.T) {
 		}
 	}
 }
+
+// TestProcessMaskedTarget checks that p receives a masked link's target as
+// Discord links it, with markdown backslash escapes removed, while Link.URL
+// stays the raw span, and that links are distinct by that target.
+func TestProcessMaskedTarget(t *testing.T) {
+	for _, tc := range []struct {
+		in   string
+		want []string // the URLs p receives, in order
+		raw  []string // Link.URL of each Change, in the same order
+	}{
+		{`[shop](https://example.com/some\_page?utm_source=x)`,
+			[]string{"https://example.com/some_page?utm_source=x"},
+			[]string{`https://example.com/some\_page?utm_source=x`}},
+		{`[wiki](https://en.wikipedia.org/wiki/Foo_\(bar\)?utm_source=x)`,
+			[]string{"https://en.wikipedia.org/wiki/Foo_(bar)?utm_source=x"},
+			[]string{`https://en.wikipedia.org/wiki/Foo_\(bar\)?utm_source=x`}},
+		{`[x](<https://example.com/a\*b?utm_source=x>)`,
+			[]string{"https://example.com/a*b?utm_source=x"},
+			[]string{`https://example.com/a\*b?utm_source=x`}},
+		// A backslash before a letter, a digit or whitespace, or inside a
+		// paren group before a letter, stays; a doubled one becomes one.
+		{`[x](https://a.com/\a\1\\b(c\d\_e))`,
+			[]string{`https://a.com/\a\1\b(c\d_e)`},
+			[]string{`https://a.com/\a\1\\b(c\d\_e)`}},
+		// A non-ASCII rune after a backslash is unescaped too.
+		{"[x](https://a.com/\\é)",
+			[]string{"https://a.com/é"},
+			[]string{"https://a.com/\\é"}},
+		// The same link, written escaped and bare, is one job.
+		{`[a](https://x.com/a\_b?utm_source=1) https://x.com/a_b?utm_source=1`,
+			[]string{"https://x.com/a_b?utm_source=1"},
+			[]string{`https://x.com/a\_b?utm_source=1`}},
+		// Escapes are a masked-link feature: bare and autolink targets are
+		// passed as written.
+		{`https://a.com/x\_y <https://b.com/x\_y>`,
+			[]string{`https://a.com/x\_y`, `https://b.com/x\_y`},
+			[]string{`https://a.com/x\_y`, `https://b.com/x\_y`}},
+	} {
+		f := &fakeProc{}
+		cs, un := Process(context.Background(), tc.in, f, Options{Concurrency: 1})
+		if got := f.called(); !slices.Equal(got, tc.want) || un != 0 {
+			t.Errorf("%q: p got %q, unexamined %d; want %q", tc.in, got, un, tc.want)
+		}
+		var raw []string
+		for _, c := range cs {
+			raw = append(raw, c.Link.URL)
+		}
+		if !slices.Equal(raw, tc.raw) {
+			t.Errorf("%q: Link.URLs %q, want %q", tc.in, raw, tc.raw)
+		}
+	}
+
+	cs, _ := Process(context.Background(), `[shop](https://example.com/some\_page?utm_source=x)`, Offline(linkclean.Default()), Options{})
+	if got := Repost(cs, RepostOptions{Wrap: WrapNone}); !slices.Equal(got, []string{"https://example.com/some_page"}) {
+		t.Errorf("Repost of an escaped masked target: %q", got)
+	}
+}

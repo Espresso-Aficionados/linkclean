@@ -16,8 +16,9 @@
 // and, for a masked link, its label. Link.WouldEmbed tells whether Discord
 // would preview it.
 //
-// Process runs a Processor over the distinct links Find reports, at most
-// Options.MaxLinks of them and Options.Concurrency at a time, and returns
+// Process runs a Processor over the distinct links Find reports (a masked
+// link's target with its markdown escapes removed, as Discord links it), at
+// most Options.MaxLinks of them and Options.Concurrency at a time, and returns
 // the links whose cleaned URL differs, de-duplicated by that URL, with a
 // count of the links it did not examine. Offline adapts a
 // linkclean.Cleaner; it needs no network and never blocks.

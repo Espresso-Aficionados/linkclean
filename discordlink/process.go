@@ -2,8 +2,10 @@ package discordlink
 
 import (
 	"context"
+	"strings"
 	"sync"
 	"sync/atomic"
+	"unicode/utf8"
 
 	"github.com/Espresso-Aficionados/linkclean"
 )
@@ -38,7 +40,7 @@ type Change struct {
 
 type Options struct {
 	Concurrency int // parallel Process calls; 0 (or negative) means 4
-	MaxLinks    int // distinct links (by raw URL, in Find order) examined per message; 0 (or negative) means 10 (bounds work per message)
+	MaxLinks    int // distinct links (by target before cleaning, in Find order) examined per message; 0 (or negative) means 10 (bounds work per message)
 }
 
 // Process runs p over the first MaxLinks distinct links in content and returns
@@ -48,8 +50,12 @@ type Options struct {
 // RepostOptions.Unexamined so a reply can say so).
 // ctx bounds the whole message.
 //
-// Links are distinct by raw URL; the first occurrence in Find order is the
-// one processed. A result is kept iff its Changed is true: an error with an
+// p receives each link's target as Discord links it: Link.URL, except that
+// in a masked link's target a backslash before anything but an ASCII letter,
+// an ASCII digit or whitespace is dropped, as Discord's markdown does, so
+// [l](https://a.com/x\_y) gives p https://a.com/x_y. Change.Link.URL stays
+// the raw span. Links are distinct by that target, before cleaning; the
+// first occurrence in Find order is the one processed. A result is kept iff its Changed is true: an error with an
 // unchanged result is dropped, and an error with a changed result is kept in
 // Change.Err. When two links clean to the same Result.URL, the first one's
 // Change, including its Link and Link.Spoiler, is kept. cs is nil when
@@ -119,7 +125,7 @@ type outcome struct {
 	started bool
 }
 
-// distinct keeps the first Link per raw URL, in Find order. It filters links
+// distinct keeps the first Link per target, in Find order. It filters links
 // in place.
 func distinct(links []Link) []Link {
 	if len(links) < 2 {
@@ -128,12 +134,35 @@ func distinct(links []Link) []Link {
 	seen := make(map[string]bool, len(links))
 	out := links[:0]
 	for _, l := range links {
-		if !seen[l.URL] {
-			seen[l.URL] = true
+		if u := target(l); !seen[u] {
+			seen[u] = true
 			out = append(out, l)
 		}
 	}
 	return out
+}
+
+// target is the URL Discord links for l. simple-markdown unescapes a masked
+// link's target with /\\([^0-9A-Za-z\s])/g; bare links and autolinks are
+// taken as written.
+func target(l Link) string {
+	if l.Kind != Masked && l.Kind != MaskedSuppressed || !strings.Contains(l.URL, `\`) {
+		return l.URL
+	}
+	u := l.URL
+	b := make([]byte, 0, len(u))
+	for i := 0; i < len(u); i++ {
+		if u[i] == '\\' && i+1 < len(u) {
+			r, n := utf8.DecodeRuneInString(u[i+1:])
+			if (r >= utf8.RuneSelf || !isAlnum(u[i+1])) && !isJSSpace(r) {
+				b = append(b, u[i+1:i+1+n]...)
+				i += n
+				continue
+			}
+		}
+		b = append(b, u[i])
+	}
+	return string(b)
 }
 
 // runsInline reports whether Process calls p on the caller's goroutine.
@@ -151,7 +180,7 @@ func runInline(ctx context.Context, p Processor, jobs []Link, out []outcome) {
 			return
 		}
 		out[i].started = true
-		out[i].r, out[i].err = p.Process(ctx, l.URL)
+		out[i].r, out[i].err = p.Process(ctx, target(l))
 	}
 }
 
@@ -175,7 +204,7 @@ func runPool(ctx context.Context, p Processor, jobs []Link, out []outcome, worke
 			}
 		}()
 		out[i].started = true
-		out[i].r, out[i].err = p.Process(ctx, jobs[i].URL)
+		out[i].r, out[i].err = p.Process(ctx, target(jobs[i]))
 	}
 	for range workers {
 		wg.Go(func() {

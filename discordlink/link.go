@@ -13,7 +13,9 @@ const (
 	MaskedSuppressed                 // [label](<https://x>)
 )
 
-// Link is one link Find reports.
+// Link is one link Find reports. For the masked kinds URL is the target as
+// written, backslash escapes included; Process passes the Processor the
+// target with those escapes removed, which is the URL Discord links.
 type Link struct {
 	URL        string // == content[Start:End]
 	Start, End int    // byte offsets of the URL only (not brackets/label)
