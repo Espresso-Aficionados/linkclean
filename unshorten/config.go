@@ -50,7 +50,9 @@ type Config struct {
 	// lookups, including detached ones whose callers have gone). A miss beyond it
 	// fails open immediately with ErrTransient (never cached) and makes no
 	// request. 0 means 256. It bounds goroutines and memory under a flood of
-	// unique short links, whatever the rate limit.
+	// unique short links, whatever the rate limit, except for OnRequest
+	// calls: they run after a hop's key is released, so each hop whose
+	// OnRequest is still running keeps its goroutine past the bound.
 	MaxInFlight int
 	// MaxInFlightPerHost bounds, per request host (the host of the hop URL
 	// being resolved), the keys counted in MaxInFlight. It is checked first,
@@ -76,7 +78,10 @@ type Config struct {
 	// refusal, a slot wait that ended or a Limiter rejection. Calls are made
 	// after the hop's lookup is released, on the goroutine that fetched the
 	// hop, so OnRequest must be safe for concurrent use, should not block, and
-	// may run after Resolve has returned.
+	// may run after Resolve has returned. A hop whose OnRequest is still
+	// running no longer counts toward MaxInFlight, so a slow OnRequest lets
+	// goroutines grow with the request rate; hand slow work to a bounded
+	// queue.
 	OnRequest func(RequestInfo)
 }
 
