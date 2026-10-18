@@ -12,8 +12,7 @@ jobs:
   alert:
     runs-on: ubuntu-24.04                       # pinned, as in the maintainer's other repos
     steps:
-      - name: pushover                          # primary channel; failure here does not skip the issue
-        continue-on-error: true
+      - name: pushover                          # a failed push fails the run; the issue still runs
         env: {PO_USER: "${{ secrets.PUSHOVER_USER_KEY }}", PO_TOKEN: "${{ secrets.PUSHOVER_APP_TOKEN }}", TITLE: "${{ inputs.title }}", BODY: "${{ inputs.body }}"}
         run: |                                  # inputs via env, never inline
           r=$(curl -sS --form-string "token=$PO_TOKEN" --form-string "user=$PO_USER" \
@@ -21,6 +20,7 @@ jobs:
                 https://api.pushover.net/1/messages.json)
           echo "$r" | jq -e '.status == 1 and (.errors | not)' >/dev/null && ! grep -qi 'no active devices' <<<"$r"
       - name: issue                             # durable record
+        if: always()
         env: {GH_TOKEN: "${{ github.token }}", GH_REPO: "${{ github.repository }}", TITLE: "${{ inputs.title }}", BODY: "${{ inputs.body }}"}
         run: |                                  # inputs via env, never inline
           n=$(gh issue list --label rules-alert --state open --json number --jq '.[0].number // empty')
