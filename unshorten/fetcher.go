@@ -28,6 +28,10 @@ type Fetcher struct {
 	used int  // Gets that passed the checks: at most 2 per hop
 	done bool // set once the hop's last strategy returned: every later Get is ErrBudget
 	recs []requestRecord
+	// resp is 1 + the index in recs of the last Get's record when a
+	// response arrived for it, else 0: the response a strategy that then
+	// fails decided on.
+	resp int
 }
 
 // requestRecord is one Fetcher.Get that reached the transport.
@@ -59,6 +63,12 @@ const maxBody = 64 << 10
 // otherwise. The body is read via io.LimitReader(64 KiB) only if readBody;
 // otherwise it is closed unread.
 func (f *Fetcher) Get(ctx context.Context, u *url.URL, readBody bool) (*Response, error) {
+	rec := 0 // 1 + the index of this Get's record once a response arrived
+	defer func() {
+		f.mu.Lock()
+		f.resp = rec
+		f.mu.Unlock()
+	}()
 	f.mu.Lock()
 	done := f.done
 	f.mu.Unlock()
@@ -143,7 +153,7 @@ func (f *Fetcher) Get(ctx context.Context, u *url.URL, readBody bool) (*Response
 	resp, err := client.Do(req)
 	if err != nil {
 		if saw.status != 0 {
-			f.record(requestRecord{
+			rec = f.record(requestRecord{
 				host: host, status: saw.status, dur: time.Since(start),
 				wire: int(wire.Load()), readBody: readBody,
 			})
@@ -173,7 +183,7 @@ func (f *Fetcher) Get(ctx context.Context, u *url.URL, readBody bool) (*Response
 		// validated.
 		err = ErrBadTarget
 	}
-	f.record(requestRecord{
+	rec = f.record(requestRecord{
 		host: host, status: resp.StatusCode, dur: time.Since(start),
 		wire: int(wire.Load()), readBody: readBody,
 	})
@@ -241,10 +251,12 @@ func (f *Fetcher) hopEnded() error {
 	return nil
 }
 
-func (f *Fetcher) record(r requestRecord) {
+// record appends r and returns 1 + its index.
+func (f *Fetcher) record(r requestRecord) int {
 	f.mu.Lock()
+	defer f.mu.Unlock()
 	f.recs = append(f.recs, r)
-	f.mu.Unlock()
+	return len(f.recs)
 }
 
 // finish marks f done, so every later Get is ErrBudget, and returns its

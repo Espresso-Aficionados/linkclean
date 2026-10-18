@@ -81,7 +81,9 @@ type Config struct {
 }
 
 // RequestInfo never contains the path or query: short tokens are capability URLs.
-// Failure is the structured kind (FailNone on success). Err is SANITIZED:
+// Failure is the structured kind (FailNone on success); a request whose
+// response the hop then failed on (an HTTP status, no redirect, no match, a
+// bad target) carries that failure. Err is SANITIZED:
 // the Resolver never passes a *url.Error (whose Error() embeds the request URL);
 // it reduces a transport error to its class (timeout of any kind, cancel, DNS,
 // dial refused, TLS, dial-guard denial; FailTransient says which are transient)

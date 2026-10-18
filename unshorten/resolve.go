@@ -372,6 +372,7 @@ type attempt struct {
 	status   int    // from classifyStrategy
 	next     string // validated; "" on a stop or a failure
 	from, to int    // the Fetcher records this attempt made: recs[from:to]
+	resp     int    // 1 + the index of its last Get's record if a response arrived for it, else 0
 }
 
 // fetchHop fetches one hop with a fresh Fetcher (budget 2): e's Strategy,
@@ -381,7 +382,8 @@ type attempt struct {
 // last attempt's kind. Status is the unexpected status for FailStatus and
 // a transient HTTP status, else the status of the deciding attempt's last
 // request if it did not read the body, else 0. Requests counts the request
-// writes of both attempts.
+// writes of both attempts. A failed attempt whose last Get returned a
+// response reports its failure on that request's RequestInfo.
 func (st *state) fetchHop(ctx context.Context, e *compiledEntry, hop int, reqForm string) hopOutcome {
 	u, err := url.Parse(reqForm)
 	if err != nil {
@@ -407,7 +409,7 @@ func (st *state) fetchHop(ctx context.Context, e *compiledEntry, hop int, reqFor
 				a.kind, a.class, a.status = FailBadTarget, classBadTarget, 0
 			}
 		}
-		a.to = f.recCount()
+		a.to, a.resp = f.recState()
 		atts = append(atts, a)
 		if a.kind == FailNone {
 			break
@@ -442,6 +444,13 @@ func (st *state) fetchHop(ctx context.Context, e *compiledEntry, hop int, reqFor
 		for _, a := range atts {
 			if a.from <= i && i < a.to {
 				name = a.strategy
+				// A response the attempt then failed on (a status, no
+				// redirect, no match, a bad next URL) is that failure's
+				// request.
+				if a.kind != FailNone && rec.kind == FailNone && a.resp == i+1 {
+					rec.kind = a.kind
+					rec.err = requestError(e.Name, rec.host, a.kind, a.class, a.status, nil)
+				}
 				break
 			}
 		}
@@ -462,4 +471,11 @@ func (f *Fetcher) recCount() int {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	return len(f.recs)
+}
+
+// recState is the number of requests f has recorded and f.resp.
+func (f *Fetcher) recState() (n, resp int) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return len(f.recs), f.resp
 }

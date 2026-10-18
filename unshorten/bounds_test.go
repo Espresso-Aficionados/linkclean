@@ -14,6 +14,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -367,6 +368,61 @@ func TestOnRequestCalls(t *testing.T) {
 	r.st.group.Wait()
 	if len(infos.all()) != 2 {
 		t.Errorf("a cached Resolve called OnRequest")
+	}
+}
+
+// TestOnRequestFailureKinds: a request whose response decided a failure
+// reports that failure's kind and a sanitized Err: 429 is transient with a
+// *StatusError, 404 under Redirect is FailNoRedirect, 999 under BodyRegexp
+// is FailStatus, a 3xx whose Location does not parse is FailBadTarget, and
+// a Location that fails validation is FailBadTarget too.
+func TestOnRequestFailureKinds(t *testing.T) {
+	n := installNet(t)
+	n.HandleTLS("s.example.net", rvRoutes{
+		"/busy":       rvRedirect(429, ""),
+		"/gone":       rvRedirect(404, ""),
+		"/badloc":     rvRedirect(301, "https://[bad"),
+		"/ip":         rvRedirect(301, "https://10.0.0.1/x"),
+		"/" + rvToken: rvRedirect(503, ""),
+	})
+	n.HandleTLS("l.example.net", rvRedirect(999, ""))
+	infos := &rvInfos{}
+	body := Entry{Name: "l", Match: []string{"*://l.example.net/*"}, Strategy: BodyRegexp(regexp.MustCompile(`href="([^"]+)"`))}
+	r := rvResolver(t, n, Config{Registry: rvRegistry(t, rvEntry("s.example.net"), body), OnRequest: infos.record})
+	for _, c := range []struct {
+		raw    string
+		status int
+		kind   FailureKind
+		want   error
+	}{
+		{"https://s.example.net/busy", 429, FailTransient, ErrTransient},
+		{"https://s.example.net/gone", 404, FailNoRedirect, ErrNoRedirect},
+		{"https://s.example.net/badloc", 301, FailBadTarget, ErrBadTarget},
+		{"https://s.example.net/ip", 301, FailBadTarget, ErrBadTarget},
+		{"https://s.example.net/" + rvToken, 503, FailTransient, ErrTransient},
+		{"https://l.example.net/x", 999, FailStatus, ErrUnresolved},
+	} {
+		before := len(infos.all())
+		_, err := r.Resolve(context.Background(), c.raw)
+		if !errors.Is(err, c.want) {
+			t.Errorf("Resolve(%q) error %v, want %v", c.raw, err, c.want)
+		}
+		r.st.group.Wait()
+		got := infos.all()[before:]
+		if len(got) != 1 {
+			t.Fatalf("Resolve(%q): %d OnRequest calls, want 1: %+v", c.raw, len(got), got)
+		}
+		info := got[0]
+		if info.Status != c.status || info.Failure != c.kind || !errors.Is(info.Err, c.want) || !errors.Is(info.Err, ErrUnresolved) {
+			t.Errorf("Resolve(%q): OnRequest got status %d, failure %v, err %v; want %d, %v wrapping %v", c.raw, info.Status, info.Failure, info.Err, c.status, c.kind, c.want)
+		}
+		var se *StatusError
+		if wantSE := c.kind == FailStatus || c.kind == FailTransient; errors.As(info.Err, &se) != wantSE || wantSE && se.Status != c.status {
+			t.Errorf("Resolve(%q): RequestInfo.Err %v: *StatusError %+v, want one with status %d: %v", c.raw, info.Err, se, c.status, wantSE)
+		}
+		if info.Err != nil && strings.Contains(info.Err.Error(), rvToken) {
+			t.Errorf("RequestInfo.Err %q holds the token", info.Err)
+		}
 	}
 }
 
