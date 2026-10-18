@@ -374,6 +374,50 @@ func TestTimeoutBoundsCacheGet(t *testing.T) {
 	}
 }
 
+// TestStoreAfterLateOutcome: an outcome a strategy returns just after the
+// hop deadline is still stored, through a Set whose ctx has not ended, so
+// a Cache that honours ctx keeps it.
+func TestStoreAfterLateOutcome(t *testing.T) {
+	n := installNet(t)
+	n.HandleTLS("s.example.net", rvRedirect(301, "https://example.net/p"))
+	strat := rvStrategy{name: "Late", next: func(ctx context.Context, f *Fetcher, u *url.URL) (*url.URL, error) {
+		resp, err := f.Get(ctx, u, false)
+		if err != nil {
+			return nil, err
+		}
+		dl, _ := ctx.Deadline()
+		time.Sleep(time.Until(dl) + 5*time.Millisecond)
+		return resp.Location, nil
+	}}
+	var mu sync.Mutex
+	var setErrs []error
+	inner := NewMemoryCache(0)
+	spy := &rvCache{inner: inner}
+	r := rvResolver(t, n, Config{
+		Registry: rvRegistry(t, Entry{Name: "late", Match: []string{"*://s.example.net/*"}, Strategy: strat}),
+		Cache:    &rvCtxCache{Cache: spy, set: func(ctx context.Context) { mu.Lock(); setErrs = append(setErrs, ctx.Err()); mu.Unlock() }},
+		Timeout:  300 * time.Millisecond,
+	})
+	_, _ = r.Resolve(context.Background(), "https://s.example.net/x")
+	r.st.group.Wait()
+	mu.Lock()
+	defer mu.Unlock()
+	if len(setErrs) != 1 || setErrs[0] != nil {
+		t.Errorf("Set ctx errors %v, want one live ctx", setErrs)
+	}
+}
+
+// rvCtxCache passes each Set's ctx to set before calling the Cache.
+type rvCtxCache struct {
+	Cache
+	set func(ctx context.Context)
+}
+
+func (c *rvCtxCache) Set(ctx context.Context, key string, e CacheEntry, ttl time.Duration) {
+	c.set(ctx)
+	c.Cache.Set(ctx, key, e, ttl)
+}
+
 // --- OnRequest ---
 
 // TestOnRequestCalls: one call per request, with entry, strategy, host,

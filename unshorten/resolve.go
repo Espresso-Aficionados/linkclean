@@ -333,7 +333,11 @@ func (st *state) runHop(ctx context.Context, e *compiledEntry, hop int, host, re
 		return hopOutcome{e: ce, fromCache: true}, nil
 	}
 	o := st.fetchHop(hctx, e, hop, reqForm)
-	st.store(hctx, e, key, reqForm, o.e)
+	// The fetch may have used all of Timeout: the Set gets its own budget,
+	// so a Cache that honours ctx still stores an outcome found late.
+	sctx, scancel := context.WithTimeout(context.WithoutCancel(hctx), storeTimeout)
+	st.store(sctx, e, key, reqForm, o.e)
+	scancel()
 	infos, p := o.infos, o.panicked
 	o.infos, o.panicked = nil, nil
 	onRequest := st.cfg.onRequest
@@ -352,6 +356,9 @@ func (st *state) runHop(ctx context.Context, e *compiledEntry, hop int, host, re
 		}
 	}
 }
+
+// storeTimeout bounds the Cache.Set of a fetched hop.
+const storeTimeout = time.Second
 
 // emit calls onRequest, dropping a panic so later calls still happen.
 func emit(onRequest func(RequestInfo), info RequestInfo) {
