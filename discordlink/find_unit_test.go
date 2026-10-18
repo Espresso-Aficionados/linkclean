@@ -2,6 +2,7 @@ package discordlink
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 	"testing"
 )
@@ -126,5 +127,17 @@ func TestFindNestingLimit(t *testing.T) {
 	// the cap and the link after it is still found.
 	if links := Find(strings.Repeat("*", 200) + " https://a.com/x"); len(links) != 1 || links[0].Spoiler || links[0].URL != "https://a.com/x" {
 		t.Fatalf("got %+v", links)
+	}
+}
+
+// TestMaxContent pins the size limit Find's doc states: 2^31-1 bytes, or
+// 214,748,364 bytes where int is 32 bits.
+func TestMaxContent(t *testing.T) {
+	want := 1<<31 - 1
+	if strconv.IntSize == 32 {
+		want = 214_748_364
+	}
+	if maxContent != want {
+		t.Errorf("maxContent = %d, want %d (Find's doc states it)", maxContent, want)
 	}
 }
