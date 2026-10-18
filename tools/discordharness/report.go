@@ -84,6 +84,13 @@ func sendAll(ctx context.Context, c *client, e *env, out, channelID string, case
 		}
 		got, err := c.postMessage(ctx, channelID, o)
 		if err != nil {
+			// Only an HTTP 4xx answer proves nothing was created. Otherwise
+			// (no answer, an unreadable one, or a 5xx) the message may exist
+			// without an ID to record, and -cleanup cannot see it.
+			var a *apiError
+			if !errors.As(err, &a) || a.status >= 500 {
+				return fmt.Errorf("%s: %w; the message may have been created without being recorded, so -cleanup cannot delete it: check the channel and delete it by hand", pc.ID, err)
+			}
 			return fmt.Errorf("%s: %w", pc.ID, err)
 		}
 		sent[pc.ID] = got.ID

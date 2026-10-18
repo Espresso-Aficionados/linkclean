@@ -143,4 +143,7 @@ go -C tools run ./discordharness -cleanup \
 It deletes only the message IDs recorded in `$DIR/run.json`, in that run's
 channel, after the same preflight and confirmation, and only when the token's
 bot is the one that sent them. It marks each deleted message in `run.json`,
-so it can be re-run after an interruption.
+so it can be re-run after an interruption. A send that stops because a
+message's response was lost (an interrupt, a timeout, an unreadable or 5xx
+answer) says so: that message may exist without an ID in `run.json`, and
+you delete it by hand.

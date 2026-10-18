@@ -80,6 +80,7 @@ type fakeDiscord struct {
 	limit429 int                       // POSTs still to answer with 429
 	embedFor func(content string) bool // messages that unfurl, 5 s after creation
 	postErr  int                       // non-zero: POST answers this status
+	badReply int                       // POSTs from this one on (1-based) store the message, then answer garbage
 	gone     map[string]bool           // DELETE answers 404 Unknown Message
 }
 
@@ -128,6 +129,11 @@ func newFake(t *testing.T) *fakeDiscord {
 		f.nextID++
 		m := &stored{message: message{ID: strconv.Itoa(f.nextID), ChannelID: r.PathValue("id"), Content: o.Content, Flags: o.Flags, Embeds: []embed{}}, created: f.clock.now()}
 		f.msgs[m.ID] = m
+		if f.badReply > 0 && len(f.msgs) >= f.badReply {
+			w.WriteHeader(200)
+			io.WriteString(w, "{not json")
+			return
+		}
 		f.jsonLocked(w, 200, m.message)
 	})
 	mux.HandleFunc("GET /api/v10/channels/{cid}/messages/{mid}", func(w http.ResponseWriter, r *http.Request) {
@@ -548,6 +554,24 @@ func TestPreflightAllows(t *testing.T) {
 			h.checkNoLeaks(t)
 		})
 	}
+}
+
+// TestSendLostResponse checks that a POST whose response is lost after
+// Discord created the message says the message may exist unrecorded.
+func TestSendLostResponse(t *testing.T) {
+	h := newHarness(t, testName+"\n")
+	h.f.badReply = 2
+	if code := h.run(h.sendArgs(t, "grammar")...); code != exitFail {
+		t.Fatalf("exit %d, want %d", code, exitFail)
+	}
+	rec := readRunFile(t, h.out())
+	if len(rec.Messages) != 1 || len(h.f.msgs) != 2 {
+		t.Fatalf("%d recorded, %d created; want 1 and 2", len(rec.Messages), len(h.f.msgs))
+	}
+	if s := h.stderr.String(); !strings.Contains(s, "may have been created without being recorded") || !strings.Contains(s, "delete it by hand") {
+		t.Errorf("stderr %q does not warn about the unrecorded message", s)
+	}
+	h.checkNoLeaks(t)
 }
 
 func TestConfirmRefuses(t *testing.T) {
