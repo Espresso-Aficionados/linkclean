@@ -10,8 +10,8 @@ import (
 	"github.com/Espresso-Aficionados/linkclean"
 )
 
-// Processor cleans one URL. Offline adapts a Cleaner; a network unshortener
-// (planned as a separate package) can implement it too.
+// Processor cleans one URL. Offline adapts a Cleaner; package unshorten's
+// *Resolver implements it too, resolving short links over the network.
 type Processor interface {
 	Process(ctx context.Context, rawURL string) (linkclean.Result, error)
 }

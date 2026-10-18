@@ -1,7 +1,7 @@
 // Package linkclean removes tracking parameters from http(s) URLs and unwraps
 // known redirect wrappers. It is a pure, offline string transform: no function
-// in this package performs I/O. Network unshortening is planned as a separate,
-// opt-in package; this one never will.
+// in this package performs I/O. Network unshortening is the separate, opt-in
+// package unshorten; this one never will.
 //
 // Rules come from Brave's clean-urls.json, query-filter.json and debounce.json
 // (MPL-2.0, embedded unmodified from one pinned brave/adblock-lists commit) plus

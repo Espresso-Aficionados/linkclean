@@ -3,6 +3,18 @@ package linkclean
 import "fmt"
 
 // Result explains one Clean.
+//
+// The field comments below describe the Result of one Clean. Package
+// unshorten's Resolver.Process returns a Result that describes several:
+// the clean of Input, then each network hop (CatUnshortened), followed by
+// the clean of its destination as served when that destination is not
+// itself a short link. Hops, Removed and Kept concatenate those cleans' in
+// that order, each read against its own clean's input and output; a
+// network hop's From is the URL as it was requested and its To the
+// destination as served. URL is the final URL: Clean(URL) == URL, but URL
+// is generally not Clean(Input). Changed is URL != Input, Skipped is the
+// first clean's, Signed the last clean's, and UnwrapAbandoned is true if
+// any clean abandoned an unwrap.
 type Result struct {
 	Input   string
 	URL     string // == Clean(Input); == Input when !Changed
