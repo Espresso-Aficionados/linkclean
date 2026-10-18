@@ -421,3 +421,25 @@ func TestProcessRepostR8(t *testing.T) {
 	}
 	t.Logf("R8 body: %d bytes", len(b))
 }
+
+// TestRepostMaxBodiesAnnotateCalls pins the documented Annotate calls at the
+// MaxBodies cut-off: the block that does not fit the last allowed body is
+// passed to Annotate once, then counted as omitted with the blocks after it,
+// which are not passed to it.
+func TestRepostMaxBodiesAnnotateCalls(t *testing.T) {
+	var cs []Change
+	for i := range 3 {
+		u := "https://a.com/" + strings.Repeat("x", 50) + strconv.Itoa(i)
+		cs = append(cs, Change{Result: linkclean.Result{URL: u, Changed: true}})
+	}
+	o := RepostOptions{MaxLen: 80, MaxBodies: 1, Annotate: func(Change, bool) ([]string, int) {
+		return []string{"-# note"}, 1
+	}}
+	bodies, st := repost(cs, o)
+	if len(bodies) != 1 || st.emitted != 1 || st.omitted != 2 {
+		t.Fatalf("bodies %q, stats %+v", bodies, st)
+	}
+	if want := []int{1, 1, 0}; !slices.Equal(st.annotate, want) || !slices.Equal(st.compact, []int{0, 0, 0}) {
+		t.Errorf("Annotate calls %v, compact %v; want %v and none", st.annotate, st.compact, want)
+	}
+}

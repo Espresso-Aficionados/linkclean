@@ -36,8 +36,10 @@ type RepostOptions struct {
 	// and its annotation lines form one block that is never split across
 	// bodies. required (0 ≤ required ≤ len(lines); clamped) is the number of
 	// TRAILING lines that must accompany the URL line. Repost calls
-	// Annotate(c, false) once for every block it tries to place; blocks
-	// counted as omitted once MaxBodies is reached are not passed to it. If a
+	// Annotate(c, false) once for every block it tries to place, including
+	// the block that does not fit the last body MaxBodies allows; that block
+	// and the ones after it are counted as omitted, and those after it are
+	// not passed to Annotate. If a
 	// block does not fit an empty body, Repost degrades it in this order:
 	//   1. drop the non-required lines from the front, one at a time;
 	//   2. if the URL line plus the required lines still do not fit and
