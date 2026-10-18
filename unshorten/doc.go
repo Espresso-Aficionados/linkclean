@@ -194,7 +194,12 @@
 // Concurrent lookups of one uncached hop are coalesced into one request,
 // made detached from the callers under Config.Timeout: a caller that gives
 // up fails open without stopping it, and a definitive outcome is still
-// cached. MaxInFlightPerHost counts the hops in flight per host of the URL
+// cached. The detached request keeps the values of the ctx of the caller
+// that started it (context.WithoutCancel): hooks carried in that ctx, such
+// as an httptrace.ClientTrace or a tracing span, can run after that
+// caller's Resolve has returned and for a request that also serves other
+// callers, and the Cache sees those values. Keep per-call hooks that must
+// stop when Resolve returns out of its ctx. MaxInFlightPerHost counts the hops in flight per host of the URL
 // being resolved. Entries whose short-link hosts share one fetch host therefore
 // share its request slots but not this bound: the tiktok entry's
 // vm.tiktok.com, vt.tiktok.com and www.tiktok.com/t/ links all fetch
