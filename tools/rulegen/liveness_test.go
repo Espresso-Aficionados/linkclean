@@ -468,6 +468,32 @@ func TestLiveness(t *testing.T) {
 			p[2]["commits"].([]any)[0].(map[string]any)["commit"] = map[string]any{"message": "Bump\nCo-authored-by: Someone <someone@example.invalid>\n\nSigned-off-by: x"}
 			return p
 		}()), liveAlert("G1", "M"), exitFail, ""},
+		{"blocked_null_author_dependabot_co_author", liveLine(func() []map[string]any {
+			// GitHub matched the commit's own author to no account; a
+			// Dependabot trailer does not make the commit Dependabot's.
+			p := liveDependabot(5, "OPEN", liveOld, "h1", "")
+			p[2]["commits"].([]any)[1].(map[string]any)["commit"] = map[string]any{"message": "an edit\n\nCo-authored-by: dependabot[bot] <" + liveBotEmail + ">\n"}
+			return p
+		}()), "blocked #5", exitOK, "open #5 carries non-Dependabot commits: eeeeeeeeeeee an edit\n"},
+		{"co_author_dependabot_mixed_case", liveLine(liveCoAuthored(5, "dependabot[bot] <49699333+Dependabot[bot]@Users.NoReply.GitHub.com>")), liveAlert("G1", "M"), exitFail, ""},
+		{"blocked_co_author_crlf", liveLine(func() []map[string]any {
+			p := liveDependabot(5, "OPEN", liveOld, "h1")
+			p[2]["commits"].([]any)[0].(map[string]any)["commit"] = map[string]any{"message": "Bump\r\n\r\nCo-authored-by: Someone <someone@example.invalid>\r\n"}
+			return p
+		}()), "blocked #5", exitOK, "open #5 carries non-Dependabot commits: dddddddddddd Bump\n"},
+		{"co_author_subject_only", liveLine(func() []map[string]any {
+			p := liveDependabot(5, "OPEN", liveOld, "h1")
+			p[2]["commits"].([]any)[0].(map[string]any)["commit"] = map[string]any{"message": "Co-authored-by: Someone <someone@example.invalid>"}
+			return p
+		}()), liveAlert("G1", "M"), exitFail, ""},
+		{"window_ignores_human_on_dependabot_branch", liveLine([]map[string]any{
+			livePull(4, "MERGED", "2026-10-13T04:00:00Z", "maintainer", "dependabot/submodules/tools/upstream/adblock-lists-abc1234", "hM"),
+		}), alertB, exitFail, ""},
+		{"routine_close_of_human_pr_not_candidate", liveLine(liveComment([]map[string]any{
+			livePull(7, "CLOSED", liveOld, "maintainer", "dependabot/submodules/tools/upstream/adblock-lists-abc1234", "hM"),
+			{"pull_number": 7, "comments": []any{}},
+			{"pull_number": 7, "commits": []any{}},
+		}, data.CommentGone)), alertB, exitFail, ""},
 		{"closed_edited_not_blocked", liveLine(liveDependabot(5, "CLOSED", liveOld, "h1", "maintainer")), alertB, exitFail, ""},
 		{"open_dependabot_newest_gitlink", liveLine(
 			liveDependabot(5, "OPEN", liveOld, "hM"),
