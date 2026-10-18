@@ -48,16 +48,24 @@ const (
 // paginates, so the listing is complete: it is not bounded. Its size grows
 // by one PR object a week, plus one comments and one commits page for each
 // unmerged Dependabot submodule PR, which only the routine's closes and
-// Dependabot's supersedes add.
+// Dependabot's supersedes add. PRs are listed oldest first: pages are
+// numbered, and a PR opened during the listing then lands on the last page
+// instead of shifting a PR of an earlier page onto the next one. Its last
+// line, liveDone, is written only once every call succeeded, so liveness
+// tells a complete listing from an empty, cut or failed one.
 const liveProduce = `(
   R=repos/Espresso-Aficionados/linkclean; F=/tmp/lc/prs.json
-  gh api --paginate "$R/pulls?state=all&per_page=100" \
+  gh api --paginate "$R/pulls?state=all&sort=created&direction=asc&per_page=100" \
     --jq '.[] | select(any(.labels[]; .name == "rules-update"))' > "$F" || exit 1
   for n in $(jq -r 'select(.merged_at == null and (.head.ref | startswith("dependabot/submodules/"))) | .number' "$F"); do
     gh api --paginate "$R/issues/$n/comments?per_page=100" --jq "{pull_number: $n, comments: .}" >> "$F" || exit 1
     gh api --paginate "$R/pulls/$n/commits?per_page=100" --jq "{pull_number: $n, commits: .}" >> "$F" || exit 1
   done
+  echo '` + liveDone + `' >> "$F"
 ) || echo "listing PRs failed"`
+
+// liveDone is the last value of a complete -prs stream.
+const liveDone = `{"listing":"complete"}`
 
 // liveClosePrefixes mark a PR the routine closed itself in a way that
 // leaves its gitlink "already proposed" (held; gitlink off upstream master
@@ -89,8 +97,10 @@ network; its inputs are:
       dependabot/submodules/... PR one value per page of its comments
       (GET .../issues/<n>/comments) and its commits (GET .../pulls/<n>/commits),
       wrapped as {"pull_number": <n>, "comments": [...]} and
-      {"pull_number": <n>, "commits": [...]}. Fields liveness does not read
-      are ignored.
+      {"pull_number": <n>, "commits": [...]}, then ` + liveDone + `
+      as the last value. Without that last value the listing did not
+      complete, and liveness refuses it. Fields liveness does not read are
+      ignored.
   -root: a linkclean clone holding -main and the head commit of every
       PR whose gitlink is needed; fetch them first with
         git -C <root> fetch origin main '+refs/pull/*/head:refs/remotes/origin/pull/*'
@@ -512,6 +522,7 @@ func liveReadPRs(path string) ([]livePR, error) {
 	at := map[int]int{}   // rules-update PR number → index in prs
 	var pages []restPage  // in stream order, applied once every PR is known
 	var pageAt []int      // stream index of each page
+	done := false         // liveDone was read
 	dec := json.NewDecoder(f)
 	for i := 1; ; i++ {
 		var raw json.RawMessage
@@ -520,9 +531,20 @@ func liveReadPRs(path string) ([]livePR, error) {
 		} else if err != nil {
 			return nil, fmt.Errorf("%s: %w", path, err)
 		}
+		if done {
+			return nil, bad(i, "a value after %s", liveDone)
+		}
 		var keys map[string]json.RawMessage
 		if err := json.Unmarshal(raw, &keys); err != nil {
 			return nil, bad(i, "not a JSON object")
+		}
+		if _, ok := keys["listing"]; ok {
+			var m struct{ Listing string }
+			if err := json.Unmarshal(raw, &m); err != nil || len(keys) != 1 || m.Listing != "complete" {
+				return nil, bad(i, "not %s", liveDone)
+			}
+			done = true
+			continue
 		}
 		if _, ok := keys["pull_number"]; ok {
 			var pg restPage
@@ -576,6 +598,9 @@ func liveReadPRs(path string) ([]livePR, error) {
 			at[p.Number] = len(prs)
 			prs = append(prs, p)
 		}
+	}
+	if !done {
+		return nil, fmt.Errorf("%s: the listing did not complete: its last value is not %s; re-run the command of rulegen liveness -h", path, liveDone)
 	}
 	for j, pg := range pages {
 		if !all[pg.PullNumber] {

@@ -143,7 +143,8 @@ func liveRunEdited(t *testing.T, f *liveFixture, edit func(t *testing.T, prs str
 		l.Run("checkout", "--quiet", "main")
 	}
 
-	// One value a line, as gh api --jq prints them.
+	// One value a line, as gh api --jq prints them, then the line the
+	// command writes once every call succeeded.
 	var stream strings.Builder
 	for _, v := range f.PRs {
 		b, err := json.Marshal(v)
@@ -152,6 +153,7 @@ func liveRunEdited(t *testing.T, f *liveFixture, edit func(t *testing.T, prs str
 		}
 		stream.WriteString(r.expand(t, string(b)) + "\n")
 	}
+	stream.WriteString(liveDone + "\n")
 	prs := filepath.Join(t.TempDir(), "prs.json")
 	if err := os.WriteFile(prs, []byte(stream.String()), 0o644); err != nil {
 		t.Fatal(err)
@@ -576,8 +578,43 @@ func TestLivenessErrors(t *testing.T) {
 			os.WriteFile(prs, []byte(`{"pull_number": 5, "comments": [], "commits": []}`), 0o644)
 		}, nil, exitUnverifiable, `exactly one of "comments" and "commits"`},
 		{"page_of_unlisted_pr", liveLine(), func(t *testing.T, prs string) {
-			os.WriteFile(prs, []byte(`{"pull_number": 5, "comments": []}`), 0o644)
+			os.WriteFile(prs, []byte(`{"pull_number": 5, "comments": []}`+"\n"+liveDone), 0o644)
 		}, nil, exitUnverifiable, "a page of #5, which is not listed"},
+		// A listing that did not complete is never read as one with fewer
+		// PRs: without its last line #4 would be missing and the window empty.
+		{"listing_empty", liveLine(liveDependabot(4, "OPEN", "2026-10-13T04:00:00Z", "h1")), func(t *testing.T, prs string) {
+			os.WriteFile(prs, nil, 0o644)
+		}, nil, exitUnverifiable, "the listing did not complete"},
+		{"listing_cut", liveLine(liveDependabot(4, "OPEN", "2026-10-13T04:00:00Z", "h1")), func(t *testing.T, prs string) {
+			liveEditLines(t, prs, func(l []string) []string { return l[:len(l)-1] })
+		}, nil, exitUnverifiable, "the listing did not complete"},
+		{"listing_marker_first", liveLine(liveDependabot(4, "OPEN", "2026-10-13T04:00:00Z", "h1")), func(t *testing.T, prs string) {
+			liveEditLines(t, prs, func(l []string) []string { return append(l[len(l)-1:], l[:len(l)-1]...) })
+		}, nil, exitUnverifiable, "value 2: a value after " + liveDone},
+		{"listing_marker_twice", liveLine(), func(t *testing.T, prs string) {
+			liveEditLines(t, prs, func(l []string) []string { return append(l, liveDone) })
+		}, nil, exitUnverifiable, "value 2: a value after " + liveDone},
+		{"listing_marker_other", liveLine(), func(t *testing.T, prs string) {
+			os.WriteFile(prs, []byte(`{"listing": "partial"}`), 0o644)
+		}, nil, exitUnverifiable, "value 1: not " + liveDone},
+		{"listing_marker_extra_key", liveLine(), func(t *testing.T, prs string) {
+			os.WriteFile(prs, []byte(`{"listing": "complete", "number": 4}`), 0o644)
+		}, nil, exitUnverifiable, "value 1: not " + liveDone},
+		{"no_number", liveLine(func() []map[string]any {
+			p := liveDependabot(5, "OPEN", liveOld, "h1")
+			p[0]["number"] = 0
+			return p
+		}()), nil, nil, exitUnverifiable, "PR without a number"},
+		{"null_author", liveLine(func() []map[string]any {
+			p := liveDependabot(5, "OPEN", liveOld, "h1")
+			p[0]["user"] = nil
+			return p
+		}()), nil, nil, exitUnverifiable, "#5: no author"},
+		{"null_created_at", liveLine(func() []map[string]any {
+			p := liveDependabot(5, "OPEN", liveOld, "h1")
+			p[0]["created_at"] = nil
+			return p
+		}()), nil, nil, exitUnverifiable, "#5: no created_at"},
 		{"not_json", liveLine(), func(t *testing.T, prs string) { os.WriteFile(prs, []byte("[{"), 0o644) }, nil, exitUnverifiable, "prs.json"},
 		{"unknown_state", liveLine(func() []map[string]any {
 			p := liveDependabot(5, "OPEN", liveOld, "h1")
@@ -621,6 +658,19 @@ func TestLivenessErrors(t *testing.T) {
 	})
 }
 
+// liveEditLines rewrites the -prs file line by line.
+func liveEditLines(t *testing.T, prs string, edit func([]string) []string) {
+	t.Helper()
+	b, err := os.ReadFile(prs)
+	if err != nil {
+		t.Fatal(err)
+	}
+	lines := edit(strings.Split(strings.TrimSuffix(string(b), "\n"), "\n"))
+	if err := os.WriteFile(prs, []byte(strings.Join(lines, "\n")+"\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestLivenessUsage(t *testing.T) {
 	for _, tt := range []struct {
 		args []string
@@ -629,7 +679,7 @@ func TestLivenessUsage(t *testing.T) {
 	}{
 		{nil, exitUsage, "-root is required"},
 		{[]string{"-root", "r", "-upstream", "u"}, exitUsage, "-prs is required"},
-		{[]string{"-h"}, exitOK, `gh api --paginate "$R/pulls?state=all&per_page=100"`},
+		{[]string{"-h"}, exitOK, `gh api --paginate "$R/pulls?state=all&sort=created&direction=asc&per_page=100"`},
 		{[]string{"-root", "r", "-upstream", "u", "-prs", "p", "x"}, exitUsage, "unexpected arguments"},
 	} {
 		e, stdout, stderr := newTestEnv(t, nil)
@@ -699,6 +749,15 @@ func TestLivenessProduceCommand(t *testing.T) {
 		if !strings.Contains(liveProduce, s) {
 			t.Errorf("the command's filters lack %s", s)
 		}
+	}
+	// Oldest first, so a PR opened during the listing shifts no page.
+	if !strings.Contains(liveProduce, `"$R/pulls?state=all&sort=created&direction=asc&per_page=100"`) {
+		t.Errorf("the PR listing is not oldest first")
+	}
+	// The completion line comes last, inside the subshell that every failed
+	// call leaves.
+	if want := "  done\n  echo '" + liveDone + "' >> \"$F\"\n) || echo \"listing PRs failed\""; !strings.HasSuffix(liveProduce, want) {
+		t.Errorf("the command does not end with %q", want)
 	}
 	joined := strings.ReplaceAll(liveProduce, "\\\n", " ")
 	ghCall := regexp.MustCompile(`\bgh\s+(.*)`)

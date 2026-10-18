@@ -305,21 +305,24 @@ comment.
 git -C /tmp/lc/main fetch origin main '+refs/pull/*/head:refs/remotes/origin/pull/*'
 (
   R=repos/Espresso-Aficionados/linkclean; F=/tmp/lc/prs.json
-  gh api --paginate "$R/pulls?state=all&per_page=100" \
+  gh api --paginate "$R/pulls?state=all&sort=created&direction=asc&per_page=100" \
     --jq '.[] | select(any(.labels[]; .name == "rules-update"))' > "$F" || exit 1
   for n in $(jq -r 'select(.merged_at == null and (.head.ref | startswith("dependabot/submodules/"))) | .number' "$F"); do
     gh api --paginate "$R/issues/$n/comments?per_page=100" --jq "{pull_number: $n, comments: .}" >> "$F" || exit 1
     gh api --paginate "$R/pulls/$n/commits?per_page=100" --jq "{pull_number: $n, commits: .}" >> "$F" || exit 1
   done
+  echo '{"listing":"complete"}' >> "$F"
 ) || echo "listing PRs failed"
 M=$(git ls-remote https://github.com/brave/adblock-lists refs/heads/master | cut -f1)
 /tmp/lc/rulegen liveness -root /tmp/lc/main -upstream /tmp/lc/up-main -prs /tmp/lc/prs.json -master "$M"
 ```
 
 The listing is REST only and paginates every call, so it is complete:
-every `rules-update` PR (`/tmp/lc/prs.json` holds each PR object as
-`GET …/pulls` returns it), plus the comments and commits of every unmerged
-Dependabot submodule PR; `rulegen liveness -h` describes the file. If it
+every `rules-update` PR, oldest first (`/tmp/lc/prs.json` holds each PR
+object as `GET …/pulls` returns it), plus the comments and commits of every
+unmerged Dependabot submodule PR, then the line `{"listing":"complete"}`,
+written only once every call succeeded; `rulegen liveness -h` describes the
+file, and liveness refuses one without that last line (exit 2). If it
 prints `listing PRs failed`, or `git ls-remote` fails, or `M` is empty, do
 not run `liveness`: alert "liveness undecidable: <the error>" and continue
 with step 2 (which re-reads open PRs itself; step 2's "Closed by
