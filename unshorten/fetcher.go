@@ -206,12 +206,39 @@ func (s *sawStatus) RoundTrip(req *http.Request) (*http.Response, error) {
 // classified error.
 func (f *Fetcher) failed(host string, start time.Time, wire *atomic.Int64, readBody bool, err error) error {
 	kind, class := classifyTransport(err, f.hopCtx)
+	if kind == FailTransient && (class == classCanceled || class == classTimeout) {
+		// When the hop ends, Get's ctx is ended by whichever fires first:
+		// its own deadline timer (DeadlineExceeded, possibly before
+		// hopCtx's timer has fired) or the AfterFunc on hopCtx (Canceled).
+		// Either way the cause is the hop's end.
+		switch herr := f.hopEnded(); {
+		case errors.Is(herr, context.DeadlineExceeded):
+			class = classDeadline
+		case herr != nil:
+			class = classCanceled
+		}
+	}
 	f.record(requestRecord{
 		host: host, dur: time.Since(start), kind: kind, class: class,
 		wire: int(wire.Load()), readBody: readBody,
 		err: requestError(f.e.Name, host, kind, class, 0, err),
 	})
 	return &fetchError{kind: kind, class: class}
+}
+
+// hopEnded returns hopCtx's error, or DeadlineExceeded once the hop
+// deadline has passed though hopCtx's timer has not fired yet; nil while the
+// hop runs.
+func (f *Fetcher) hopEnded() error {
+	if f.hopCtx != nil {
+		if err := f.hopCtx.Err(); err != nil {
+			return err
+		}
+	}
+	if !f.deadline.IsZero() && !time.Now().Before(f.deadline) {
+		return context.DeadlineExceeded
+	}
+	return nil
 }
 
 func (f *Fetcher) record(r requestRecord) {

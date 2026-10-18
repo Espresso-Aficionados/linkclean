@@ -668,8 +668,9 @@ func TestGetIgnoresStrategyCtx(t *testing.T) {
 		f := newTestFetcher(t, st, "t.co", hop)
 		start := time.Now()
 		_, err := f.Get(context.Background(), mustURL(t, "https://t.co/x"), false)
-		if !errors.Is(err, ErrTransient) {
-			t.Errorf("Get = %v, want ErrTransient", err)
+		var fe *fetchError
+		if !errors.Is(err, ErrTransient) || !errors.As(err, &fe) || fe.class != classDeadline {
+			t.Errorf("Get = %v, want ErrTransient at the hop deadline", err)
 		}
 		if d := time.Since(start); d != time.Second {
 			t.Errorf("returned after %v, want the hop deadline (1s)", d)
