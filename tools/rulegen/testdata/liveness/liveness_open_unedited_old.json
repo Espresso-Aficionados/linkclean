@@ -10,15 +10,26 @@
   "prs": [
     {
       "number": 6,
-      "state": "OPEN",
-      "author": {"id": "MDM6Qm90NDk2OTkzMzM=", "is_bot": true, "login": "app/dependabot"},
-      "headRefName": "dependabot/submodules/tools/upstream/adblock-lists-4e5f6a7",
-      "headRefOid": "{{h6}}",
-      "createdAt": "2026-09-21T04:05:00Z",
-      "closedAt": null,
-      "comments": [],
+      "state": "open",
+      "merged_at": null,
+      "closed_at": null,
+      "created_at": "2026-09-21T04:05:00Z",
+      "user": {"login": "dependabot[bot]", "type": "Bot"},
+      "head": {"ref": "dependabot/submodules/tools/upstream/adblock-lists-4e5f6a7", "sha": "{{h6}}"},
+      "labels": [{"name": "rules-update"}]
+    },
+    {"pull_number": 6, "comments": []},
+    {
+      "pull_number": 6,
       "commits": [
-        {"authors": [{"email": "49699333+dependabot[bot]@users.noreply.github.com", "id": "MDM6Qm90NDk2OTkzMzM=", "login": "dependabot[bot]", "name": "dependabot[bot]"}], "messageHeadline": "Bump tools/upstream/adblock-lists from `1a2b3c4` to `4e5f6a7`", "oid": "3d1e2f3a4b5c6d7e8f9001122334455667788990"}
+        {
+          "sha": "3d1e2f3a4b5c6d7e8f9001122334455667788990",
+          "author": {"login": "dependabot[bot]"},
+          "commit": {
+            "author": {"name": "dependabot[bot]", "email": "49699333+dependabot[bot]@users.noreply.github.com"},
+            "message": "Bump tools/upstream/adblock-lists from `1a2b3c4` to `4e5f6a7`"
+          }
+        }
       ]
     }
   ],

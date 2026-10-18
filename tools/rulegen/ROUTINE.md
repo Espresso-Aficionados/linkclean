@@ -247,19 +247,27 @@ watching: steps 5 and 9 do not arm auto-merge and escalate instead, with
 
 ```
 git -C /tmp/lc/main fetch origin main '+refs/pull/*/head:refs/remotes/origin/pull/*'
-gh pr list --repo Espresso-Aficionados/linkclean --label rules-update --state all --limit 40 \
-  --json number,state,author,headRefName,createdAt,closedAt,headRefOid,comments,commits \
-  > /tmp/lc/prs.json || echo "gh pr list failed"
+(
+  R=repos/Espresso-Aficionados/linkclean; F=/tmp/lc/prs.json
+  gh api --paginate "$R/pulls?state=all&per_page=100" \
+    --jq '.[] | select(any(.labels[]; .name == "rules-update"))' > "$F" || exit 1
+  for n in $(jq -r 'select(.merged_at == null and (.head.ref | startswith("dependabot/submodules/"))) | .number' "$F"); do
+    gh api --paginate "$R/issues/$n/comments?per_page=100" --jq "{pull_number: $n, comments: .}" >> "$F" || exit 1
+    gh api --paginate "$R/pulls/$n/commits?per_page=100" --jq "{pull_number: $n, commits: .}" >> "$F" || exit 1
+  done
+) || echo "listing PRs failed"
 M=$(git ls-remote https://github.com/brave/adblock-lists refs/heads/master | cut -f1)
 /tmp/lc/rulegen liveness -root /tmp/lc/main -upstream /tmp/lc/up-main -prs /tmp/lc/prs.json -master "$M"
 ```
 
-Keep `--limit` at 40: with `commits` in the field list, GitHub refuses the
-query outright above 49 PRs (it would ask for more than 500,000 nodes). If
-`gh pr list` or `git ls-remote` fails, or `M` is empty, do not run
-`liveness`: alert "liveness undecidable: <the error>" and continue with
-step 2 (which re-reads open PRs itself; step 2's "Closed by Dependabot"
-check is then skipped this run and says so in the alert).
+The listing is REST only and paginates every call, so it is complete:
+every `rules-update` PR (`/tmp/lc/prs.json` holds each PR object as
+`GET …/pulls` returns it), plus the comments and commits of every unmerged
+Dependabot submodule PR; `rulegen liveness -h` describes the file. If it
+prints `listing PRs failed`, or `git ls-remote` fails, or `M` is empty, do
+not run `liveness`: alert "liveness undecidable: <the error>" and continue
+with step 2 (which re-reads open PRs itself; step 2's "Closed by
+Dependabot" check is then skipped this run and says so in the alert).
 
 It prints one verdict line (details on stderr):
 
@@ -319,11 +327,17 @@ gh pr list --repo Espresso-Aficionados/linkclean --label rules-update --state op
     Alert, and stop.
   - **Unverifiable.** Escalate (step 4) without syncing.
   - **Routine.** Continue with step 3.
-- **Closed by Dependabot.** For each Dependabot submodule PR in
-  `/tmp/lc/prs.json` that is `CLOSED` with `closedAt` in the last 7 days and
+- **Closed by Dependabot.** For each Dependabot submodule PR closed without
+  merge in the last 7 days, as step 1's listing prints them (number and head
+  SHA):
+  ```
+  jq -r --arg since "$(date -u -d '7 days ago' +%Y-%m-%dT%H:%M:%SZ)" \
+    'select(.head != null and .user.login == "dependabot[bot]" and .merged_at == null and .closed_at != null and .closed_at >= $since and (.head.ref | startswith("dependabot/submodules/"))) | "\(.number) \(.head.sha)"' \
+    /tmp/lc/prs.json
+  ```
   whose last `closed` event actor is Dependabot
-  (`gh api repos/Espresso-Aficionados/linkclean/issues/<m>/events --jq '[.[] | select(.event == "closed")] | last | .actor.login'`
-  prints `dependabot[bot]`), classify its commits at its `headRefOid`; if it
+  (`gh api --paginate "repos/Espresso-Aficionados/linkclean/issues/<m>/events?per_page=100" --jq '.[] | select(.event == "closed") | .actor.login' | tail -1`
+  prints `dependabot[bot]`), classify its commits at that head SHA; if it
   carried a non-routine commit, list it in this run's alert with its head SHA
   (recoverable at `refs/pull/<m>/head`).
 - **Takeover PR** (any other author): list it in this run's alert, with "open

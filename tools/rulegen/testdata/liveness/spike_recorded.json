@@ -1,0 +1,231 @@
+{
+  "about": "Recorded from the REST responses of the Dependabot spike repository (two open and three closed Dependabot submodule PRs, #1 closed with a maintainer commit, none closed with a routine close text), trimmed to the fields liveness reads, the maintainer's commit email and name and the head commits replaced. A week after the window: the open PRs carry only Dependabot's commits, so nothing is blocked; open #6's gitlink is upstream master, so G == M: quiet.",
+  "now": "2026-11-10T11:00:00Z",
+  "upstream": [
+    {"name": "B", "date": "2026-10-01T09:00:00Z"},
+    {"name": "G2", "parent": "B", "date": "2026-10-10T09:00:00Z"},
+    {"name": "G6", "parent": "G2", "date": "2026-10-15T09:00:00Z"}
+  ],
+  "master": "G6",
+  "main": "B",
+  "heads": {"h1": "G2", "h2": "G2", "h4": "G2", "h5": "G2", "h6": "G6"},
+  "prs": [
+    {
+      "number": 6,
+      "state": "open",
+      "merged_at": null,
+      "closed_at": null,
+      "created_at": "2026-10-17T01:54:34Z",
+      "user": {"login": "dependabot[bot]", "type": "Bot"},
+      "head": {"ref": "dependabot/submodules/tools/upstream/spike-upstream-8c9bec2", "sha": "{{h6}}"},
+      "labels": [{"name": "rules-update"}]
+    },
+    {
+      "number": 5,
+      "state": "closed",
+      "merged_at": null,
+      "closed_at": "2026-10-17T01:54:02Z",
+      "created_at": "2026-10-17T01:53:32Z",
+      "user": {"login": "dependabot[bot]", "type": "Bot"},
+      "head": {"ref": "dependabot/submodules/tools/upstream/spike-upstream-802f5cf", "sha": "{{h5}}"},
+      "labels": [{"name": "rules-update"}]
+    },
+    {
+      "number": 4,
+      "state": "closed",
+      "merged_at": null,
+      "closed_at": "2026-10-17T01:37:35Z",
+      "created_at": "2026-10-16T19:40:58Z",
+      "user": {"login": "dependabot[bot]", "type": "Bot"},
+      "head": {"ref": "dependabot/submodules/tools/upstream/spike-upstream-ef720ca", "sha": "{{h4}}"},
+      "labels": [{"name": "rules-update"}]
+    },
+    {
+      "number": 2,
+      "state": "open",
+      "merged_at": null,
+      "closed_at": null,
+      "created_at": "2026-10-16T19:22:14Z",
+      "user": {"login": "dependabot[bot]", "type": "Bot"},
+      "head": {"ref": "dependabot/submodules/tools/upstream/adblock-lists-8f42ddc", "sha": "{{h2}}"},
+      "labels": [{"name": "rules-update"}]
+    },
+    {
+      "number": 1,
+      "state": "closed",
+      "merged_at": null,
+      "closed_at": "2026-10-16T19:40:15Z",
+      "created_at": "2026-10-16T19:22:11Z",
+      "user": {"login": "dependabot[bot]", "type": "Bot"},
+      "head": {"ref": "dependabot/submodules/tools/upstream/spike-upstream-31efc4b", "sha": "{{h1}}"},
+      "labels": [{"name": "rules-update"}]
+    },
+    {
+      "pull_number": 6,
+      "comments": [
+        {
+          "user": {"login": "sadbox"},
+          "body": "@dependabot show tools/upstream/spike-upstream ignore conditions",
+          "created_at": "2026-10-17T01:54:37Z"
+        },
+        {
+          "user": {"login": "dependabot[bot]"},
+          "body": "No ignore conditions found for the dependency tools/upstream/spike-upstream",
+          "created_at": "2026-10-17T01:54:39Z"
+        }
+      ]
+    },
+    {
+      "pull_number": 6,
+      "commits": [
+        {
+          "sha": "3520d7e1ecccc08b3344ef6a48c6bf83699ec8f4",
+          "author": {"login": "dependabot[bot]"},
+          "commit": {
+            "author": {
+              "date": "2026-10-17T01:54:32Z",
+              "email": "49699333+dependabot[bot]@users.noreply.github.com",
+              "name": "dependabot[bot]"
+            },
+            "message": "Bump tools/upstream/spike-upstream from `0309415` to `8c9bec2`\n\nBumps [tools/upstream/spike-upstream](https://github.com/sadbox/linkclean-dependabot-spike) from `0309415` to `8c9bec2`.\n- [Commits](https://github.com/sadbox/linkclean-dependabot-spike/compare/0309415404f5f901a331fc433c17f498aca0adcb...8c9bec29463040e37b6f2acaa806c7df1d3abb79)\n\n---\nupdated-dependencies:\n- dependency-name: tools/upstream/spike-upstream\n  dependency-version: 8c9bec29463040e37b6f2acaa806c7df1d3abb79\n  dependency-type: direct:production\n...\n\nSigned-off-by: dependabot[bot] <support@github.com>",
+            "verification": {"verified": true}
+          }
+        }
+      ]
+    },
+    {
+      "pull_number": 5,
+      "comments": [
+        {
+          "user": {"login": "sadbox"},
+          "body": "G-3: closing unmerged (2/2).",
+          "created_at": "2026-10-17T01:54:01Z"
+        },
+        {
+          "user": {"login": "dependabot[bot]"},
+          "body": "OK, I won't notify you again about this release, but will get in touch when a new version is available. You can also ignore all major, minor, or patch releases for a dependency by adding an [`ignore` condition](https://docs.github.com/en/code-security/supply-chain-security/configuration-options-for-dependency-updates#ignore) with the desired `update_types` to your config file.\n\nIf you change your mind, just re-open this PR and I'll resolve any conflicts on it.",
+          "created_at": "2026-10-17T01:54:05Z"
+        }
+      ]
+    },
+    {
+      "pull_number": 5,
+      "commits": [
+        {
+          "sha": "08d6a392ba78b654142b36e23076e9c6571c50f3",
+          "author": {"login": "dependabot[bot]"},
+          "commit": {
+            "author": {
+              "date": "2026-10-17T01:53:30Z",
+              "email": "49699333+dependabot[bot]@users.noreply.github.com",
+              "name": "dependabot[bot]"
+            },
+            "message": "Bump tools/upstream/spike-upstream from `0309415` to `802f5cf`\n\nBumps [tools/upstream/spike-upstream](https://github.com/sadbox/linkclean-dependabot-spike) from `0309415` to `802f5cf`.\n- [Commits](https://github.com/sadbox/linkclean-dependabot-spike/compare/0309415404f5f901a331fc433c17f498aca0adcb...802f5cfa574879ba04c7e701cce1d27a3b78a4f5)\n\n---\nupdated-dependencies:\n- dependency-name: tools/upstream/spike-upstream\n  dependency-version: 802f5cfa574879ba04c7e701cce1d27a3b78a4f5\n  dependency-type: direct:production\n...\n\nSigned-off-by: dependabot[bot] <support@github.com>",
+            "verification": {"verified": true}
+          }
+        }
+      ]
+    },
+    {
+      "pull_number": 4,
+      "comments": [
+        {
+          "user": {"login": "sadbox"},
+          "body": "G-3: closing unmerged (1/2).",
+          "created_at": "2026-10-17T01:37:35Z"
+        },
+        {
+          "user": {"login": "dependabot[bot]"},
+          "body": "OK, I won't notify you again about this release, but will get in touch when a new version is available. You can also ignore all major, minor, or patch releases for a dependency by adding an [`ignore` condition](https://docs.github.com/en/code-security/supply-chain-security/configuration-options-for-dependency-updates#ignore) with the desired `update_types` to your config file.\n\nIf you change your mind, just re-open this PR and I'll resolve any conflicts on it.",
+          "created_at": "2026-10-17T01:37:37Z"
+        }
+      ]
+    },
+    {
+      "pull_number": 4,
+      "commits": [
+        {
+          "sha": "3534cb83c1c0ef1762182b1c7b248fbb2d8f1412",
+          "author": {"login": "dependabot[bot]"},
+          "commit": {
+            "author": {
+              "date": "2026-10-16T19:40:56Z",
+              "email": "49699333+dependabot[bot]@users.noreply.github.com",
+              "name": "dependabot[bot]"
+            },
+            "message": "Bump tools/upstream/spike-upstream from `0309415` to `ef720ca`\n\nBumps [tools/upstream/spike-upstream](https://github.com/sadbox/linkclean-dependabot-spike) from `0309415` to `ef720ca`.\n- [Commits](https://github.com/sadbox/linkclean-dependabot-spike/compare/0309415404f5f901a331fc433c17f498aca0adcb...ef720ca50e320d7d7f0c3d169d4108344e994559)\n\n---\nupdated-dependencies:\n- dependency-name: tools/upstream/spike-upstream\n  dependency-version: ef720ca50e320d7d7f0c3d169d4108344e994559\n  dependency-type: direct:production\n...\n\nSigned-off-by: dependabot[bot] <support@github.com>",
+            "verification": {"verified": true}
+          }
+        }
+      ]
+    },
+    {"pull_number": 2, "comments": []},
+    {
+      "pull_number": 2,
+      "commits": [
+        {
+          "sha": "aee9aceebefbb6fc96a3f32fa47f5a3d9f015f58",
+          "author": {"login": "dependabot[bot]"},
+          "commit": {
+            "author": {
+              "date": "2026-10-16T19:22:12Z",
+              "email": "49699333+dependabot[bot]@users.noreply.github.com",
+              "name": "dependabot[bot]"
+            },
+            "message": "Bump tools/upstream/adblock-lists from `fe6114e` to `8f42ddc`\n\nBumps [tools/upstream/adblock-lists](https://github.com/brave/adblock-lists) from `fe6114e` to `8f42ddc`.\n- [Commits](https://github.com/brave/adblock-lists/compare/fe6114e29c6cc33e2e84b2a1da4cfc2a08575ff6...8f42ddce17d63bb3ef70c52258120b93d0130539)\n\n---\nupdated-dependencies:\n- dependency-name: tools/upstream/adblock-lists\n  dependency-version: 8f42ddce17d63bb3ef70c52258120b93d0130539\n  dependency-type: direct:production\n...\n\nSigned-off-by: dependabot[bot] <support@github.com>",
+            "verification": {"verified": true}
+          }
+        }
+      ]
+    },
+    {
+      "pull_number": 1,
+      "comments": [
+        {
+          "user": {"login": "dependabot[bot]"},
+          "body": "A newer version of tools/upstream/spike-upstream exists, but since this PR has been edited by someone other than Dependabot I haven't updated it. You'll get a PR for the updated version as normal once this PR is merged.",
+          "created_at": "2026-10-16T19:23:55Z"
+        },
+        {
+          "user": {"login": "sadbox"},
+          "body": "Spike G-2 control: closing the maintainer-edited PR to see whether Dependabot then opens the bump to ef720ca.",
+          "created_at": "2026-10-16T19:40:14Z"
+        },
+        {
+          "user": {"login": "dependabot[bot]"},
+          "body": "OK, I won't notify you again about this release, but will get in touch when a new version is available. You can also ignore all major, minor, or patch releases for a dependency by adding an [`ignore` condition](https://docs.github.com/en/code-security/supply-chain-security/configuration-options-for-dependency-updates#ignore) with the desired `update_types` to your config file.\n\nIf you change your mind, just re-open this PR and I'll resolve any conflicts on it.",
+          "created_at": "2026-10-16T19:40:18Z"
+        }
+      ]
+    },
+    {
+      "pull_number": 1,
+      "commits": [
+        {
+          "sha": "2033538f2171c715dbdaa1a5fdcf8ab560286f69",
+          "author": {"login": "dependabot[bot]"},
+          "commit": {
+            "author": {
+              "date": "2026-10-16T19:22:09Z",
+              "email": "49699333+dependabot[bot]@users.noreply.github.com",
+              "name": "dependabot[bot]"
+            },
+            "message": "Bump tools/upstream/spike-upstream from `0309415` to `31efc4b`\n\nBumps [tools/upstream/spike-upstream](https://github.com/sadbox/linkclean-dependabot-spike) from `0309415` to `31efc4b`.\n- [Commits](https://github.com/sadbox/linkclean-dependabot-spike/compare/0309415404f5f901a331fc433c17f498aca0adcb...31efc4bcd796148fdcc4211fa3da5db592adcf92)\n\n---\nupdated-dependencies:\n- dependency-name: tools/upstream/spike-upstream\n  dependency-version: 31efc4bcd796148fdcc4211fa3da5db592adcf92\n  dependency-type: direct:production\n...\n\nSigned-off-by: dependabot[bot] <support@github.com>",
+            "verification": {"verified": true}
+          }
+        },
+        {
+          "sha": "7e58eb00a8bffb6d109c500d6f5d738743602d99",
+          "author": {"login": "sadbox"},
+          "commit": {
+            "author": {"date": "2026-10-16T19:23:25Z", "email": "maintainer@example.invalid", "name": "Maintainer"},
+            "message": "Sync vendored data (spike G-2 maintainer commit)\n\nRulegen-Sync: 31efc4bcd796148fdcc4211fa3da5db592adcf92",
+            "verification": {"verified": false}
+          }
+        }
+      ]
+    }
+  ],
+  "want": "quiet (no change evidence)",
+  "code": 0
+}

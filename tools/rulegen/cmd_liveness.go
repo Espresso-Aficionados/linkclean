@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"slices"
@@ -23,28 +24,40 @@ const (
 	liveWindowDays = 14             // a Dependabot submodule PR opened this recently: ok
 	liveCooldown   = 72 * time.Hour // Dependabot's default cooldown for gitsubmodule
 
-	// liveCommitLogin is the GitHub login of every commit author on a
-	// commit Dependabot made itself.
-	liveCommitLogin = "dependabot[bot]"
+	// liveBotLogin is Dependabot's GitHub login, as the REST API spells it
+	// for the author of a PR and of a commit Dependabot made itself.
+	liveBotLogin = "dependabot[bot]"
+	// liveBotEmail is the commit email GitHub resolves to liveBotLogin; a
+	// Co-authored-by trailer naming it is Dependabot's.
+	liveBotEmail = "49699333+dependabot[bot]@users.noreply.github.com"
 	// liveHeadPrefix starts the head branch of every Dependabot submodule PR.
 	liveHeadPrefix = "dependabot/submodules/"
+	// liveLabel marks the PRs liveness reads.
+	liveLabel = "rules-update"
 
 	// liveCheckPage ends the liveness alert: Dependabot's job errors have no
 	// documented API, so a human has to look.
 	liveCheckPage = "; check the repository's Dependabot page (Insights → Dependency graph → Dependabot) for errors"
-
-	// liveListLimit is the documented gh pr list --limit. GitHub refuses a
-	// query that may return more than 500,000 nodes, and gh asks for 100
-	// commits with 100 authors each, plus 100 comments, per PR: 10,201
-	// nodes a PR, so at most 49 PRs. The newest 40 rules-update PRs cover
-	// months of weekly PRs, far more than the 14-day window and the newest
-	// routine-closed PR need.
-	liveListLimit = 40
 )
 
-// livePRLogins are the logins gh reports for a PR that Dependabot opened.
-// gh prints bot authors as "app/<slug>"; the REST spelling is accepted too.
-var livePRLogins = []string{"app/dependabot", "dependabot[bot]"}
+// liveProduce writes the -prs file with GitHub REST calls only (GraphQL,
+// which gh's PR, issue and label subcommands use, is unavailable to the
+// routine). ROUTINE.md
+// gives the same command; a test keeps them equal. Every call is a GET
+// (gh api sends POST once a field flag is given, so there is none) and
+// paginates, so the listing is complete: it is not bounded. Its size grows
+// by one PR object a week, plus one comments and one commits page for each
+// unmerged Dependabot submodule PR, which only the routine's closes and
+// Dependabot's supersedes add.
+const liveProduce = `(
+  R=repos/Espresso-Aficionados/linkclean; F=/tmp/lc/prs.json
+  gh api --paginate "$R/pulls?state=all&per_page=100" \
+    --jq '.[] | select(any(.labels[]; .name == "rules-update"))' > "$F" || exit 1
+  for n in $(jq -r 'select(.merged_at == null and (.head.ref | startswith("dependabot/submodules/"))) | .number' "$F"); do
+    gh api --paginate "$R/issues/$n/comments?per_page=100" --jq "{pull_number: $n, comments: .}" >> "$F" || exit 1
+    gh api --paginate "$R/pulls/$n/commits?per_page=100" --jq "{pull_number: $n, commits: .}" >> "$F" || exit 1
+  done
+) || echo "listing PRs failed"`
 
 // liveClosePrefixes mark a PR the routine closed itself in a way that
 // leaves its gitlink "already proposed" (held; gitlink off upstream master
@@ -65,13 +78,19 @@ Decides step 1 of the review routine: whether the lack of a recent
 Dependabot submodule PR means Dependabot's path is dead. It reads no
 network; its inputs are:
 
-  -prs: the newest rules-update PRs, as written by
-      gh pr list --repo Espresso-Aficionados/linkclean --label rules-update \
-        --state all --limit ` + strconv.Itoa(liveListLimit) + ` \
-        --json ` + strings.Join(liveFields, ",") + ` \
-        > "$TMP/prs.json"
-      (a larger --limit exceeds GitHub's GraphQL node limit and gh fails;
-      if gh fails, do not run liveness on its output)
+  -prs: every rules-update PR, as this command writes it with GitHub REST
+      calls only (ROUTINE.md step 1 runs the same command):
+
+` + liveIndent(liveProduce, "        ") + `
+
+      If it prints "listing PRs failed", do not run liveness on its output.
+      The file is a stream of JSON values: each PR object of
+      GET /repos/{owner}/{repo}/pulls, and for every unmerged
+      dependabot/submodules/... PR one value per page of its comments
+      (GET .../issues/<n>/comments) and its commits (GET .../pulls/<n>/commits),
+      wrapped as {"pull_number": <n>, "comments": [...]} and
+      {"pull_number": <n>, "commits": [...]}. Fields liveness does not read
+      are ignored.
   -root: a linkclean clone holding -main and the head commit of every
       PR whose gitlink is needed; fetch them first with
         git -C <root> fetch origin main '+refs/pull/*/head:refs/remotes/origin/pull/*'
@@ -82,11 +101,12 @@ network; its inputs are:
 
 The verdict, the first of these that applies, is one line on stdout:
 
-  ok              a Dependabot submodule PR (author Dependabot, head
+  ok              a Dependabot submodule PR (author dependabot[bot], head
                   dependabot/submodules/...) was opened, in any state, on or
                   after 00:00 UTC 14 days before today.
   blocked #<n>    open Dependabot submodule PR #<n> (the newest such) carries
-                  a commit whose authors are not all dependabot[bot]
+                  a commit whose authors (its author login and any
+                  Co-authored-by trailer) are not all dependabot[bot]
                   (escalated or human-edited): Dependabot opens nothing newer
                   while it is open. Steps 2-4 report it.
   quiet (no change evidence)
@@ -114,45 +134,44 @@ stderr.
 flags:
 `
 
-// livePR is one PR of gh pr list --json; other fields are ignored.
+// livePR is one rules-update PR of the -prs stream, as liveness reads it.
 type livePR struct {
-	Number      int       `json:"number"`
-	State       string    `json:"state"` // OPEN, CLOSED or MERGED
-	Author      liveUser  `json:"author"`
-	HeadRefName string    `json:"headRefName"`
-	HeadRefOid  string    `json:"headRefOid"`
-	CreatedAt   time.Time `json:"createdAt"`
-	Comments    []struct {
-		Body string `json:"body"`
-	} `json:"comments"`
-	Commits []struct {
-		Oid             string     `json:"oid"`
-		MessageHeadline string     `json:"messageHeadline"`
-		Authors         []liveUser `json:"authors"`
-	} `json:"commits"`
+	Number      int
+	State       string // OPEN, CLOSED (not merged) or MERGED
+	Login       string // the PR author's
+	HeadRefName string
+	HeadRefOid  string
+	CreatedAt   time.Time
+	Comments    []string // comment bodies
+	Commits     []liveCommitAuthors
+
+	hasComments, hasCommits bool // a comments or commits value was listed
 }
 
-type liveUser struct {
-	Login string `json:"login"`
+// liveCommitAuthors is one commit of a PR: its id, subject and the logins
+// of its authors, "" for one GitHub resolved to no account.
+type liveCommitAuthors struct {
+	Oid, Headline string
+	Logins        []string
 }
 
 func (p *livePR) dependabotSubmodule() bool {
-	return slices.Contains(livePRLogins, p.Author.Login) && strings.HasPrefix(p.HeadRefName, liveHeadPrefix)
+	return p.Login == liveBotLogin && strings.HasPrefix(p.HeadRefName, liveHeadPrefix)
 }
 
 // takeover reports whether p is a takeover PR: one a human opened.
-func (p *livePR) takeover() bool { return !slices.Contains(livePRLogins, p.Author.Login) }
+func (p *livePR) takeover() bool { return p.Login != liveBotLogin }
 
 // foreignCommits lists the commits whose authors are not all Dependabot.
 func (p *livePR) foreignCommits() []string {
 	var out []string
 	for _, c := range p.Commits {
-		ok := len(c.Authors) > 0
-		for _, a := range c.Authors {
-			ok = ok && a.Login == liveCommitLogin
+		ok := len(c.Logins) > 0
+		for _, a := range c.Logins {
+			ok = ok && a == liveBotLogin
 		}
 		if !ok {
-			out = append(out, liveShort(c.Oid)+" "+c.MessageHeadline)
+			out = append(out, liveShort(c.Oid)+" "+c.Headline)
 		}
 	}
 	return out
@@ -163,7 +182,7 @@ func (p *livePR) closedByRoutine() bool {
 		return false
 	}
 	for _, c := range p.Comments {
-		body := strings.TrimLeft(c.Body, " \t\r\n")
+		body := strings.TrimLeft(c, " \t\r\n")
 		for _, pre := range liveClosePrefixes {
 			if strings.HasPrefix(body, pre) {
 				return true
@@ -177,7 +196,7 @@ func runLiveness(ctx context.Context, e *Env, args []string) int {
 	fs := newFlags(e, "liveness")
 	root := fs.String("root", "", "linkclean clone holding -main and the PR head commits")
 	upstream := fs.String("upstream", "", "upstream clone written by rulegen upstream")
-	prsPath := fs.String("prs", "", "gh pr list JSON of every rules-update PR")
+	prsPath := fs.String("prs", "", "file written by the REST command above")
 	master := fs.String("master", "", "upstream master commit from git ls-remote (default: the clone's)")
 	mainRev := fs.String("main", "origin/main", "revision of -root whose gitlink is main's")
 	nowFlag := fs.String("now", "", "current time, RFC 3339 (tests)")
@@ -425,7 +444,7 @@ func (l *liveness) newestProposed(prs []livePR, b, m string, onMaster map[string
 // prGitlink is the gitlink at p's head commit in -root, "" if it has none.
 func (l *liveness) prGitlink(p *livePR) (string, error) {
 	if !liveIsSHA(p.HeadRefOid) {
-		return "", fmt.Errorf("#%d: headRefOid %q is not a commit id", p.Number, p.HeadRefOid)
+		return "", fmt.Errorf("#%d: head.sha %q is not a commit id", p.Number, p.HeadRefOid)
 	}
 	if _, ok, err := l.root.RevParse(l.ctx, p.HeadRefOid); err != nil {
 		return "", err
@@ -439,46 +458,196 @@ func (l *liveness) prGitlink(p *livePR) (string, error) {
 	return g, nil
 }
 
-// liveFields are the gh pr list --json fields liveness reads.
-var liveFields = []string{"number", "state", "author", "headRefName", "createdAt", "closedAt", "headRefOid", "comments", "commits"}
+// The REST shapes liveness reads; other fields are ignored.
+type (
+	restPull struct {
+		Number    int        `json:"number"`
+		State     string     `json:"state"` // open or closed
+		MergedAt  *time.Time `json:"merged_at"`
+		CreatedAt time.Time  `json:"created_at"`
+		User      *restUser  `json:"user"`
+		Head      struct {
+			Ref string `json:"ref"`
+			Sha string `json:"sha"`
+		} `json:"head"`
+		Labels []restLabel `json:"labels"`
+	}
+	restLabel struct {
+		Name string `json:"name"`
+	}
+	restUser struct {
+		Login string `json:"login"`
+	}
+	restPage struct {
+		PullNumber int `json:"pull_number"`
+		Comments   *[]struct {
+			Body string `json:"body"`
+		} `json:"comments"`
+		Commits *[]struct {
+			Sha    string    `json:"sha"`
+			Author *restUser `json:"author"` // null: no account matches the email
+			Commit struct {
+				Message string `json:"message"`
+			} `json:"commit"`
+		} `json:"commits"`
+	}
+)
 
+// livePullKeys must be in every PR object: a missing merged_at would read
+// as an unmerged PR, missing labels as one that is not rules-update.
+var livePullKeys = []string{"number", "state", "merged_at", "created_at", "user", "head", "labels"}
+
+// liveReadPRs reads the -prs stream and returns its rules-update PRs.
 func liveReadPRs(path string) ([]livePR, error) {
-	b, err := os.ReadFile(path)
+	f, err := os.Open(path)
 	if err != nil {
 		return nil, err
 	}
-	// Every field of the documented gh command must be there: a missing
-	// commits or comments list would read as an unedited or unclosed PR.
-	var raw []map[string]json.RawMessage
-	if err := json.Unmarshal(b, &raw); err != nil {
-		return nil, fmt.Errorf("%s: %w", path, err)
+	defer f.Close()
+	bad := func(i int, format string, args ...any) error {
+		return fmt.Errorf("%s: value %d: %s; use the command of rulegen liveness -h", path, i, fmt.Sprintf(format, args...))
 	}
 	var prs []livePR
-	if err := json.Unmarshal(b, &prs); err != nil {
-		return nil, fmt.Errorf("%s: %w", path, err)
-	}
-	seen := map[int]bool{}
-	for i, p := range prs {
-		for _, k := range liveFields {
-			if _, ok := raw[i][k]; !ok {
-				return nil, fmt.Errorf("%s: PR %d of the list has no %q; use the gh command of rulegen liveness -h", path, i+1, k)
+	all := map[int]bool{} // every PR listed, labelled or not
+	at := map[int]int{}   // rules-update PR number → index in prs
+	var pages []restPage  // in stream order, applied once every PR is known
+	var pageAt []int      // stream index of each page
+	dec := json.NewDecoder(f)
+	for i := 1; ; i++ {
+		var raw json.RawMessage
+		if err := dec.Decode(&raw); errors.Is(err, io.EOF) {
+			break
+		} else if err != nil {
+			return nil, fmt.Errorf("%s: %w", path, err)
+		}
+		var keys map[string]json.RawMessage
+		if err := json.Unmarshal(raw, &keys); err != nil {
+			return nil, bad(i, "not a JSON object")
+		}
+		if _, ok := keys["pull_number"]; ok {
+			var pg restPage
+			if err := json.Unmarshal(raw, &pg); err != nil {
+				return nil, fmt.Errorf("%s: value %d: %w", path, i, err)
 			}
+			if (pg.Comments == nil) == (pg.Commits == nil) {
+				return nil, bad(i, "a page needs exactly one of \"comments\" and \"commits\"")
+			}
+			pages, pageAt = append(pages, pg), append(pageAt, i)
+			continue
+		}
+		if _, ok := keys["head"]; !ok {
+			return nil, bad(i, "neither a PR object nor a comments or commits page")
+		}
+		for _, k := range livePullKeys {
+			if _, ok := keys[k]; !ok {
+				return nil, bad(i, "PR object has no %q", k)
+			}
+		}
+		var rp restPull
+		if err := json.Unmarshal(raw, &rp); err != nil {
+			return nil, fmt.Errorf("%s: value %d: %w", path, i, err)
+		}
+		p := livePR{Number: rp.Number, HeadRefName: rp.Head.Ref, HeadRefOid: rp.Head.Sha, CreatedAt: rp.CreatedAt}
+		if rp.User != nil {
+			p.Login = rp.User.Login
+		}
+		switch {
+		case rp.State == "open" && rp.MergedAt == nil:
+			p.State = "OPEN"
+		case rp.State == "closed" && rp.MergedAt == nil:
+			p.State = "CLOSED"
+		case rp.State == "closed":
+			p.State = "MERGED"
 		}
 		switch {
 		case p.Number <= 0:
 			return nil, fmt.Errorf("%s: PR without a number", path)
-		case seen[p.Number]:
+		case all[p.Number]:
 			return nil, fmt.Errorf("%s: #%d listed twice", path, p.Number)
-		case p.State != "OPEN" && p.State != "CLOSED" && p.State != "MERGED":
-			return nil, fmt.Errorf("%s: #%d: unknown state %q", path, p.Number, p.State)
+		case p.State == "":
+			return nil, fmt.Errorf("%s: #%d: unknown state %q", path, p.Number, rp.State)
 		case p.CreatedAt.IsZero():
-			return nil, fmt.Errorf("%s: #%d: no createdAt", path, p.Number)
-		case p.Author.Login == "":
+			return nil, fmt.Errorf("%s: #%d: no created_at", path, p.Number)
+		case p.Login == "":
 			return nil, fmt.Errorf("%s: #%d: no author", path, p.Number)
 		}
-		seen[p.Number] = true
+		all[p.Number] = true
+		if slices.Contains(rp.Labels, restLabel{liveLabel}) {
+			at[p.Number] = len(prs)
+			prs = append(prs, p)
+		}
+	}
+	for j, pg := range pages {
+		if !all[pg.PullNumber] {
+			return nil, fmt.Errorf("%s: value %d: a page of #%d, which is not listed", path, pageAt[j], pg.PullNumber)
+		}
+		k, ok := at[pg.PullNumber]
+		if !ok {
+			continue
+		}
+		p := &prs[k]
+		if pg.Comments != nil {
+			p.hasComments = true
+			for _, c := range *pg.Comments {
+				p.Comments = append(p.Comments, c.Body)
+			}
+			continue
+		}
+		p.hasCommits = true
+		for _, c := range *pg.Commits {
+			lc := liveCommitAuthors{Oid: c.Sha, Headline: liveHeadline(c.Commit.Message)}
+			if c.Author != nil {
+				lc.Logins = append(lc.Logins, c.Author.Login)
+			} else {
+				lc.Logins = append(lc.Logins, "")
+			}
+			lc.Logins = append(lc.Logins, liveCoAuthors(c.Commit.Message)...)
+			p.Commits = append(p.Commits, lc)
+		}
+	}
+	// What liveness reads must be listed: the commits of an open and the
+	// comments of a closed Dependabot submodule PR.
+	for _, p := range prs {
+		switch {
+		case !p.dependabotSubmodule():
+		case p.State == "OPEN" && !p.hasCommits:
+			return nil, fmt.Errorf("%s: open #%d has no commits page; use the command of rulegen liveness -h", path, p.Number)
+		case p.State == "CLOSED" && !p.hasComments:
+			return nil, fmt.Errorf("%s: closed #%d has no comments page; use the command of rulegen liveness -h", path, p.Number)
+		}
 	}
 	return prs, nil
+}
+
+// liveHeadline is the first line of a commit message.
+func liveHeadline(msg string) string {
+	h, _, _ := strings.Cut(msg, "\n")
+	return strings.TrimSpace(h)
+}
+
+// liveCoAuthors returns one login per Co-authored-by trailer in the last
+// paragraph of msg, as GitHub counts the authors of a commit: Dependabot's
+// for its own email, "" for any other (liveness cannot resolve accounts).
+func liveCoAuthors(msg string) []string {
+	msg = strings.TrimRight(strings.ReplaceAll(msg, "\r\n", "\n"), "\n")
+	if i := strings.LastIndex(msg, "\n\n"); i >= 0 {
+		msg = msg[i+2:]
+	} else {
+		return nil // a subject alone carries no trailers
+	}
+	var out []string
+	for line := range strings.SplitSeq(msg, "\n") {
+		k, v, ok := strings.Cut(line, ":")
+		if !ok || !strings.EqualFold(strings.TrimSpace(k), "Co-authored-by") {
+			continue
+		}
+		login := ""
+		if strings.Contains(strings.ToLower(v), "<"+liveBotEmail+">") {
+			login = liveBotLogin
+		}
+		out = append(out, login)
+	}
+	return out
 }
 
 // liveDay is 00:00 UTC of t's UTC date.
@@ -505,6 +674,11 @@ func liveIsSHA(s string) bool {
 		}
 	}
 	return true
+}
+
+// liveIndent prefixes every line of s with ind.
+func liveIndent(s, ind string) string {
+	return ind + strings.ReplaceAll(s, "\n", "\n"+ind)
 }
 
 func liveShort(sha string) string {

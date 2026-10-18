@@ -11,16 +11,13 @@
   "prs": [
     {
       "number": 4,
-      "state": "MERGED",
-      "author": {"id": "MDM6Qm90NDk2OTkzMzM=", "is_bot": true, "login": "app/dependabot"},
-      "headRefName": "dependabot/submodules/tools/upstream/adblock-lists-7c8d9e0",
-      "headRefOid": "{{h4}}",
-      "createdAt": "2026-09-02T04:01:00Z",
-      "closedAt": "2026-09-08T11:30:00Z",
-      "comments": [],
-      "commits": [
-        {"authors": [{"email": "49699333+dependabot[bot]@users.noreply.github.com", "id": "MDM6Qm90NDk2OTkzMzM=", "login": "dependabot[bot]", "name": "dependabot[bot]"}], "messageHeadline": "Bump tools/upstream/adblock-lists from `0a1b2c3` to `7c8d9e0`", "oid": "4d1e2f3a4b5c6d7e8f9001122334455667788990"}
-      ]
+      "state": "closed",
+      "merged_at": "2026-09-08T11:30:00Z",
+      "closed_at": "2026-09-08T11:30:00Z",
+      "created_at": "2026-09-02T04:01:00Z",
+      "user": {"login": "dependabot[bot]", "type": "Bot"},
+      "head": {"ref": "dependabot/submodules/tools/upstream/adblock-lists-7c8d9e0", "sha": "{{h4}}"},
+      "labels": [{"name": "rules-update"}]
     }
   ],
   "want": "quiet (no change evidence)",

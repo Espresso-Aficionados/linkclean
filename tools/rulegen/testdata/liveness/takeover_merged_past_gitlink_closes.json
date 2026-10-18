@@ -11,31 +11,53 @@
   "prs": [
     {
       "number": 10,
-      "state": "MERGED",
-      "author": {"id": "MDQ6VXNlcjE=", "is_bot": false, "login": "maintainer", "name": "Maintainer"},
-      "headRefName": "rules/takeover-5a6b7c8d9e0f",
-      "headRefOid": "{{h10}}",
-      "createdAt": "2026-09-30T18:00:00Z",
-      "closedAt": "2026-10-02T09:00:00Z",
-      "comments": [],
-      "commits": [
-        {"authors": [{"email": "maintainer@example.invalid", "id": "MDQ6VXNlcjE=", "login": "maintainer", "name": "Maintainer"}], "messageHeadline": "rules: move the gitlink to brave/adblock-lists@5a6b7c8d9e0f", "oid": "ad1e2f3a4b5c6d7e8f9001122334455667788990"}
-      ]
+      "state": "closed",
+      "merged_at": "2026-10-02T09:00:00Z",
+      "closed_at": "2026-10-02T09:00:00Z",
+      "created_at": "2026-09-30T18:00:00Z",
+      "user": {"login": "maintainer", "type": "User"},
+      "head": {"ref": "rules/takeover-5a6b7c8d9e0f", "sha": "{{h10}}"},
+      "labels": [{"name": "rules-update"}]
     },
     {
       "number": 9,
-      "state": "CLOSED",
-      "author": {"id": "MDM6Qm90NDk2OTkzMzM=", "is_bot": true, "login": "app/dependabot"},
-      "headRefName": "dependabot/submodules/tools/upstream/adblock-lists-e6f7a8b",
-      "headRefOid": "{{h9}}",
-      "createdAt": "2026-09-21T04:07:00Z",
-      "closedAt": "2026-10-06T11:35:00Z",
+      "state": "closed",
+      "merged_at": null,
+      "closed_at": "2026-10-06T11:35:00Z",
+      "created_at": "2026-09-21T04:07:00Z",
+      "user": {"login": "dependabot[bot]", "type": "Bot"},
+      "head": {"ref": "dependabot/submodules/tools/upstream/adblock-lists-e6f7a8b", "sha": "{{h9}}"},
+      "labels": [{"name": "rules-update"}]
+    },
+    {
+      "pull_number": 9,
       "comments": [
-        {"author": {"login": "maintainer"}, "body": "main's rules moved (takeover/other sync) past this PR's gitlink; closing so that Dependabot re-proposes upstream against current main (§11.6)", "createdAt": "2026-10-06T11:34:00Z"}
-      ],
+        {
+          "user": {"login": "maintainer"},
+          "body": "main's rules moved (takeover/other sync) past this PR's gitlink; closing so that Dependabot re-proposes upstream against current main (§11.6)",
+          "created_at": "2026-10-06T11:34:00Z"
+        }
+      ]
+    },
+    {
+      "pull_number": 9,
       "commits": [
-        {"authors": [{"email": "49699333+dependabot[bot]@users.noreply.github.com", "id": "MDM6Qm90NDk2OTkzMzM=", "login": "dependabot[bot]", "name": "dependabot[bot]"}], "messageHeadline": "Bump tools/upstream/adblock-lists from `0f1e2d3` to `e6f7a8b`", "oid": "bd1e2f3a4b5c6d7e8f9001122334455667788990"},
-        {"authors": [{"email": "maintainer@example.invalid", "id": "MDQ6VXNlcjE=", "login": "maintainer", "name": "Maintainer"}], "messageHeadline": "rules: brave/adblock-lists@e6f7a8b9c0d1 (2026-09-05)", "oid": "cd1e2f3a4b5c6d7e8f9001122334455667788990"}
+        {
+          "sha": "bd1e2f3a4b5c6d7e8f9001122334455667788990",
+          "author": {"login": "dependabot[bot]"},
+          "commit": {
+            "author": {"name": "dependabot[bot]", "email": "49699333+dependabot[bot]@users.noreply.github.com"},
+            "message": "Bump tools/upstream/adblock-lists from `0f1e2d3` to `e6f7a8b`"
+          }
+        },
+        {
+          "sha": "cd1e2f3a4b5c6d7e8f9001122334455667788990",
+          "author": {"login": "maintainer"},
+          "commit": {
+            "author": {"name": "Maintainer", "email": "maintainer@example.invalid"},
+            "message": "rules: brave/adblock-lists@e6f7a8b9c0d1 (2026-09-05)"
+          }
+        }
       ]
     }
   ],

@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -16,9 +17,10 @@ import (
 )
 
 // liveFixture is one liveness scenario (testdata/liveness/*.json): an
-// upstream history, main's gitlink, PR heads by gitlink, and the gh pr list
-// JSON. "{{name}}" in the PR JSON becomes the full id of upstream commit or
-// head name; "{{short:name}}" in want its 12-hex short form.
+// upstream history, main's gitlink, PR heads by gitlink, and the values of
+// the -prs stream (REST PR objects and wrapped comments and commits pages).
+// "{{name}}" in them becomes the full id of upstream commit or head name;
+// "{{short:name}}" in want its 12-hex short form.
 type liveFixture struct {
 	About    string            `json:"about"`
 	Now      string            `json:"now"`
@@ -141,12 +143,17 @@ func liveRunEdited(t *testing.T, f *liveFixture, edit func(t *testing.T, prs str
 		l.Run("checkout", "--quiet", "main")
 	}
 
-	b, err := json.Marshal(f.PRs)
-	if err != nil {
-		t.Fatal(err)
+	// One value a line, as gh api --jq prints them.
+	var stream strings.Builder
+	for _, v := range f.PRs {
+		b, err := json.Marshal(v)
+		if err != nil {
+			t.Fatal(err)
+		}
+		stream.WriteString(r.expand(t, string(b)) + "\n")
 	}
 	prs := filepath.Join(t.TempDir(), "prs.json")
-	if err := os.WriteFile(prs, []byte(r.expand(t, string(b))), 0o644); err != nil {
+	if err := os.WriteFile(prs, []byte(stream.String()), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	if edit != nil {
@@ -176,10 +183,11 @@ func liveAlert(g, m string) string {
 	return "ALERT " + fmt.Sprintf(data.AlertNoPR, "{{short:"+g+"}}", "{{short:"+g+"}}..{{short:"+m+"}}") + liveCheckPage
 }
 
+// liveFixPR returns the PR object of #n.
 func liveFixPR(t *testing.T, f *liveFixture, n int) map[string]any {
 	t.Helper()
 	for _, p := range f.PRs {
-		if p["number"] == float64(n) {
+		if _, ok := p["head"]; ok && fmt.Sprint(p["number"]) == fmt.Sprint(n) {
 			return p
 		}
 	}
@@ -187,10 +195,24 @@ func liveFixPR(t *testing.T, f *liveFixture, n int) map[string]any {
 	return nil
 }
 
+// liveFixPage returns the first page of #n holding kind, "comments" or
+// "commits".
+func liveFixPage(t *testing.T, f *liveFixture, n int, kind string) map[string]any {
+	t.Helper()
+	for _, p := range f.PRs {
+		if _, ok := p[kind]; ok && fmt.Sprint(p["pull_number"]) == fmt.Sprint(n) {
+			return p
+		}
+	}
+	t.Fatalf("fixture has no %s page of #%d", kind, n)
+	return nil
+}
+
+// liveDropPR drops #n and its pages.
 func liveDropPR(f *liveFixture, n int) {
 	var keep []map[string]any
 	for _, p := range f.PRs {
-		if p["number"] != float64(n) {
+		if fmt.Sprint(p["number"]) != fmt.Sprint(n) && fmt.Sprint(p["pull_number"]) != fmt.Sprint(n) {
 			keep = append(keep, p)
 		}
 	}
@@ -208,15 +230,16 @@ func liveSetDate(t *testing.T, f *liveFixture, name, date string) {
 	t.Fatalf("fixture has no upstream %s", name)
 }
 
-// liveDependabotCommits drops every commit of p not authored by Dependabot.
-func liveDependabotCommits(p map[string]any) {
+// liveDependabotCommits drops every commit of a commits page not authored
+// by Dependabot.
+func liveDependabotCommits(page map[string]any) {
 	var keep []any
-	for _, c := range p["commits"].([]any) {
-		if strings.Contains(fmt.Sprint(c), liveCommitLogin) {
+	for _, c := range page["commits"].([]any) {
+		if a, ok := c.(map[string]any)["author"].(map[string]any); ok && a["login"] == liveBotLogin {
 			keep = append(keep, c)
 		}
 	}
-	p["commits"] = keep
+	page["commits"] = keep
 }
 
 // TestLivenessFixtures runs the §11.8 rows the liveness command owns, each
@@ -229,7 +252,7 @@ func TestLivenessFixtures(t *testing.T) {
 		liveCheck(t, f)
 		// Control: without the maintainer commit #5 is an unedited open PR,
 		// G is its gitlink, and upstream moved past it.
-		liveDependabotCommits(liveFixPR(t, f, 5))
+		liveDependabotCommits(liveFixPage(t, f, 5, "commits"))
 		f.Want, f.Code = liveAlert("G1", "M"), exitFail
 		liveCheck(t, f)
 	})
@@ -240,7 +263,7 @@ func TestLivenessFixtures(t *testing.T) {
 		if !strings.Contains(r.stderr, "open #5 carries non-Dependabot commits: 1d1e2f3a4b5c rules: brave/adblock-lists@") {
 			t.Errorf("stderr does not name the sync commit:\n%s", r.stderr)
 		}
-		liveDependabotCommits(liveFixPR(t, f, 5))
+		liveDependabotCommits(liveFixPage(t, f, 5, "commits"))
 		f.Want, f.Code = liveAlert("G1", "M"), exitFail
 		liveCheck(t, f)
 	})
@@ -282,7 +305,7 @@ func TestLivenessFixtures(t *testing.T) {
 		liveCheck(t, f)
 		// Control: if the routine's close is not recognised, G is taken
 		// from main and the alert fires.
-		liveFixPR(t, f, 7)["comments"] = []any{}
+		liveFixPage(t, f, 7, "comments")["comments"] = []any{}
 		f.Want, f.Code = liveAlert("B", "G7"), exitFail
 		liveCheck(t, f)
 	})
@@ -290,8 +313,29 @@ func TestLivenessFixtures(t *testing.T) {
 		t.Parallel()
 		f := liveLoad(t, t.Name()[len("TestLivenessFixtures/"):])
 		liveCheck(t, f)
-		liveFixPR(t, f, 9)["comments"] = []any{}
+		liveFixPage(t, f, 9, "comments")["comments"] = []any{}
 		f.Want, f.Code = liveAlert("T", "G9"), exitFail
+		liveCheck(t, f)
+	})
+	t.Run("spike_recorded", func(t *testing.T) {
+		t.Parallel()
+		name := t.Name()[len("TestLivenessFixtures/"):]
+		liveCheck(t, liveLoad(t, name))
+		// Control: inside the window #6, opened 2026-10-17, is enough.
+		f := liveLoad(t, name)
+		f.Now, f.Want, f.Code = "2026-10-20T11:00:00Z", "ok", exitOK
+		liveCheck(t, f)
+		// Control: reopened, #1's maintainer commit blocks the path.
+		f = liveLoad(t, name)
+		liveFixPR(t, f, 1)["state"] = "open"
+		f.Want, f.Code = "blocked #1", exitOK
+		if r := liveCheck(t, f); !strings.Contains(r.stderr, "open #1 carries non-Dependabot commits: 7e58eb00a8bf Sync vendored data") {
+			t.Errorf("stderr does not name #1's maintainer commit:\n%s", r.stderr)
+		}
+		// Control: without #6, G is #2's gitlink, and upstream moved past it.
+		f = liveLoad(t, name)
+		liveDropPR(f, 6)
+		f.Want, f.Code = liveAlert("G2", "G6"), exitFail
 		liveCheck(t, f)
 	})
 	t.Run("takeover_merged_past_gitlink_closes", func(t *testing.T) {
@@ -310,42 +354,66 @@ func TestLivenessFixtures(t *testing.T) {
 	})
 }
 
-// liveDependabot returns a Dependabot submodule PR with head head.
-func liveDependabot(n int, state, created, head string, commits ...string) map[string]any {
-	cs := []any{map[string]any{
-		"authors":         []any{map[string]any{"login": liveCommitLogin}},
-		"messageHeadline": "Bump tools/upstream/adblock-lists",
-		"oid":             strings.Repeat("d", 40),
-	}}
-	for _, login := range commits {
-		cs = append(cs, map[string]any{
-			"authors":         []any{map[string]any{"login": login}},
-			"messageHeadline": "an edit",
-			"oid":             strings.Repeat("e", 40),
-		})
+// livePull is a REST PR object labelled rules-update; state is OPEN,
+// CLOSED (not merged) or MERGED, head a fixture head name.
+func livePull(n int, state, created, login, ref, head string) map[string]any {
+	rest, merged := "closed", any(nil)
+	switch state {
+	case "OPEN":
+		rest = "open"
+	case "MERGED":
+		merged = created
 	}
 	return map[string]any{
-		"number": n, "state": state, "author": map[string]any{"login": "app/dependabot", "is_bot": true},
-		"headRefName": "dependabot/submodules/tools/upstream/adblock-lists-abc1234", "headRefOid": "{{" + head + "}}",
-		"createdAt": created, "closedAt": nil, "comments": []any{}, "commits": cs,
+		"number": n, "state": rest, "merged_at": merged, "created_at": created,
+		"user": map[string]any{"login": login}, "head": map[string]any{"ref": ref, "sha": "{{" + head + "}}"},
+		"labels": []any{map[string]any{"name": liveLabel}},
 	}
 }
 
-func liveTakeover(n int, state, created, head string) map[string]any {
-	p := liveDependabot(n, state, created, head, "maintainer")
-	p["author"] = map[string]any{"login": "maintainer"}
-	p["headRefName"] = "rules/takeover-0123456789ab"
-	return p
+// liveCommitPage is a pulls/<n>/commits element; login "" stands for a
+// commit GitHub matched to no account (author null).
+func liveCommitPage(sha, login, msg string) map[string]any {
+	var author any
+	if login != "" {
+		author = map[string]any{"login": login}
+	}
+	return map[string]any{"sha": sha, "author": author, "commit": map[string]any{"message": msg}}
 }
 
-func liveComment(p map[string]any, body string) map[string]any {
-	p["comments"] = append(p["comments"].([]any), map[string]any{"author": map[string]any{"login": "maintainer"}, "body": body})
-	return p
+// liveDependabot returns a Dependabot submodule PR with head head as the
+// documented command lists it: the PR object, a comments page and a
+// commits page holding Dependabot's commit and one commit by each login.
+func liveDependabot(n int, state, created, head string, commits ...string) []map[string]any {
+	cs := []any{liveCommitPage(strings.Repeat("d", 40), liveBotLogin, "Bump tools/upstream/adblock-lists")}
+	for _, login := range commits {
+		cs = append(cs, liveCommitPage(strings.Repeat("e", 40), login, "an edit"))
+	}
+	return []map[string]any{
+		livePull(n, state, created, liveBotLogin, "dependabot/submodules/tools/upstream/adblock-lists-abc1234", head),
+		{"pull_number": n, "comments": []any{}},
+		{"pull_number": n, "commits": cs},
+	}
+}
+
+// liveTakeover is a PR a human opened; the command fetches no pages for it.
+func liveTakeover(n int, state, created, head string) []map[string]any {
+	return []map[string]any{livePull(n, state, created, "maintainer", "rules/takeover-0123456789ab", head)}
+}
+
+func liveComment(pr []map[string]any, body string) []map[string]any {
+	for _, v := range pr {
+		if cs, ok := v["comments"].([]any); ok {
+			v["comments"] = append(cs, map[string]any{"user": map[string]any{"login": "maintainer"}, "body": body})
+			return pr
+		}
+	}
+	panic("liveComment: no comments page")
 }
 
 // liveLine is upstream B → G1 → G2 → M, all older than the cooldown; main's
 // gitlink is B.
-func liveLine(prs ...map[string]any) *liveFixture {
+func liveLine(prs ...[]map[string]any) *liveFixture {
 	return &liveFixture{
 		Upstream: []liveUpCommit{
 			{Name: "B", Date: "2026-08-01T00:00:00Z"},
@@ -356,7 +424,7 @@ func liveLine(prs ...map[string]any) *liveFixture {
 		Master: "M",
 		Main:   "B",
 		Heads:  map[string]string{"hB": "B", "h1": "G1", "h2": "G2", "hM": "M"},
-		PRs:    append([]map[string]any{}, prs...),
+		PRs:    slices.Concat(prs...),
 	}
 }
 
@@ -376,9 +444,14 @@ func TestLiveness(t *testing.T) {
 		{"window_start_exclusive", liveLine(liveDependabot(4, "MERGED", "2026-10-05T23:59:59Z", "h1")), alertB, exitFail, ""},
 		{"window_closed_pr", liveLine(liveDependabot(4, "CLOSED", "2026-10-13T04:00:00Z", "h1")), "ok", exitOK, ""},
 		{"window_ignores_takeover", liveLine(liveTakeover(4, "MERGED", "2026-10-13T04:00:00Z", "hB")), alertB, exitFail, ""},
-		{"window_ignores_other_dependabot_branch", liveLine(func() map[string]any {
+		{"window_ignores_other_dependabot_branch", liveLine(func() []map[string]any {
 			p := liveDependabot(4, "MERGED", "2026-10-13T04:00:00Z", "hB")
-			p["headRefName"] = "dependabot/go_modules/golang.org/x/net-0.30.0"
+			p[0]["head"].(map[string]any)["ref"] = "dependabot/go_modules/golang.org/x/net-0.30.0"
+			return p
+		}()), alertB, exitFail, ""},
+		{"window_ignores_unlabelled", liveLine(func() []map[string]any {
+			p := liveDependabot(4, "MERGED", "2026-10-13T04:00:00Z", "hB")
+			p[0]["labels"] = []any{map[string]any{"name": "dependencies"}}
 			return p
 		}()), alertB, exitFail, ""},
 		{"blocked_newest", liveLine(
@@ -386,6 +459,13 @@ func TestLiveness(t *testing.T) {
 			liveDependabot(6, "OPEN", liveOld, "h2", "maintainer"),
 		), "blocked #6", exitOK, ""},
 		{"blocked_commit_without_login", liveLine(liveDependabot(5, "OPEN", liveOld, "h1", "")), "blocked #5", exitOK, ""},
+		{"blocked_co_author", liveLine(liveCoAuthored(5, "Someone <someone@example.invalid>")), "blocked #5", exitOK, "open #5 carries non-Dependabot commits: dddddddddddd Bump"},
+		{"co_author_dependabot", liveLine(liveCoAuthored(5, "dependabot[bot] <"+liveBotEmail+">")), liveAlert("G1", "M"), exitFail, ""},
+		{"co_author_not_trailer", liveLine(func() []map[string]any {
+			p := liveDependabot(5, "OPEN", liveOld, "h1")
+			p[2]["commits"].([]any)[0].(map[string]any)["commit"] = map[string]any{"message": "Bump\nCo-authored-by: Someone <someone@example.invalid>\n\nSigned-off-by: x"}
+			return p
+		}()), liveAlert("G1", "M"), exitFail, ""},
 		{"closed_edited_not_blocked", liveLine(liveDependabot(5, "CLOSED", liveOld, "h1", "maintainer")), alertB, exitFail, ""},
 		{"open_dependabot_newest_gitlink", liveLine(
 			liveDependabot(5, "OPEN", liveOld, "hM"),
@@ -453,9 +533,20 @@ func TestLiveness(t *testing.T) {
 	}
 }
 
+// liveCoAuthored is open Dependabot PR #n with head h1 whose only commit,
+// authored by Dependabot, carries a Co-authored-by trailer for coAuthor.
+func liveCoAuthored(n int, coAuthor string) []map[string]any {
+	p := liveDependabot(n, "OPEN", liveOld, "h1")
+	p[2]["commits"].([]any)[0].(map[string]any)["commit"] = map[string]any{"message": "Bump\n\nbody\n\nCo-authored-by: " + coAuthor + "\n"}
+	return p
+}
+
 func TestLivenessErrors(t *testing.T) {
-	missingField := liveDependabot(5, "OPEN", liveOld, "h1")
-	delete(missingField, "commits")
+	noCommits := liveDependabot(5, "OPEN", liveOld, "h1")[:2]
+	noComments := slices.Delete(liveDependabot(7, "CLOSED", liveOld, "h1"), 1, 2)
+	noMergedAt := liveDependabot(5, "OPEN", liveOld, "h1")
+	delete(noMergedAt[0], "merged_at")
+	headSha := regexp.MustCompile(`("head":\{"ref":"[^"]*","sha":")[0-9a-f]{40}"`)
 	tests := []struct {
 		name  string
 		f     *liveFixture
@@ -466,19 +557,36 @@ func TestLivenessErrors(t *testing.T) {
 	}{
 		{"head_not_fetched", liveLine(liveDependabot(5, "OPEN", liveOld, "h1")), func(t *testing.T, prs string) {
 			b, _ := os.ReadFile(prs)
-			b = []byte(regexp.MustCompile(`"headRefOid":"[0-9a-f]{40}"`).ReplaceAllString(string(b), `"headRefOid":"`+strings.Repeat("a", 40)+`"`))
+			b = []byte(headSha.ReplaceAllString(string(b), `${1}`+strings.Repeat("a", 40)+`"`))
 			os.WriteFile(prs, b, 0o644)
 		}, nil, exitUnverifiable, "is not in"},
 		{"head_not_sha", liveLine(liveDependabot(5, "OPEN", liveOld, "h1")), func(t *testing.T, prs string) {
 			b, _ := os.ReadFile(prs)
-			b = []byte(regexp.MustCompile(`"headRefOid":"[0-9a-f]{40}"`).ReplaceAllString(string(b), `"headRefOid":"main"`))
+			b = []byte(headSha.ReplaceAllString(string(b), `${1}main"`))
 			os.WriteFile(prs, b, 0o644)
-		}, nil, exitUnverifiable, `headRefOid "main" is not a commit id`},
-		{"missing_field", liveLine(missingField), nil, nil, exitUnverifiable, `has no "commits"; use the gh command`},
+		}, nil, exitUnverifiable, `head.sha "main" is not a commit id`},
+		{"missing_commits_page", liveLine(noCommits), nil, nil, exitUnverifiable, "open #5 has no commits page; use the command of rulegen liveness -h"},
+		{"missing_comments_page", liveLine(noComments), nil, nil, exitUnverifiable, "closed #7 has no comments page; use the command of rulegen liveness -h"},
+		{"missing_key", liveLine(noMergedAt), nil, nil, exitUnverifiable, `value 1: PR object has no "merged_at"; use the command`},
+		{"gh_pr_list_array", liveLine(), func(t *testing.T, prs string) {
+			os.WriteFile(prs, []byte(`[{"number": 5, "state": "OPEN", "headRefOid": "main"}]`), 0o644)
+		}, nil, exitUnverifiable, "value 1: not a JSON object"},
+		{"unknown_value", liveLine(), func(t *testing.T, prs string) { os.WriteFile(prs, []byte(`{"total_count": 0}`), 0o644) }, nil, exitUnverifiable, "neither a PR object nor"},
+		{"page_both_kinds", liveLine(), func(t *testing.T, prs string) {
+			os.WriteFile(prs, []byte(`{"pull_number": 5, "comments": [], "commits": []}`), 0o644)
+		}, nil, exitUnverifiable, `exactly one of "comments" and "commits"`},
+		{"page_of_unlisted_pr", liveLine(), func(t *testing.T, prs string) {
+			os.WriteFile(prs, []byte(`{"pull_number": 5, "comments": []}`), 0o644)
+		}, nil, exitUnverifiable, "a page of #5, which is not listed"},
 		{"not_json", liveLine(), func(t *testing.T, prs string) { os.WriteFile(prs, []byte("[{"), 0o644) }, nil, exitUnverifiable, "prs.json"},
-		{"unknown_state", liveLine(func() map[string]any {
+		{"unknown_state", liveLine(func() []map[string]any {
 			p := liveDependabot(5, "OPEN", liveOld, "h1")
-			p["state"] = "open"
+			p[0]["state"] = "OPEN"
+			return p
+		}()), nil, nil, exitUnverifiable, `unknown state "OPEN"`},
+		{"merged_but_open", liveLine(func() []map[string]any {
+			p := liveDependabot(5, "OPEN", liveOld, "h1")
+			p[0]["merged_at"] = liveOld
 			return p
 		}()), nil, nil, exitUnverifiable, `unknown state "open"`},
 		{"duplicate_number", liveLine(liveDependabot(5, "OPEN", liveOld, "h1"), liveDependabot(5, "OPEN", liveOld, "h1")), nil, nil, exitUnverifiable, "#5 listed twice"},
@@ -521,7 +629,7 @@ func TestLivenessUsage(t *testing.T) {
 	}{
 		{nil, exitUsage, "-root is required"},
 		{[]string{"-root", "r", "-upstream", "u"}, exitUsage, "-prs is required"},
-		{[]string{"-h"}, exitOK, "gh pr list --repo Espresso-Aficionados/linkclean --label rules-update"},
+		{[]string{"-h"}, exitOK, `gh api --paginate "$R/pulls?state=all&per_page=100"`},
 		{[]string{"-root", "r", "-upstream", "u", "-prs", "p", "x"}, exitUsage, "unexpected arguments"},
 	} {
 		e, stdout, stderr := newTestEnv(t, nil)
@@ -529,10 +637,10 @@ func TestLivenessUsage(t *testing.T) {
 			t.Errorf("%q: exit %d stdout %q stderr %q; want exit %d and %q", tt.args, code, stdout, stderr, tt.code, tt.out)
 		}
 	}
-	// The help names every field liveness requires and every close prefix.
+	// The help gives the producing command and every close prefix.
 	e, _, stderr := newTestEnv(t, nil)
 	run(context.Background(), e, []string{"liveness", "-h"})
-	for _, s := range append([]string{"--json " + strings.Join(liveFields, ",")}, liveClosePrefixes...) {
+	for _, s := range append([]string{liveIndent(liveProduce, "        ")}, liveClosePrefixes...) {
 		if !strings.Contains(stderr.String(), s) {
 			t.Errorf("help lacks %q", s)
 		}
@@ -545,9 +653,7 @@ func TestLivenessClosePrefixes(t *testing.T) {
 		t.Errorf("liveClosePrefixes = %q", liveClosePrefixes)
 	}
 	held := fmt.Sprintf(data.CommentHeld, "a reason", "2026-12-01")
-	if p := (livePR{State: "CLOSED", Comments: []struct {
-		Body string `json:"body"`
-	}{{Body: held}}}); !p.closedByRoutine() {
+	if p := (livePR{State: "CLOSED", Comments: []string{held}}); !p.closedByRoutine() {
 		t.Errorf("held close comment %q not recognised", held)
 	}
 }
@@ -567,39 +673,48 @@ func TestLiveMonday(t *testing.T) {
 	}
 }
 
-// TestLivenessListCommand keeps the documented gh pr list within GitHub's
-// GraphQL budget: a query that may return more than 500,000 nodes is
-// refused outright, which would leave liveness nothing to read every run.
-// gh asks for up to 100 comments and 100 commits per PR and 100 authors per
-// commit, so each listed PR costs 1 + 100 + 100 + 100*100 nodes. The help
-// and ROUTINE.md must give the same command.
-func TestLivenessListCommand(t *testing.T) {
-	const budget, perPR = 500_000, 1 + 100 + 100 + 100*100
-	limitRe := regexp.MustCompile(`--label rules-update(?:\s|\\)+--state all --limit (\d+)(?:\s|\\)+--json (\S+)`)
-	e, _, stderr := newTestEnv(t, nil)
-	run(context.Background(), e, []string{"liveness", "-h"})
+// TestLivenessProduceCommand keeps the documented -prs command REST-only
+// (the routine has no GraphQL, which gh's PR, issue and label subcommands
+// need), complete (every call paginates) and read-only (gh api sends POST
+// once a field flag is given), its filters equal to liveness' own, and the
+// help's copy equal to ROUTINE.md's.
+func TestLivenessProduceCommand(t *testing.T) {
 	routine, err := os.ReadFile("ROUTINE.md")
 	if err != nil {
 		t.Fatal(err)
 	}
-	var got []string
-	for name, text := range map[string]string{"help": stderr.String(), "ROUTINE.md": string(routine)} {
-		ms := limitRe.FindAllStringSubmatch(text, -1)
-		if len(ms) != 1 {
-			t.Errorf("%s: %d step-1 gh pr list commands, want 1", name, len(ms))
-			continue
-		}
-		var limit int
-		fmt.Sscan(ms[0][1], &limit)
-		if limit*perPR > budget {
-			t.Errorf("%s: --limit %d asks GitHub for up to %d nodes, over its %d limit", name, limit, limit*perPR, budget)
-		}
-		if ms[0][2] != strings.Join(liveFields, ",") {
-			t.Errorf("%s: --json %s, want %s", name, ms[0][2], strings.Join(liveFields, ","))
-		}
-		got = append(got, ms[0][1]+" "+ms[0][2])
+	if n := strings.Count(string(routine), "\n"+liveProduce+"\n"); n != 1 {
+		t.Errorf("ROUTINE.md holds the -prs command %d times, want once as its own lines:\n%s", n, liveProduce)
 	}
-	if len(got) == 2 && got[0] != got[1] {
-		t.Errorf("help and ROUTINE.md disagree: %q", got)
+	e, _, stderr := newTestEnv(t, nil)
+	run(context.Background(), e, []string{"liveness", "-h"})
+	if !strings.Contains(stderr.String(), liveIndent(liveProduce, "        ")) {
+		t.Errorf("the help lacks the -prs command")
+	}
+
+	if !strings.Contains(liveProduce, "R=repos/Espresso-Aficionados/linkclean;") {
+		t.Errorf("the command does not name the repository")
+	}
+	for _, s := range []string{`.name == "` + liveLabel + `"`, `startswith("` + liveHeadPrefix + `")`, `.merged_at == null`} {
+		if !strings.Contains(liveProduce, s) {
+			t.Errorf("the command's filters lack %s", s)
+		}
+	}
+	joined := strings.ReplaceAll(liveProduce, "\\\n", " ")
+	ghCall := regexp.MustCompile(`\bgh\s+(.*)`)
+	write := regexp.MustCompile(`(^|\s)(-X|--method|-f|-F|--field|--raw-field|--input)(\s|=|$)`)
+	calls := ghCall.FindAllStringSubmatch(joined, -1)
+	if len(calls) != 3 {
+		t.Errorf("%d gh calls, want 3", len(calls))
+	}
+	for _, m := range calls {
+		switch {
+		case !strings.HasPrefix(m[1], "api --paginate \"$R/"):
+			t.Errorf("not a paginated REST call on the repository: gh %s", m[1])
+		case write.MatchString(m[1]):
+			t.Errorf("not a GET: gh %s", m[1])
+		case strings.Contains(strings.ToLower(m[1]), "graphql"):
+			t.Errorf("GraphQL: gh %s", m[1])
+		}
 	}
 }

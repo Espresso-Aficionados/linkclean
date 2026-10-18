@@ -11,38 +11,57 @@
   "prs": [
     {
       "number": 5,
-      "state": "OPEN",
-      "author": {"id": "MDM6Qm90NDk2OTkzMzM=", "is_bot": true, "login": "app/dependabot"},
-      "headRefName": "dependabot/submodules/tools/upstream/adblock-lists-9f3c2d1",
-      "headRefOid": "{{h5}}",
-      "createdAt": "2026-09-28T04:12:09Z",
-      "closedAt": null,
+      "state": "open",
+      "merged_at": null,
+      "closed_at": null,
+      "created_at": "2026-09-28T04:12:09Z",
+      "user": {"login": "dependabot[bot]", "type": "Bot"},
+      "head": {"ref": "dependabot/submodules/tools/upstream/adblock-lists-9f3c2d1", "sha": "{{h5}}"},
+      "labels": [{"name": "rules-update"}]
+    },
+    {
+      "pull_number": 5,
       "comments": [
-        {"author": {"login": "maintainer"}, "body": "<!-- rulegen:summary -->\n## Rules update\n", "createdAt": "2026-09-29T11:20:00Z"}
-      ],
+        {
+          "user": {"login": "maintainer"},
+          "body": "<!-- rulegen:summary -->\n## Rules update\n",
+          "created_at": "2026-09-29T11:20:00Z"
+        }
+      ]
+    },
+    {
+      "pull_number": 5,
       "commits": [
         {
-          "authors": [{"email": "49699333+dependabot[bot]@users.noreply.github.com", "id": "MDM6Qm90NDk2OTkzMzM=", "login": "dependabot[bot]", "name": "dependabot[bot]"}],
-          "messageHeadline": "Bump tools/upstream/adblock-lists from `1a2b3c4` to `9f3c2d1`",
-          "oid": "0d1e2f3a4b5c6d7e8f9001122334455667788990"
+          "sha": "0d1e2f3a4b5c6d7e8f9001122334455667788990",
+          "author": {"login": "dependabot[bot]"},
+          "commit": {
+            "author": {"name": "dependabot[bot]", "email": "49699333+dependabot[bot]@users.noreply.github.com"},
+            "message": "Bump tools/upstream/adblock-lists from `1a2b3c4` to `9f3c2d1`"
+          }
         },
         {
-          "authors": [{"email": "maintainer@example.invalid", "id": "MDQ6VXNlcjE=", "login": "maintainer", "name": "Maintainer"}],
-          "messageHeadline": "rules: classify the new debounce include",
-          "oid": "1d1e2f3a4b5c6d7e8f9001122334455667788990"
+          "sha": "1d1e2f3a4b5c6d7e8f9001122334455667788990",
+          "author": {"login": "maintainer"},
+          "commit": {
+            "author": {"name": "Maintainer", "email": "maintainer@example.invalid"},
+            "message": "rules: classify the new debounce include"
+          }
         }
       ]
     },
     {
       "number": 3,
-      "state": "MERGED",
-      "author": {"id": "MDM6Qm90NDk2OTkzMzM=", "is_bot": true, "login": "app/dependabot"},
-      "headRefName": "dependabot/submodules/tools/upstream/adblock-lists-1a2b3c4",
-      "headRefOid": "2222222222222222222222222222222222222222",
-      "createdAt": "2026-09-07T04:02:51Z",
-      "closedAt": "2026-09-08T11:40:00Z",
-      "comments": [],
-      "commits": []
+      "state": "closed",
+      "merged_at": "2026-09-08T11:40:00Z",
+      "closed_at": "2026-09-08T11:40:00Z",
+      "created_at": "2026-09-07T04:02:51Z",
+      "user": {"login": "dependabot[bot]", "type": "Bot"},
+      "head": {
+        "ref": "dependabot/submodules/tools/upstream/adblock-lists-1a2b3c4",
+        "sha": "2222222222222222222222222222222222222222"
+      },
+      "labels": [{"name": "rules-update"}]
     }
   ],
   "want": "blocked #5",
