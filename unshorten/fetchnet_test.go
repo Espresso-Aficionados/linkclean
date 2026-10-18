@@ -279,11 +279,22 @@ func TestRequestHeaders(t *testing.T) {
 		if len(reqs) != 1 || reqs[0].Host != "t.co:443" {
 			t.Errorf("requests %+v, want one with Host t.co:443 (the URL's host)", reqs)
 		}
-		// The test network's check compares the Host with the bare host.
-		for _, v := range n.TakeViolations() {
-			if !strings.Contains(v, `Host "t.co:443"`) {
-				t.Errorf("violation: %s", v)
-			}
+	})
+
+	// Through the Resolver: the request form keeps the port as written.
+	t.Run("explicit port resolve", func(t *testing.T) {
+		n := installNet(t)
+		s := n.HandleTLS("t.co", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Location", "https://example.net/p")
+			w.WriteHeader(301)
+		}))
+		r := newTestResolver(t, Config{Registry: netRegistry(t), Transport: guardedTransport(t, n, TransportOptions{}), Limiter: NoLimit()})
+		res, err := r.Resolve(context.Background(), "https://t.co:443/x")
+		if err != nil || res.URL != "https://example.net/p" {
+			t.Fatalf("Resolve = %q, %v", res.URL, err)
+		}
+		if reqs := s.Requests(); len(reqs) != 1 || reqs[0].Host != "t.co:443" {
+			t.Errorf("requests %+v, want one with Host t.co:443", reqs)
 		}
 	})
 

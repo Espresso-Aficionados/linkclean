@@ -603,7 +603,13 @@ func (s *testServer) check(r *http.Request, body int64) {
 	if r.Method != http.MethodGet {
 		n.violate("%s: method %s, want GET", where, r.Method)
 	}
-	if r.Host != s.host {
+	// Go sends the URL host as written, so an explicit default port (t.co:443)
+	// is the URL host too.
+	port := ":80"
+	if r.TLS != nil {
+		port = ":443"
+	}
+	if r.Host != s.host && r.Host != s.host+port {
 		n.violate("%s: Host %q, want the URL host %q", where, r.Host, s.host)
 	}
 	for name := range r.Header {
