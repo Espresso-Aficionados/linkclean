@@ -42,8 +42,9 @@
 //     lines (Header, Annotate, Overflow) appear verbatim except for CR and
 //     LF.
 //   - No URL line holds invalid UTF-8, a byte up to 0x20, 0x7F, a raw '`',
-//     '|', '<' or '>' (spoiler bars and the <…> wrapper aside), or a bidi or
-//     zero-width code point.
+//     '|', '<' or '>' (spoiler bars and the <…> wrapper aside), or one of
+//     the bidi formatting, zero-width and line-separator code points Repost
+//     lists.
 //   - Without caller lines, Find on the bodies of http(s) URLs returns
 //     exactly the reposted URLs, in order, Suppressed when wrapped in <…> and
 //     Bare otherwise, spoilered iff the original was and NoSpoiler is
@@ -142,6 +143,10 @@
 //     scheme it accepts. The bare-link check uses the unverified ')' rule
 //     (see Unverified grammar), so a URL ending in ')' may be wrapped when
 //     Discord would have linked it bare, or the reverse.
+//   - Only the code points Repost lists are encoded. Other invisible or
+//     default-ignorable ones, such as U+00AD, U+180E, U+206A–U+206F, the
+//     Hangul fillers, variation selectors and tag characters, and non-ASCII
+//     whitespace such as U+00A0 and U+3000, stay raw in URL lines.
 //   - The encoded URL is the same URL by RFC 3986 and RFC 3987, but a
 //     server that treats a raw byte and its %XX form differently sees a
 //     different request. Other bytes RFC 3986 does not allow raw are kept:
