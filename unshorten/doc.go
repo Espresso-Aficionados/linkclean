@@ -96,7 +96,43 @@
 //
 // # Caching
 //
-// See Cache, CacheEntry and NewMemoryCache.
+// The Cache holds one record per network hop, never a cleaned result. Its
+// key is the entry's name, the names of the strategies eligible under the
+// GenericPolicy and the URL as requested (request form: fragment removed,
+// scheme and host lowercased, http upgraded to https unless the entry has
+// AllowHTTP), so https://t.co/x#a and HTTP://T.CO/x share one record and no
+// fragment is ever stored. Its value is the shortener's destination exactly
+// as served, which can carry tracking and affiliate parameters that a
+// Cleaner removes later. Every clean is recomputed on each call with the
+// view's own Cleaner, so a result is the same whether its hops came from
+// the network or the Cache, and WithCleaner views share one Cache safely.
+//
+// A next URL is kept for PositiveTTL (24h) and a definitive failure for
+// NegativeTTL (10m). Transient failures (every timeout, the caller's
+// cancellation, Limiter rejections, the request and in-flight bounds, HTTP
+// 429, 502, 503 and 504) are never stored. ErrHopLimit, ErrLoop and
+// ErrFallback are decided from the hop records on every call, so a cached
+// fallback page costs no request. NewMemoryCache keeps definitive
+// failures, stops and the hops an entry's IsFallback flags in its smaller
+// bound, so a flood of invalid codes cannot evict real successes, and does
+// not store a record whose key plus destination exceeds 2 KiB.
+//
+// A Cache may be shared only by Resolvers with the same UserAgent,
+// Transport and Registry, since those decide a hop's outcome; a Limiter
+// may be shared by any. The simplest form is one Resolver with a
+// WithCleaner view per policy, which also shares the request and in-flight
+// bounds and the coalescing.
+//
+// Concurrent lookups of one uncached hop are coalesced into one request,
+// made detached from the callers under Config.Timeout: a caller that gives
+// up fails open without stopping it, and a definitive outcome is still
+// cached. MaxInFlightPerHost counts the hops in flight per host of the URL
+// being resolved. Entries whose short-link hosts share one fetch host therefore
+// share its request slots but not this bound: the tiktok entry's
+// vm.tiktok.com, vt.tiktok.com and www.tiktok.com/t/ links all fetch
+// TikTok's oEmbed endpoint on www.tiktok.com, so when it stalls up to
+// 3 × 16 = 48 of the default 256 hops can wait on its 4 request slots;
+// other hosts are not affected.
 //
 // # Not registered by default
 //
