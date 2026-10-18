@@ -344,6 +344,36 @@ func TestCallerPastDeadlineStartsNoKey(t *testing.T) {
 	}
 }
 
+// TestTimeoutBoundsCacheGet: Timeout covers the whole Resolve, the Cache
+// lookups on the caller's path included: a Cache whose Get waits for its
+// ctx cannot hold a caller with context.Background past it.
+func TestTimeoutBoundsCacheGet(t *testing.T) {
+	n := installNet(t)
+	n.HandleTLS("s.example.net", rvRedirect(301, "https://example.net/p"))
+	spy := &rvCache{inner: NoCache(), get: func(ctx context.Context, _ string) (CacheEntry, bool, bool) {
+		<-ctx.Done()
+		return CacheEntry{}, false, true
+	}}
+	r := rvResolver(t, n, Config{Registry: rvRegistry(t, rvEntry("s.example.net")), Cache: spy, Timeout: 200 * time.Millisecond})
+	done := make(chan error, 1)
+	start := time.Now()
+	go func() {
+		_, err := r.Resolve(context.Background(), "https://s.example.net/x")
+		done <- err
+	}()
+	select {
+	case err := <-done:
+		if !errors.Is(err, ErrTransient) {
+			t.Errorf("err %v, want ErrTransient", err)
+		}
+		if d := time.Since(start); d > 2*time.Second {
+			t.Errorf("Resolve returned after %v with Timeout 200ms", d)
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("Resolve still blocked in Cache.Get 5s after a 200ms Timeout")
+	}
+}
+
 // --- OnRequest ---
 
 // TestOnRequestCalls: one call per request, with entry, strategy, host,

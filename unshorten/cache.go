@@ -11,6 +11,12 @@ import (
 // request form (no fragment); values are the shortener's raw destination,
 // which can carry tracking and affiliate parameters the caller's policy later
 // removes.
+//
+// The Resolver bounds the ctx it passes by Config.Timeout: a Get on a
+// caller's path has the resolve deadline, and the Get and Set of a hop
+// being fetched have the hop's own. An implementation that waits on
+// anything (a remote store) must honour ctx, or it holds the caller past
+// Timeout.
 type Cache interface {
 	Get(ctx context.Context, key string) (CacheEntry, bool)
 	Set(ctx context.Context, key string, e CacheEntry, ttl time.Duration) // may clamp ttl or decline to store

@@ -211,6 +211,10 @@ func (r *Resolver) resolve(ctx context.Context, raw string) chain {
 		return chain{off: off, url: off.URL, err: err}
 	}
 	deadline := time.Now().Add(st.cfg.timeout)
+	// The caller's Cache lookups are bounded by the resolve deadline too:
+	// Timeout covers the whole Resolve.
+	cctx, cancel := context.WithDeadline(ctx, deadline)
+	defer cancel()
 	cur := off.URL
 	seen := map[string]bool{seenForm(cur): true}
 	allCached := true
@@ -235,7 +239,7 @@ func (r *Resolver) resolve(ctx context.Context, raw string) chain {
 		}
 		key := hopKey(e, st.cfg.policy, cur)
 
-		h, hit := st.cache.Get(ctx, key)
+		h, hit := st.cache.Get(cctx, key)
 		class := classNone
 		if !hit {
 			allCached = false
