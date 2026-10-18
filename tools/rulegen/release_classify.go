@@ -83,6 +83,8 @@ func relStaticClass(p string) relClass {
 	// Go builds no package in a testdata directory at any depth, so a
 	// package's own test data (discordlink/testdata/) is inert like the
 	// root's; golden-row tracking stays with the root's testdata/golden/.
+	// TestReleaseInertNotEmbedded checks that no non-test file embeds an
+	// inert path.
 	case strings.HasPrefix(p, ".github/"), strings.HasPrefix(p, "tools/"), p == data.GitmodulesPath, p == data.AcksPath,
 		strings.HasPrefix(p, "testdata/"), strings.Contains(p, "/testdata/"), strings.HasSuffix(p, "_test.go"), strings.HasSuffix(p, ".md"):
 		return relInert

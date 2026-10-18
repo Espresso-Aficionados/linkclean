@@ -5,7 +5,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"go/parser"
+	"go/token"
+	"io/fs"
+	"os"
+	"path/filepath"
 	"slices"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -371,4 +377,118 @@ func TestReleasePublishFailures(t *testing.T) {
 			t.Errorf("refs %+v, stdout %q, go %+v", f.fake.Refs, f.stdout, f.goRuns)
 		}
 	})
+}
+
+// TestReleaseInertNotEmbedded guards relStaticClass's inert paths (any
+// testdata directory, *.md, tools/…): no non-test file of the root module
+// embeds one, or a change to it would ship in the library yet be classified
+// release-inert.
+func TestReleaseInertNotEmbedded(t *testing.T) {
+	t.Run("real", func(t *testing.T) {
+		if got := relEmbeddedInert(t, filepath.Join("..", "..")); len(got) > 0 {
+			t.Errorf("non-test files embed paths relStaticClass calls inert: %q", got)
+		}
+	})
+	t.Run("negatives", func(t *testing.T) {
+		root := t.TempDir()
+		for p, src := range map[string]string{
+			"go.mod":                "module m\n",
+			"x/x.go":                "package x\n\nimport _ \"embed\"\n\n//go:embed testdata/a.txt\nvar a string\n",
+			"x/testdata/a.txt":      "a",
+			"y/y.go":                "package y\n\nimport \"embed\"\n\n//go:embed all:* \"notes.md\"\nvar f embed.FS\n",
+			"y/notes.md":            "n",
+			"y/testdata/b.txt":      "b",
+			"y/z_test.go":           "package y\n\n//go:embed testdata/b.txt\nvar b string\n",
+			"z/z.go":                "package z\n\nimport _ \"embed\"\n\n//go:embed data.json\nvar d string\n",
+			"z/data.json":           "{}",
+			"nested/go.mod":         "module n\n",
+			"nested/n.go":           "package n\n\n//go:embed testdata/c.txt\nvar c string\n",
+			"nested/testdata/c.txt": "c",
+		} {
+			if err := os.MkdirAll(filepath.Dir(filepath.Join(root, p)), 0o755); err != nil {
+				t.Fatal(err)
+			}
+			if err := os.WriteFile(filepath.Join(root, p), []byte(src), 0o644); err != nil {
+				t.Fatal(err)
+			}
+		}
+		want := []string{"x/testdata/a.txt", "y/notes.md", "y/testdata/b.txt", "y/z_test.go"}
+		if got := relEmbeddedInert(t, root); !slices.Equal(got, want) {
+			t.Errorf("got %q, want %q", got, want)
+		}
+	})
+}
+
+// relEmbeddedInert returns, sorted and without duplicates, every file that
+// a //go:embed directive in a non-test .go file of the module at root
+// embeds and that relStaticClass classifies as inert. It skips directories
+// the go command does not build (testdata, dot and underscore names) and
+// nested modules.
+func relEmbeddedInert(t *testing.T, root string) []string {
+	t.Helper()
+	var found []string
+	fset := token.NewFileSet()
+	err := filepath.WalkDir(root, func(p string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if d.IsDir() {
+			if p == root {
+				return nil
+			}
+			if n := d.Name(); n == "testdata" || strings.HasPrefix(n, ".") || strings.HasPrefix(n, "_") {
+				return filepath.SkipDir
+			}
+			if _, err := os.Stat(filepath.Join(p, "go.mod")); err == nil {
+				return filepath.SkipDir
+			}
+			return nil
+		}
+		if !strings.HasSuffix(p, ".go") || strings.HasSuffix(p, "_test.go") {
+			return nil
+		}
+		f, err := parser.ParseFile(fset, p, nil, parser.ParseComments)
+		if err != nil {
+			return err
+		}
+		for _, cg := range f.Comments {
+			for _, c := range cg.List {
+				rest, ok := strings.CutPrefix(c.Text, "//go:embed ")
+				if !ok {
+					continue
+				}
+				for _, pat := range strings.Fields(rest) {
+					if u, err := strconv.Unquote(pat); err == nil {
+						pat = u
+					}
+					pat = strings.TrimPrefix(pat, "all:")
+					matches, err := filepath.Glob(filepath.Join(filepath.Dir(p), filepath.FromSlash(pat)))
+					if err != nil {
+						return fmt.Errorf("%s: //go:embed %s: %v", fset.Position(c.Pos()), pat, err)
+					}
+					for _, m := range matches {
+						err := filepath.WalkDir(m, func(q string, d fs.DirEntry, err error) error {
+							if err != nil || d.IsDir() {
+								return err
+							}
+							rel, err := filepath.Rel(root, q)
+							if err == nil && relStaticClass(filepath.ToSlash(rel)) == relInert {
+								found = append(found, filepath.ToSlash(rel))
+							}
+							return err
+						})
+						if err != nil {
+							return err
+						}
+					}
+				}
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	slices.Sort(found)
+	return slices.Compact(found)
 }
