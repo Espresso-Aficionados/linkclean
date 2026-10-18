@@ -100,6 +100,42 @@
 //
 // # Not registered by default
 //
-// Shorteners whose strategies the package exports but DefaultRegistry does
-// not register can be added with Registry.With.
+// The package exports strategies for two generic shorteners that
+// DefaultRegistry does not register: BitlyInfo (bit.ly's "+" info page) and
+// TinyURLPreview (tinyurl.com's preview page). Both are Marketing entries:
+// their links are often per-recipient campaign links, and whether a preview
+// request registers a click, or works without logging in, is not
+// established. Add them with Registry.With if you accept that:
+//
+//	reg, err := unshorten.DefaultRegistry().With(
+//		unshorten.Entry{
+//			Name:     "bit.ly",
+//			Match:    []string{"*://bit.ly/*", "*://bitly.com/*"},
+//			Strategy: unshorten.BitlyInfo(),
+//			Fallback: unshorten.Redirect(), // used only under Follow
+//			Kind:     unshorten.Marketing,
+//			// bit.ly's own homepage is its fallback, never a destination.
+//			IsFallback: func(_, t *url.URL) bool {
+//				h := strings.ToLower(t.Hostname())
+//				return (h == "bitly.com" || h == "www.bitly.com" || h == "bit.ly") &&
+//					(t.Path == "" || t.Path == "/") && t.RawQuery == ""
+//			},
+//		},
+//		unshorten.Entry{
+//			Name:     "tinyurl",
+//			Match:    []string{"*://tinyurl.com/*"},
+//			Strategy: unshorten.TinyURLPreview(),
+//			Fallback: unshorten.Redirect(), // used only under Follow
+//			Kind:     unshorten.Marketing,
+//		},
+//	)
+//	if err != nil {
+//		// handle err
+//	}
+//	r, err := unshorten.New(unshorten.Config{Registry: reg})
+//
+// Under GenericPolicy PreviewOnly (the default) these entries request only
+// bit.ly/<id>+ and tinyurl.com/preview/<alias>; under Follow they may also
+// follow the short link's redirect, which registers a click from your
+// server; under Skip they are never requested.
 package unshorten
