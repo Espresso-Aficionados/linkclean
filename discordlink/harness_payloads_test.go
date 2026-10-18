@@ -120,8 +120,8 @@ func harnessRewrite(s, id string, embed bool) string {
 	}
 }
 
-// harnessGrammarRows are the find.txtar rows PLAN §5.2 added, sent whether or
-// not they carry a marker.
+// harnessGrammarRows are the find.txtar rows that pin backtracking, escape,
+// nesting and line-crossing details, sent whether or not they carry a marker.
 var harnessGrammarRows = []string{
 	"em-wins-by-quality", "em-odd-run-closes", "strong-escaped-closer", "code-opener-backtracks",
 	"spoiler-ignores-escapes", "strong-ignores-code", "masked-greedy-label", "masked-href-backtracking",
@@ -223,7 +223,7 @@ func harnessPredict(content string) []harnessLink {
 }
 
 // harnessGrammar builds Phase G: controls, every find.txtar row with a
-// marker, the §5.2 rows, and two oracle rows per rule class.
+// marker, the harnessGrammarRows, and two oracle rows per rule class.
 func harnessGrammar(t *testing.T) []harnessCase {
 	var out []harnessCase
 	add := func(source, in string, markers []string, embed bool, orig []Link) {
