@@ -200,18 +200,22 @@ func (f *Fetcher) Get(ctx context.Context, u *url.URL, readBody bool) (*Response
 }
 
 // sawStatus is the RoundTripper of one Get: it records the status of the
-// response its transport returned, if any.
+// response its transport returned, if any. With no transport it fails
+// closed: net/http's DefaultTransport is the unguarded transport the
+// package exists to refuse.
 type sawStatus struct {
 	rt     http.RoundTripper
 	status int
 }
 
+// errNoTransport is the error of a Get on a state built with no transport.
+var errNoTransport = unguarded("the Resolver has no transport")
+
 func (s *sawStatus) RoundTrip(req *http.Request) (*http.Response, error) {
-	rt := s.rt
-	if rt == nil {
-		rt = http.DefaultTransport
+	if s.rt == nil {
+		return nil, errNoTransport
 	}
-	resp, err := rt.RoundTrip(req)
+	resp, err := s.rt.RoundTrip(req)
 	if err == nil && resp != nil {
 		s.status = resp.StatusCode
 	}

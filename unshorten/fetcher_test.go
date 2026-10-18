@@ -226,6 +226,25 @@ func TestGetDefaultUserAgent(t *testing.T) {
 	})
 }
 
+// TestGetNoTransport: a state with no transport fails closed: Get returns
+// an error and nothing goes through http.DefaultTransport.
+func TestGetNoTransport(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		st := newTestState(t, Config{}, testRegistry(t), nil, nil)
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+		defer cancel()
+		f := newTestFetcher(t, st, "t.co", ctx)
+		if _, err := f.Get(ctx, mustURL(t, "https://t.co/x"), false); err == nil {
+			t.Error("Get with no transport succeeded")
+		}
+	})
+	for _, s := range offNetwork.list() {
+		if strings.HasPrefix(s, "http.DefaultTransport ") {
+			t.Errorf("a request went through http.DefaultTransport: %q", s)
+		}
+	}
+}
+
 func TestGetLocation(t *testing.T) {
 	tests := []struct {
 		status   int
