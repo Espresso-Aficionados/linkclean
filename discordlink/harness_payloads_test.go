@@ -183,7 +183,8 @@ func harnessWantKind(f func(Link) bool) func(string, []Link) bool {
 // harnessSendable reports why s cannot be sent as is, or "". JSON cannot
 // carry invalid UTF-8, Discord's client rewrites CR and form feed before
 // parsing (tools/discordref's README), so such an input would not test what
-// Find predicts, and a message holds at most 2000 bytes here. A tab is
+// Find predicts, Discord trims leading and trailing whitespace from message
+// content, and a message holds at most 2000 bytes here. A tab is
 // rewritten too (to four spaces) but is allowed: whether Discord keeps it
 // inside an autolink is marker A1's question. The oracle selection skips
 // tabs.
@@ -193,6 +194,8 @@ func harnessSendable(s string) string {
 		return "invalid UTF-8"
 	case strings.ContainsAny(s, "\r\f"):
 		return "CR or form feed"
+	case strings.TrimSpace(s) != s:
+		return "leading or trailing whitespace, which Discord trims"
 	case len(s) > harnessMaxContent:
 		return fmt.Sprintf("%d bytes", len(s))
 	}
@@ -506,6 +509,8 @@ func harnessCheck(f harnessFile) []error {
 			bad(c, "content is not valid UTF-8")
 		case leftover.MatchString(c.Content):
 			bad(c, "content links to a test host: %q", c.Content)
+		case strings.TrimSpace(c.Content) != c.Content:
+			bad(c, "content has leading or trailing whitespace, which Discord trims: %q", c.Content)
 		}
 		if seen[c.ID] {
 			bad(c, "duplicate ID")
