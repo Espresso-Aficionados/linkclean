@@ -4,8 +4,8 @@ package unshorten
 // guard in the dial path. Each row's Fetcher half builds the state New would
 // (newState over the transport New's own check returns, checkTransport, so
 // privateClone and its header clamp are in the path) and drives a Fetcher or
-// a strategy directly. A row's Resolver half goes through New and skips until
-// the Resolver is implemented (requireResolver).
+// a strategy directly. A row's Resolver half, the "resolve" subtest, goes
+// through New.
 
 import (
 	"bytes"
@@ -24,28 +24,6 @@ import (
 
 	"github.com/Espresso-Aficionados/linkclean/internal/rawurl"
 )
-
-// requireResolver skips t until the Resolver is implemented: New, Resolve,
-// Match and validateNext panic with "unshorten: not implemented" until then.
-// It makes no request.
-func requireResolver(t *testing.T) {
-	t.Helper()
-	defer func() {
-		if r := recover(); r != nil {
-			if s, ok := r.(string); ok && strings.HasSuffix(s, "not implemented") {
-				t.Skipf("needs resolver (A4): %s", s)
-			}
-			panic(r)
-		}
-	}()
-	r, err := New(Config{Registry: netRegistry(t), Limiter: NoLimit()})
-	if err != nil {
-		t.Fatal(err)
-	}
-	r.Match("https://t.co/x")
-	validateNext(mustURL(t, "https://example.net/"))
-	r.WithCleaner(nil)
-}
 
 // netRegistry is testRegistry plus a body strategy entry.
 func netRegistry(t *testing.T) *Registry {
@@ -313,7 +291,6 @@ func TestRequestHeaders(t *testing.T) {
 	// Cookie or Referer on the second, and requests the registered second
 	// hop uncleaned.
 	t.Run("resolve", func(t *testing.T) {
-		requireResolver(t)
 		n := installNet(t)
 		s := n.HandleTLS("t.co", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			http.SetCookie(w, &http.Cookie{Name: "s", Value: "REDACTED", Path: "/"})
@@ -375,7 +352,6 @@ func TestFetchDenied(t *testing.T) {
 	// Through the Resolver: a custom strategy's undeclared Get fails the
 	// hop with ErrFetchDenied, cached, and never reaches the host.
 	t.Run("resolve", func(t *testing.T) {
-		requireResolver(t)
 		var calls atomic.Int32
 		evilURL := mustURL(t, "https://evil.example.net/x")
 		reg, err := NewRegistry(Entry{Name: "t.co", Match: []string{"*://t.co/*"}, Strategy: netStrategy{"Escape",
@@ -429,7 +405,6 @@ func TestIntermediateNotFromInput(t *testing.T) {
 	}
 
 	t.Run("resolve", func(t *testing.T) {
-		requireResolver(t)
 		n := installNet(t)
 		redirect := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Location", "https://example.net/p")
@@ -634,7 +609,6 @@ func TestCtxDeadline(t *testing.T) {
 	// Through the Resolver: the caller's deadline ends Resolve, which
 	// wraps the caller's ctx error.
 	t.Run("resolve", func(t *testing.T) {
-		requireResolver(t)
 		r := newTestResolver(t, Config{Registry: netRegistry(t), Transport: guardedTransport(t, n, TransportOptions{}), Limiter: NoLimit(), Timeout: time.Second})
 		ctx, cancel := context.WithTimeout(context.Background(), short)
 		defer cancel()
@@ -682,7 +656,6 @@ func TestSlowDrip(t *testing.T) {
 
 	// Through the Resolver: transient at Timeout, not cached.
 	t.Run("resolve", func(t *testing.T) {
-		requireResolver(t)
 		n := installNet(t)
 		s := n.HandleTLS("body.example.net", dripHandler(n))
 		r := newTestResolver(t, Config{Registry: netRegistry(t), Transport: guardedTransport(t, n, TransportOptions{}), Limiter: NoLimit(), Timeout: timeout})
@@ -762,7 +735,6 @@ func TestHeaderCap(t *testing.T) {
 
 			// Through the Resolver: transient, not cached.
 			t.Run("resolve", func(t *testing.T) {
-				requireResolver(t)
 				r := newTestResolver(t, Config{Registry: netRegistry(t), Transport: guarded, Limiter: NoLimit()})
 				before := big.Hits()
 				for i := range 2 {
@@ -872,7 +844,6 @@ func TestFetcherIgnoresStrategyCtx(t *testing.T) {
 	// Through the Resolver: ErrTransient at Timeout, and nothing is left
 	// in flight or holding a slot.
 	t.Run("resolve", func(t *testing.T) {
-		requireResolver(t)
 		r := newTestResolver(t, Config{Registry: reg, Transport: guardedTransport(t, n, TransportOptions{}), Limiter: NoLimit(), Timeout: timeout})
 		for _, name := range []string{"stall", "drip"} {
 			host := name + ".example.net"
@@ -924,7 +895,6 @@ func TestFetcherAfterReturn(t *testing.T) {
 
 	// Through the Resolver: the hop marks its Fetcher done itself.
 	t.Run("resolve", func(t *testing.T) {
-		requireResolver(t)
 		release = make(chan struct{})
 		r := newTestResolver(t, Config{Registry: reg, Transport: guardedTransport(t, n, TransportOptions{}), Limiter: NoLimit()})
 		if _, err := r.Resolve(context.Background(), "https://t.co/y"); !errors.Is(err, ErrNoMatch) {
@@ -992,7 +962,6 @@ func TestTransportRetryCounted(t *testing.T) {
 
 	// Through the Resolver: Hop.Requests is 2 and OnRequest fires once.
 	t.Run("resolve", func(t *testing.T) {
-		requireResolver(t)
 		hits.Store(0)
 		var infos atomic.Int32
 		r := newTestResolver(t, Config{

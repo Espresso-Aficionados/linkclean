@@ -125,7 +125,6 @@ func TestRecordedFixtures(t *testing.T) {
 			slotsFree(t, st)
 
 			t.Run("resolve", func(t *testing.T) {
-				requireResolver(t)
 				resolveFixture(t, n, all, fx, fetchSrv)
 			})
 		})
