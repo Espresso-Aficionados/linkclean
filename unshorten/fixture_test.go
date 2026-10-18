@@ -280,33 +280,42 @@ func TestFixtureStrategies(t *testing.T) {
 				if len(reqs) != 1 || reqs[0] != fx.fetchURL() {
 					t.Errorf("requests %q, want only %s", reqs, fx.fetchURL())
 				}
-				kind := kindOf(err)
-				got := ""
-				if next != nil {
-					got = next.String()
-					if v, ok := validateNext(next); !ok {
-						kind = FailBadTarget
-					} else {
-						got = v
-					}
-				}
-				if want, _ := failureByName(fx.meta.Expect.Failure); kind != want || got != fx.meta.Expect.Next {
-					t.Errorf("outcome %s %q (%v), want %s %q", kind, got, err, fx.meta.Expect.Failure, fx.meta.Expect.Next)
-				}
-				status := 0
-				if n := len(recs); n > 0 && !recs[n-1].readBody {
-					status = recs[n-1].status
-				}
-				if kind == FailStatus {
-					var se *StatusError
-					errors.As(err, &se)
-					status = se.Status
-				}
-				if status != fx.meta.Expect.Status {
-					t.Errorf("status %d, want %d", status, fx.meta.Expect.Status)
-				}
+				checkFixtureOutcome(t, fx, next, err, recs)
 			})
 		})
+	}
+}
+
+// checkFixtureOutcome checks a strategy's result for fx against
+// meta.expect: the failure kind, the validated next URL, and the status by
+// the Hop.Status rule (the last request's status unless it read the body;
+// the unexpected status for FailStatus).
+func checkFixtureOutcome(t *testing.T, fx *fixture, next *url.URL, err error, recs []requestRecord) {
+	t.Helper()
+	kind := kindOf(err)
+	got := ""
+	if next != nil {
+		got = next.String()
+		if v, ok := validateNext(next); !ok {
+			kind = FailBadTarget
+		} else {
+			got = v
+		}
+	}
+	if want, _ := failureByName(fx.meta.Expect.Failure); kind != want || got != fx.meta.Expect.Next {
+		t.Errorf("outcome %s %q (%v), want %s %q", kind, got, err, fx.meta.Expect.Failure, fx.meta.Expect.Next)
+	}
+	status := 0
+	if n := len(recs); n > 0 && !recs[n-1].readBody {
+		status = recs[n-1].status
+	}
+	if kind == FailStatus {
+		var se *StatusError
+		errors.As(err, &se)
+		status = se.Status
+	}
+	if status != fx.meta.Expect.Status {
+		t.Errorf("status %d, want %d", status, fx.meta.Expect.Status)
 	}
 }
 
