@@ -27,7 +27,6 @@ func FuzzFind(f *testing.F) {
 	for _, sh := range hostileShapes {
 		f.Add(sh.gen(2048))
 	}
-	ready, _ := findStatus()
 	f.Fuzz(func(t *testing.T, content string) {
 		links := Find(content)
 		checkLinks(t, content, links)
@@ -39,7 +38,7 @@ func FuzzFind(f *testing.F) {
 		}
 		ref := findRef(content, maxDepth)
 		checkLinks(t, content, ref)
-		if ready && !slices.Equal(links, ref) {
+		if !slices.Equal(links, ref) {
 			t.Fatalf("Find and findRef(content, %d) disagree:\nFind    %+v\nfindRef %+v", maxDepth, links, ref)
 		}
 		if unc := findRef(content, 0); !slices.Equal(ref, unc) {

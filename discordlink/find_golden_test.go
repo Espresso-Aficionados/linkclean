@@ -8,7 +8,6 @@ import (
 	"slices"
 	"strconv"
 	"strings"
-	"sync"
 	"testing"
 	"unicode/utf8"
 )
@@ -193,37 +192,6 @@ func formatLinks(ls []Link) string {
 	return b.String()
 }
 
-// findStatus reports whether Find implements the grammar. Until it does,
-// Find is a placeholder that knows only bare links and spoilers (or a stub
-// that panics "not implemented"), and the checks against it skip; the
-// reference checks still run.
-var findStatus = sync.OnceValues(func() (ok bool, why string) {
-	defer func() {
-		if e := recover(); e != nil {
-			if s, isStr := e.(string); isStr && strings.Contains(s, "not implemented") {
-				ok, why = false, "Find is not implemented yet"
-				return
-			}
-			panic(e)
-		}
-	}()
-	// The placeholder reports both of these as bare links; the grammar
-	// reports one Suppressed link.
-	got := formatLinks(Find("<https://a.com/x> `https://b.com/y`"))
-	if got == formatLinks([]Link{{Kind: Bare, URL: "https://a.com/x>"}, {Kind: Bare, URL: "https://b.com/y`"}}) {
-		return false, "Find is still the placeholder (bare links and spoilers only)"
-	}
-	return true, ""
-})
-
-// requireFind skips t unless Find implements the grammar.
-func requireFind(t testing.TB) {
-	t.Helper()
-	if ok, why := findStatus(); !ok {
-		t.Skip(why)
-	}
-}
-
 // checkLinks checks the invariants every Find result satisfies (FuzzFind's
 // list).
 func checkLinks(t testing.TB, content string, links []Link) {
@@ -287,7 +255,6 @@ func TestFindGolden(t *testing.T) {
 		}
 	})
 	t.Run("find", func(t *testing.T) {
-		requireFind(t)
 		for _, c := range cases {
 			got := Find(c.in)
 			checkLinks(t, c.in, got)
@@ -331,7 +298,6 @@ func TestFindOracle(t *testing.T) {
 		}
 	})
 	t.Run("find", func(t *testing.T) {
-		requireFind(t)
 		for _, r := range rows {
 			got := Find(r.in)
 			checkLinks(t, r.in, got)
@@ -378,7 +344,7 @@ func agreeInputs(seed uint64, n int) []string {
 }
 
 // TestFindRefInvariants checks the reference against Find's invariants on
-// the generated corpus, whether or not Find is ready.
+// the generated corpus.
 func TestFindRefInvariants(t *testing.T) {
 	n := 10000
 	if raceEnabled {
@@ -403,7 +369,6 @@ func TestFindRefInvariants(t *testing.T) {
 // TestFindAgree compares Find with the reference, offsets included, on every
 // golden and oracle input and 10,000 generated ones (1,000 under -race).
 func TestFindAgree(t *testing.T) {
-	requireFind(t)
 	var inputs []string
 	for _, c := range loadFindCases(t) {
 		inputs = append(inputs, c.in)

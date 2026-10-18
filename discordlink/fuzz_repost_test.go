@@ -5,25 +5,11 @@ import (
 	"slices"
 	"strconv"
 	"strings"
-	"sync"
 	"testing"
 	"unicode/utf8"
 
 	"github.com/Espresso-Aficionados/linkclean"
 )
-
-// findPlaceholder reports whether Find is still A0's placeholder (bare links
-// and spoilers only), which cannot check the round trip: it reports
-// "<https://a.com/x>" as the bare link "https://a.com/x>".
-var findPlaceholder = sync.OnceValue(func() (placeholder bool) {
-	defer func() {
-		if r := recover(); r != nil {
-			placeholder = true
-		}
-	}()
-	got := Find("<https://a.com/x>")
-	return len(got) == 1 && got[0].Kind == Bare && got[0].URL == "https://a.com/x>"
-})
 
 // repostFuzz is one FuzzRepost input decoded into Changes and options. Its
 // Annotate and Overflow are deterministic functions of the input, so the
@@ -269,9 +255,6 @@ func (fz *repostFuzz) check(t *testing.T, bodies []string, st repostStats) {
 		}
 	}
 	// Round trip: Find on the bodies returns exactly the emitted URLs.
-	if findPlaceholder() {
-		t.Skip("round trip skipped: Find is the A0 placeholder (not implemented)")
-	}
 	var found []Link
 	for _, b := range bodies {
 		for _, l := range Find(b) {
@@ -405,12 +388,8 @@ func FuzzRepost(f *testing.F) {
 	})
 }
 
-// TestRepostRoundTrip runs FuzzRepost's round trip on fixed inputs, so a
-// skip is visible in the test log.
+// TestRepostRoundTrip runs FuzzRepost's round trip on fixed inputs.
 func TestRepostRoundTrip(t *testing.T) {
-	if findPlaceholder() {
-		t.Skip("Find is the A0 placeholder (not implemented); the round trip needs the real Find")
-	}
 	urls := "x`y\x1ea||b\x1e*b*_u_~~s~~\x1e<@1>@everyone\x1edot.\x1eparen)\x1e(bal)\x1eq\"\x1ebrk]\x1e\u00a0nb\x1ex\\\x1ew\u2066q"
 	for _, fl := range []uint64{0, fzWrapNone, uint64(0xFFF) << fzSpoilShift, fzWrapNone | uint64(0x5A5)<<fzSpoilShift, fzWrapNone | fzNoSpoiler | uint64(0xFFF)<<fzSpoilShift} {
 		fl |= uint64(1999) << fzMaxLenShift

@@ -12,21 +12,6 @@ import (
 	"github.com/Espresso-Aficionados/linkclean"
 )
 
-// skipIfNotImplemented runs f and skips t if f panics with A0's
-// "not implemented" placeholder (Process and Offline before A3 merges).
-func skipIfNotImplemented(t *testing.T, f func()) {
-	t.Helper()
-	defer func() {
-		if r := recover(); r != nil {
-			if s, ok := r.(string); ok && strings.Contains(s, "not implemented") {
-				t.Skipf("skipped: %s", s)
-			}
-			panic(r)
-		}
-	}()
-	f()
-}
-
 // annotation is one Annotate result in a repost.txtar case.
 type annotation struct {
 	lines []string
@@ -400,9 +385,7 @@ func TestProcessRepostR8(t *testing.T) {
 		links = append(links, fmt.Sprintf("https://a.com/p%c/%s?lcsyn=1", 'a'+i, strings.Repeat("x", 183)))
 	}
 	content := "look: " + strings.Join(links, " and ")
-	var cs []Change
-	var unexamined int
-	skipIfNotImplemented(t, func() { cs, unexamined = Process(context.Background(), content, Offline(c), Options{}) })
+	cs, unexamined := Process(context.Background(), content, Offline(c), Options{})
 	if len(cs) != 10 || unexamined != 2 {
 		t.Fatalf("Process: %d changes, %d unexamined; want 10, 2", len(cs), unexamined)
 	}
