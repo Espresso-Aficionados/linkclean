@@ -3,16 +3,47 @@
 // from every reader. It is opt-in: nothing in package linkclean makes network
 // requests.
 //
+// A Resolver does the work. New builds one from a Config whose zero value is
+// a safe default: the guarded transport, DefaultRegistry, an in-memory cache
+// and a per-host rate limit. Resolve returns the final URL with the network
+// hops that led to it; Process returns the same URL as a linkclean.Result,
+// so a Resolver can serve as a discordlink.Processor. Both fail open: the URL
+// they return is always safe to use, and on any failure it is the offline
+// clean of the input, with an error wrapping ErrUnresolved that says why.
+// WithCleaner returns a view that cleans with another Cleaner (another
+// affiliate policy, say) and shares all of the Resolver's network state.
+// Use one Resolver per process and one view per policy:
+//
+//	r, err := unshorten.New(unshorten.Config{})
+//	if err != nil {
+//		// handle err
+//	}
+//	strip := r.WithCleaner(linkclean.MustNew(linkclean.Config{Affiliate: linkclean.AffiliateStrip}))
+//	res, err := strip.Resolve(ctx, "https://amzn.to/abc")
+//	// res.URL is usable whatever err is.
+//
+// A Registry lists the shorteners: each Entry names its hosts, the Strategy
+// that finds a short link's destination and the shortener's own fallback
+// pages. DefaultRegistry is the built-in list; Registry.With and
+// Registry.Without derive others, and a custom Strategy can use a Fetcher,
+// which enforces the rules below for every request it makes.
+//
 // # Network behaviour
 //
 // This section is normative:
 //   - Every input is first cleaned offline (linkclean unwrap + strip), so tracking
-//     parameters are never sent to a shortener.
+//     parameters are never sent to a shortener. An input the offline clean
+//     skips (linkclean.Result.Skipped) is returned unchanged and never
+//     requested.
 //   - Requests go ONLY to hosts named by Registry entries (Match hosts and
 //     FetchHosts), and only when the offline-cleaned input matches a
 //     non-intermediate entry. Matching ignores the scheme: http://t.co/x and
-//     https://t.co/x both match. The first request is always made over https;
-//     plain http is used only for entries with AllowHTTP.
+//     https://t.co/x both match. Only a requestable URL matches: one with
+//     userinfo, an IP host or a port other than its scheme's default never
+//     does. The first request is always made over https unless the entry
+//     sets AllowHTTP: an http input is upgraded (an explicit :80 is dropped),
+//     and plain http is used only for entries with AllowHTTP. No
+//     DefaultRegistry entry sets it.
 //   - A hop to any host that is not allowlisted ends resolution. That URL is
 //     returned WITHOUT being requested.
 //   - Method GET only, never HEAD. Headers: a fixed non-browser User-Agent and
@@ -21,14 +52,18 @@
 //   - Bodies are read only by strategies that extract from them, capped at 64 KiB.
 //   - Ports 443/80 only, no userinfo, never IP-literal hosts.
 //   - Preview ("no-click") endpoints are used before redirect-following wherever
-//     the shortener offers one.
-//   - With DefaultRegistry the hosts contacted are: t.co, spotify.link, a.co,
-//     amzn.to, amzn.eu, amzn.asia, pin.it, api.pinterest.com (as hop 2 only),
-//     reddit.com / www.reddit.com (/r/<sub>/s/<token> only), share.google,
-//     www.google.com (/share.google… as hop 2 only), vm.tiktok.com,
-//     vt.tiktok.com, www.tiktok.com (/t/… and the oEmbed endpoint), lnkd.in,
-//     fb.me, and, under GenericPolicy PreviewOnly, tinyurl.com (/preview/…) and
-//     bit.ly (/<id>+).
+//     the shortener offers one. Generic shorteners (Marketing entries) follow
+//     Config.Generic: PreviewOnly (the default) uses only their preview
+//     endpoints, Follow may also follow their redirect, and Skip never
+//     contacts them.
+//   - With DefaultRegistry the hosts contacted are: t.co, spotify.link, a.co
+//     (/d/… only), amzn.to, amzn.eu, amzn.asia, pin.it, api.pinterest.com (as
+//     hop 2 only), reddit.com and www.reddit.com (/r/<sub>/s/<token> only),
+//     share.google, www.google.com and google.com (/share.google… as hop 2
+//     only), vm.tiktok.com, vt.tiktok.com, www.tiktok.com (/t/… and the oEmbed
+//     endpoint), lnkd.in and fb.me. DefaultRegistry registers no generic
+//     shortener: bit.ly and tinyurl.com are contacted only if you register
+//     them (see Not registered by default).
 //   - Each network hop is cached (in memory by default, keyed by the requested
 //     URL without its fragment; 24h for a hop, 10m for a definitive failure; timeouts of every
 //     kind, rate-limit rejections and overload (HTTP 429, 502, 503, 504) are
@@ -42,7 +77,37 @@
 //
 // # Privacy
 //
-// See Network behaviour.
+// Unshortening tells the shortener that someone posted the link. Each request
+// discloses to the shortener's host your server's IP address, the
+// User-Agent (by default linkclean's name, version and repository URL), the
+// time, and the short link itself. A short link's token is often created per share, so
+// the shortener can tie the request to the account that shared it. Nothing
+// about the reader, the message or the chat the link came from is sent, and
+// the offline clean has already removed the input's tracking parameters.
+//
+// A shortener that counts clicks can count your server's request as one
+// click on the link, in the sharer's analytics; an amzn.to request may pass
+// through Amazon Associates' click tracking. The destination (amazon.com,
+// facebook.com, a news site) is never contacted: the request stops at the
+// first host the Registry does not list. A hop to a host the Registry lists
+// as an intermediate (api.pinterest.com, www.google.com/share.google…) is
+// part of the shortener's own redirect chain. It is requested as the
+// shortener served it, without its fragment and with no clean first, so it
+// carries whatever parameters the shortener put there.
+//
+// A resolved hop is cached for PositiveTTL (24h by default), so repeat posts
+// of a link within that time make no request unless the cache has evicted
+// it, and concurrent lookups of one link make one request. Go's HTTP client
+// may send a GET a second time when the server closes a reused connection
+// without answering, so a hop can occasionally reach the shortener twice;
+// Hop.Requests counts the requests written.
+//
+// Short links are capability URLs, so the package keeps their paths and
+// queries out of everything it reports: RequestInfo (OnRequest) carries
+// the entry, strategy and host but no URL, and neither the errors Resolve
+// and Process return nor any line the package logs contains one. Result
+// and the Cache do hold the URLs, since they are the answer; treat a shared
+// Cache as holding the links posted.
 //
 // # Transport
 //

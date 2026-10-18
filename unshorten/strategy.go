@@ -110,7 +110,9 @@ func (tiktokStrategy) Next(ctx context.Context, f *Fetcher, u *url.URL) (*url.UR
 // TinyURLPreview returns the strategy named "TinyURLPreview": GET
 // tinyurl.com/preview/<alias>; destination from the preview page, which must
 // carry a scheme (else ErrNoMatch). A URL without an alias (an empty first
-// path segment) is ErrNotShortLink, with no request.
+// path segment) is ErrNotShortLink, with no request. DefaultRegistry has no
+// tinyurl.com entry; the package documentation's Not registered by default
+// shows one.
 func TinyURLPreview() Strategy {
 	return tinyURLStrategy{}
 }
@@ -141,7 +143,9 @@ func (tinyURLStrategy) Next(ctx context.Context, f *Fetcher, u *url.URL) (*url.U
 
 // BitlyInfo returns the strategy named "BitlyInfo": GET bit.ly/<id>+ ;
 // destination from the info page. A URL without an id (an empty first path
-// segment) is ErrNotShortLink, with no request.
+// segment) is ErrNotShortLink, with no request. DefaultRegistry has no
+// bit.ly entry; the package documentation's Not registered by default shows
+// one.
 func BitlyInfo() Strategy {
 	return bitlyStrategy{}
 }

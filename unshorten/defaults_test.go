@@ -1,8 +1,11 @@
 package unshorten
 
 import (
+	"go/parser"
+	"go/token"
 	"net/url"
 	"os"
+	"regexp"
 	"slices"
 	"strings"
 	"testing"
@@ -90,6 +93,54 @@ func TestDocNotRegistered(t *testing.T) {
 			if !strings.Contains(sec, w) {
 				t.Errorf("doc.go section lacks %s", w)
 			}
+		}
+	}
+}
+
+// TestPackageDocHosts keeps the package documentation's list of the hosts
+// DefaultRegistry contacts equal to the registry's Fetcher allowlist (every
+// entry's Match hosts and FetchHosts), in both directions. The list is the
+// text after "the hosts contacted are:" up to the first sentence end, with
+// parenthesised remarks removed.
+func TestPackageDocHosts(t *testing.T) {
+	f, err := parser.ParseFile(token.NewFileSet(), "doc.go", nil, parser.ParseComments|parser.PackageClauseOnly)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if f.Doc == nil {
+		t.Fatal("doc.go has no package documentation")
+	}
+	_, list, ok := strings.Cut(f.Doc.Text(), "With DefaultRegistry the hosts contacted are:")
+	if !ok {
+		t.Fatal("package documentation has no host list")
+	}
+	end := regexp.MustCompile(`\.(\s|$)`).FindStringIndex(list)
+	if end == nil {
+		t.Fatal("host list does not end with a sentence")
+	}
+	list = regexp.MustCompile(`\([^)]*\)`).ReplaceAllString(list[:end[0]], " ")
+	docHosts := regexp.MustCompile(`[a-z0-9-]+(?:\.[a-z0-9-]+)+`).FindAllString(list, -1)
+	slices.Sort(docHosts)
+	if c := slices.Compact(slices.Clone(docHosts)); len(c) != len(docHosts) {
+		t.Errorf("host list names a host twice: %q", docHosts)
+	}
+	docHosts = slices.Compact(docHosts)
+
+	var regHosts []string
+	for _, e := range DefaultRegistry().entries {
+		regHosts = append(regHosts, e.hosts...)
+	}
+	slices.Sort(regHosts)
+	regHosts = slices.Compact(regHosts)
+
+	for _, h := range regHosts {
+		if !slices.Contains(docHosts, h) {
+			t.Errorf("DefaultRegistry contacts %s; the package documentation does not list it", h)
+		}
+	}
+	for _, h := range docHosts {
+		if !slices.Contains(regHosts, h) {
+			t.Errorf("the package documentation lists %s; DefaultRegistry does not contact it", h)
 		}
 	}
 }
