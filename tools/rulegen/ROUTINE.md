@@ -118,7 +118,7 @@ maintainer is watching.
   available to this routine, so talk to GitHub only through REST with
   `gh api` (paths `repos/Espresso-Aficionados/linkclean/…`), `gh workflow
   run`, `gh run list|view|watch` and git over https. gh's subcommands for
-  PRs, issues, labels and repositories (cloning with gh included) use
+  PRs, issues, labels and repositories (repository cloning included) use
   GraphQL and fail here: never use them; clone with `git clone`. Pass
   `--repo Espresso-Aficionados/linkclean` to every `gh workflow` and `gh run`
   command. When GitHub refuses a call, `gh api` exits non-zero and prints the
