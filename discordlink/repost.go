@@ -1,5 +1,7 @@
 package discordlink
 
+import "strings"
+
 type Wrap uint8
 
 const (
@@ -112,5 +114,151 @@ type repostStats struct {
 
 // repost is Repost with its statistics.
 func repost(cs []Change, o RepostOptions) ([]string, repostStats) {
-	panic("discordlink: not implemented")
+	st := repostStats{annotate: make([]int, len(cs)), compact: make([]int, len(cs))}
+	if len(cs) == 0 {
+		return nil, st
+	}
+	maxLen := o.MaxLen
+	if maxLen <= 0 {
+		maxLen = 2000
+	}
+	unexamined := max(o.Unexamined, 0)
+	header := stripCRLF(o.Header)
+
+	// Overflow lines for every omitted count the loop can end with; res is
+	// the room the longest non-empty one needs.
+	var overflow []string
+	res := 0
+	if o.Overflow != nil {
+		overflow = make([]string, len(cs)+1)
+		for k := range overflow {
+			if k == 0 && unexamined == 0 {
+				continue
+			}
+			overflow[k] = stripCRLF(o.Overflow(k, unexamined))
+			if l := overflow[k]; l != "" {
+				res = max(res, 1+len(l))
+			}
+		}
+	}
+
+	var (
+		bodies   []string
+		body     = append(make([]byte, 0, min(maxLen, 2000)), header...)
+		hasBlock bool
+		omitted  int
+		urlLine  []byte
+	)
+	// fits reports whether a block of n bytes fits the body under limit.
+	fits := func(n, limit int) bool {
+		sep := 0
+		if len(body) > 0 {
+			sep = 1
+		}
+		return len(body)+sep+n <= limit
+	}
+	for i, c := range cs {
+		limit := maxLen
+		if res > 0 && (omitted > 0 || i < len(cs)-1 || unexamined > 0) {
+			limit -= res
+		}
+		urlLine = appendURLLine(urlLine[:0], c.Result.URL, o.Wrap, c.Link.Spoiler && !o.NoSpoiler)
+		var lines []string
+		req := 0
+		if o.Annotate != nil {
+			st.annotate[i]++
+			lines, req = annotateLines(o.Annotate, c, false)
+		}
+		if hasBlock {
+			if fits(blockLen(urlLine, lines), limit) {
+				body = appendBlock(body, urlLine, lines)
+				st.emitted++
+				continue
+			}
+			if o.MaxBodies > 0 && len(bodies)+1 == o.MaxBodies {
+				omitted += len(cs) - i
+				break
+			}
+			bodies = append(bodies, string(body))
+			body, hasBlock = append(body[:0], header...), false
+		}
+		// The body holds at most the header: degrade the block (§7 order).
+		for len(lines) > req && !fits(blockLen(urlLine, lines), limit) {
+			lines = lines[1:]
+		}
+		if req > 0 && !fits(blockLen(urlLine, lines), limit) {
+			st.compact[i]++
+			cl, creq := annotateLines(o.Annotate, c, true)
+			if creq == 0 {
+				omitted++ // never shown without its required lines
+				continue
+			}
+			lines = cl[len(cl)-creq:]
+		}
+		if !fits(blockLen(urlLine, lines), limit) {
+			omitted++
+			continue
+		}
+		body, hasBlock = appendBlock(body, urlLine, lines), true
+		st.emitted++
+	}
+	if hasBlock {
+		bodies = append(bodies, string(body))
+	}
+	st.omitted = omitted
+	if len(bodies) == 0 {
+		return nil, st
+	}
+	if o.Overflow != nil && omitted+unexamined > 0 {
+		if l := overflow[omitted]; l != "" {
+			last := &bodies[len(bodies)-1]
+			if len(*last)+1+len(l) <= maxLen {
+				*last += "\n" + l
+			} else {
+				st.overflowDropped++ // the reservation makes this unreachable
+			}
+		}
+	}
+	return bodies, st
+}
+
+// annotateLines calls f and returns its lines without CR and LF (copied only
+// if a line had any) and required clamped to [0, len(lines)].
+func annotateLines(f func(Change, bool) ([]string, int), c Change, compact bool) ([]string, int) {
+	lines, req := f(c, compact)
+	for i, l := range lines {
+		if strings.IndexAny(l, "\r\n") >= 0 {
+			cp := make([]string, len(lines))
+			copy(cp, lines[:i])
+			for j := i; j < len(cp); j++ {
+				cp[j] = stripCRLF(lines[j])
+			}
+			lines = cp
+			break
+		}
+	}
+	return lines, min(max(req, 0), len(lines))
+}
+
+// blockLen is the length of the block made of urlLine and lines.
+func blockLen(urlLine []byte, lines []string) int {
+	n := len(urlLine)
+	for _, l := range lines {
+		n += 1 + len(l)
+	}
+	return n
+}
+
+// appendBlock appends the block made of urlLine and lines to body, after a
+// line break if body is not empty.
+func appendBlock(body, urlLine []byte, lines []string) []byte {
+	if len(body) > 0 {
+		body = append(body, '\n')
+	}
+	body = append(body, urlLine...)
+	for _, l := range lines {
+		body = append(body, '\n')
+		body = append(body, l...)
+	}
+	return body
 }

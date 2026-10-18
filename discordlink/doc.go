@@ -40,5 +40,36 @@
 //
 // # Limitations (Repost)
 //
-// TODO(m3): what Repost cannot guarantee.
+// Repost guarantees the shape of its bodies, not what Discord does with
+// them:
+//
+//   - MaxLen counts bytes. Discord counts characters, so a body can end
+//     earlier than Discord would require, never later.
+//   - Caller text (Header, Annotate's lines, the Overflow line) loses only
+//     its CR and LF bytes. Repost does not escape markdown, balance spoiler
+//     bars or filter mentions in it, and keeps U+0085, U+2028 and U+2029,
+//     which some clients may render as line breaks. Unbalanced '*', '_' or
+//     '~' in caller lines can pair with the raw ones URL lines may carry.
+//   - URL lines are encoded, not validated. Repost does not check that a
+//     URL is http(s) or well formed; under WrapNone a URL that Discord would
+//     not link bare in full (including one without a lowercase http:// or
+//     https:// scheme) is sent as <…>, which Discord links only for a
+//     scheme it accepts. The bare-link check uses the unverified ')' rule
+//     (see Unverified grammar), so a URL ending in ')' may be wrapped when
+//     Discord would have linked it bare, or the reverse.
+//   - The encoded URL is the same URL by RFC 3986 and RFC 3987, but a
+//     server that treats a raw byte and its %XX form differently sees a
+//     different request. Other bytes RFC 3986 does not allow raw are kept:
+//     '\' because browsers read it as '/', and '"', '^', '{' and '}'
+//     because they have no effect on Discord's grammar inside a URL line.
+//   - Bodies are only safe to send with allowed_mentions = none: a URL may
+//     contain '@' and mention-like text, and caller lines are unfiltered.
+//   - Room for the overflow line is reserved whenever it could be needed,
+//     so a body can be up to one overflow line shorter than MaxLen even
+//     when no overflow line follows.
+//   - When no block fits, Repost returns nil and the omitted count is lost
+//     with it: a link that cannot be shown with its required lines yields
+//     no reply at all. A URL whose line alone exceeds MaxLen is omitted,
+//     never truncated.
+//   - Repost does not de-duplicate; Process does, by Result.URL.
 package discordlink

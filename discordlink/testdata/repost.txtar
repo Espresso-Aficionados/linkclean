@@ -28,3 +28,456 @@ one returns (nil, 0) for that mode. <required> may be any integer (Repost
 clamps it). <string> is as in find.txtar ("x"*N repeats, " + " joins), and
 each <string>... is zero or more strings separated by spaces. Blank lines and
 lines starting with "# " are ignored.
+
+-- zero-options --
+# Zero RepostOptions: <url>, spoilers kept, 2000 bytes, no body limit.
+change "https://a.com/x"
+change "https://b.com/y" spoiler
+body "<https://a.com/x>\n||<https://b.com/y>||"
+
+-- wrap-none --
+opt wrap=none
+change "https://a.com/x"
+change "https://b.com/y" spoiler
+body "https://a.com/x\n||https://b.com/y||"
+
+-- nospoiler --
+opt nospoiler
+change "https://a.com/x"
+change "https://b.com/y" spoiler
+body "<https://a.com/x>\n<https://b.com/y>"
+
+-- encoding --
+# '`', '|', '<', '>', U+202E, CR and LF are percent-encoded; '@' is not.
+opt wrap=none
+change "https://a.com/x`y|z<@1>\u202ew\r\n"
+body "https://a.com/x%60y%7Cz%3C@1%3E%E2%80%AEw%0D%0A"
+
+-- wrap-none-fallback --
+# Q26: only the lines that would not render as one bare link get <...>.
+opt wrap=none
+change "https://a.com/x."
+change "https://b.com/y"
+change "https://c.com/(z))"
+body "<https://a.com/x.>\nhttps://b.com/y\n<https://c.com/(z))>"
+
+-- R8a-formatter --
+# R8a: 9 full blocks, then "… and 3 more"; 1,997 bytes. Blocks after the
+# MaxBodies stop are counted without an Annotate call.
+opt wrap=none maxbodies=1
+change "https://a.com/a" + "x"*85
+full 0 "-# " + "n"*115
+change "https://a.com/b" + "x"*85
+full 0 "-# " + "n"*115
+change "https://a.com/c" + "x"*85
+full 0 "-# " + "n"*115
+change "https://a.com/d" + "x"*85
+full 0 "-# " + "n"*115
+change "https://a.com/e" + "x"*85
+full 0 "-# " + "n"*115
+change "https://a.com/f" + "x"*85
+full 0 "-# " + "n"*115
+change "https://a.com/g" + "x"*85
+full 0 "-# " + "n"*115
+change "https://a.com/h" + "x"*85
+full 0 "-# " + "n"*115
+change "https://a.com/i" + "x"*85
+full 0 "-# " + "n"*115
+change "https://a.com/j" + "x"*85
+full 0 "-# " + "n"*115
+change "https://a.com/k" + "x"*85
+full 0 "-# " + "n"*115
+change "https://a.com/l" + "x"*85
+full 0 "-# " + "n"*115
+overflow "-# … and {o} more"
+body "https://a.com/a" + "x"*85 + "\n-# " + "n"*115 + "\nhttps://a.com/b" + "x"*85 + "\n-# " + "n"*115 + "\nhttps://a.com/c" + "x"*85 + "\n-# " + "n"*115 + "\nhttps://a.com/d" + "x"*85 + "\n-# " + "n"*115 + "\nhttps://a.com/e" + "x"*85 + "\n-# " + "n"*115 + "\nhttps://a.com/f" + "x"*85 + "\n-# " + "n"*115 + "\nhttps://a.com/g" + "x"*85 + "\n-# " + "n"*115 + "\nhttps://a.com/h" + "x"*85 + "\n-# " + "n"*115 + "\nhttps://a.com/i" + "x"*85 + "\n-# " + "n"*115 + "\n-# … and 3 more"
+calls 8 1 0
+calls 9 1 0
+calls 10 0 0
+calls 11 0 0
+
+-- R8a-maxbodies-0 --
+# As R8a with no body limit: a second body takes the rest; nothing is
+# omitted, so no overflow line.
+opt wrap=none
+change "https://a.com/a" + "x"*85
+full 0 "-# " + "n"*115
+change "https://a.com/b" + "x"*85
+full 0 "-# " + "n"*115
+change "https://a.com/c" + "x"*85
+full 0 "-# " + "n"*115
+change "https://a.com/d" + "x"*85
+full 0 "-# " + "n"*115
+change "https://a.com/e" + "x"*85
+full 0 "-# " + "n"*115
+change "https://a.com/f" + "x"*85
+full 0 "-# " + "n"*115
+change "https://a.com/g" + "x"*85
+full 0 "-# " + "n"*115
+change "https://a.com/h" + "x"*85
+full 0 "-# " + "n"*115
+change "https://a.com/i" + "x"*85
+full 0 "-# " + "n"*115
+change "https://a.com/j" + "x"*85
+full 0 "-# " + "n"*115
+change "https://a.com/k" + "x"*85
+full 0 "-# " + "n"*115
+change "https://a.com/l" + "x"*85
+full 0 "-# " + "n"*115
+overflow "-# … and {o} more"
+body "https://a.com/a" + "x"*85 + "\n-# " + "n"*115 + "\nhttps://a.com/b" + "x"*85 + "\n-# " + "n"*115 + "\nhttps://a.com/c" + "x"*85 + "\n-# " + "n"*115 + "\nhttps://a.com/d" + "x"*85 + "\n-# " + "n"*115 + "\nhttps://a.com/e" + "x"*85 + "\n-# " + "n"*115 + "\nhttps://a.com/f" + "x"*85 + "\n-# " + "n"*115 + "\nhttps://a.com/g" + "x"*85 + "\n-# " + "n"*115 + "\nhttps://a.com/h" + "x"*85 + "\n-# " + "n"*115 + "\nhttps://a.com/i" + "x"*85 + "\n-# " + "n"*115
+body "https://a.com/j" + "x"*85 + "\n-# " + "n"*115 + "\nhttps://a.com/k" + "x"*85 + "\n-# " + "n"*115 + "\nhttps://a.com/l" + "x"*85 + "\n-# " + "n"*115
+
+-- R10-unexamined-only --
+# R10: Unexamined alone brings the overflow line, with omitted 0.
+opt wrap=none unexamined=3
+change "https://www.example.com/"
+full 0 "-# note a"
+overflow "-# … and {o} more · {u} not checked"
+overflow-at 0 "-# {u} more links not checked"
+body "https://www.example.com/\n-# note a\n-# 3 more links not checked"
+
+-- R11-backtick --
+opt wrap=none
+change "https://a.com/dp/B0`"
+full 1 "-# id `c-20`"
+body "https://a.com/dp/B0%60\n-# id `c-20`"
+
+-- R12-spoiler-bars --
+opt wrap=none
+change "https://a.com/dp/B0||" spoiler
+full 1 "-# ||id `c-20`||"
+body "||https://a.com/dp/B0%7C%7C||\n-# ||id `c-20`||"
+
+-- R19-no-body --
+# R19: the URL plus even the compact required line exceeds 2000
+# (1929 + 1 + 84): no body, never the URL alone.
+opt wrap=none
+change "https://a.com/" + "x"*1915
+full 1 "-# what" "-# req " + "r"*100
+compact 1 "-# r" + "r"*80
+nobodies
+calls 0 1 1
+
+-- R20-front-dropped --
+# R20: the front line is dropped so the required line fits; 1,995 bytes.
+opt wrap=none
+change "https://a.com/" + "x"*1863
+full 1 "-# what " + "w"*20 "-# req " + "r"*110
+compact 1 "-# never used"
+body "https://a.com/" + "x"*1863 + "\n-# req " + "r"*110
+calls 0 1 0
+
+-- R21-omitted-first-counted --
+# R21: the first URL alone exceeds the budget and is omitted; the second
+# block (1,974 bytes) still leaves room for "… and 1 more"; 1,992 bytes.
+opt wrap=none
+change "https://a.com/" + "x"*2110
+full 0 "-# note a"
+change "https://b.com/" + "x"*1950
+full 0 "-# note b"
+overflow "-# … and {o} more"
+body "https://b.com/" + "x"*1950 + "\n-# note b\n-# … and 1 more"
+calls 0 1 0
+calls 1 1 0
+
+-- R22-bidi --
+opt wrap=none
+change "https://www.example.com/\u202ex\u200b"
+full 0 "-# note"
+body "https://www.example.com/%E2%80%AEx%E2%80%8B\n-# note"
+
+-- R23-compact-fits --
+# R23: after the front line is dropped the full required line still does
+# not fit (2,012); the compact one's trailing line does: exactly 2,000 bytes.
+opt wrap=none
+change "https://a.com/" + "x"*1847
+full 1 "-# what" "-# req " + "f"*143
+compact 1 "-# ignored front" "-# req " + "c"*131
+body "https://a.com/" + "x"*1847 + "\n-# req " + "c"*131
+calls 0 1 1
+
+-- R23-one-byte-longer --
+opt wrap=none
+change "https://a.com/" + "x"*1848
+full 1 "-# what" "-# req " + "f"*143
+compact 1 "-# req " + "c"*131
+nobodies
+calls 0 1 1
+
+-- R23-longer-then-short --
+opt wrap=none
+change "https://a.com/" + "x"*1848
+full 1 "-# what" "-# req " + "f"*143
+compact 1 "-# req " + "c"*131
+change "https://b.com/y"
+full 0 "-# note b"
+overflow "-# … and {o} more"
+body "https://b.com/y\n-# note b\n-# … and 1 more"
+calls 0 1 1
+calls 1 1 0
+
+-- maxbodies-3 --
+# Two 20-byte lines per 50-byte body; the seventh link is omitted, with
+# no Overflow to count it.
+opt wrap=none maxlen=50 maxbodies=3
+change "https://a.com/a" + "x"*5
+change "https://a.com/b" + "x"*5
+change "https://a.com/c" + "x"*5
+change "https://a.com/d" + "x"*5
+change "https://a.com/e" + "x"*5
+change "https://a.com/f" + "x"*5
+change "https://a.com/g" + "x"*5
+body "https://a.com/a" + "x"*5 + "\nhttps://a.com/b" + "x"*5
+body "https://a.com/c" + "x"*5 + "\nhttps://a.com/d" + "x"*5
+body "https://a.com/e" + "x"*5 + "\nhttps://a.com/f" + "x"*5
+
+-- maxbodies-3-overflow --
+opt wrap=none maxlen=50 maxbodies=3
+change "https://a.com/a" + "x"*5
+change "https://a.com/b" + "x"*5
+change "https://a.com/c" + "x"*5
+change "https://a.com/d" + "x"*5
+change "https://a.com/e" + "x"*5
+change "https://a.com/f" + "x"*5
+change "https://a.com/g" + "x"*5
+overflow "+{o}"
+body "https://a.com/a" + "x"*5 + "\nhttps://a.com/b" + "x"*5
+body "https://a.com/c" + "x"*5 + "\nhttps://a.com/d" + "x"*5
+body "https://a.com/e" + "x"*5 + "\nhttps://a.com/f" + "x"*5 + "\n+1"
+
+-- reservation-every-body --
+# Q17: room for "+N/1" (5 bytes) is kept in every body, since any body
+# can turn out to be the last; two lines (41 bytes) would otherwise fit.
+opt wrap=none maxlen=42 unexamined=1
+change "https://a.com/a" + "x"*5
+change "https://a.com/b" + "x"*5
+change "https://a.com/c" + "x"*5
+overflow "+{o}/{u}"
+body "https://a.com/a" + "x"*5
+body "https://a.com/b" + "x"*5
+body "https://a.com/c" + "x"*5 + "\n+0/1"
+
+-- header-every-body --
+# Q12: the Header is the first line of every body and counts against it
+# (6 + 1 + 20 + 1 + 20 = 48 > 40).
+opt wrap=none maxlen=40 header="-H top"
+change "https://a.com/a" + "x"*5
+change "https://a.com/b" + "x"*5
+change "https://a.com/c" + "x"*5
+body "-H top\nhttps://a.com/a" + "x"*5
+body "-H top\nhttps://a.com/b" + "x"*5
+body "-H top\nhttps://a.com/c" + "x"*5
+
+-- header-crlf --
+# Q13: CR and LF are removed from Header, Annotate and Overflow lines.
+opt wrap=none header="-H a\r\nb"
+change "https://a.com/x"
+full 0 "-# c\rd\n"
+overflow "-O\r\n{o}"
+opt unexamined=2
+body "-H ab\nhttps://a.com/x\n-# cd\n-O0"
+
+-- d-header-longer-than-maxlen --
+# (d) A Header longer than MaxLen: nil, and the counts are lost with it.
+opt maxlen=10 unexamined=1 header="-H " + "h"*20
+change "https://a.co/x"
+overflow "-O {o} {u}"
+nobodies
+
+-- d-header-plus-smallest-block --
+# (d) 13 + 1 + 17 = 31 > 30.
+opt wrap=none maxlen=30 header="-H " + "h"*10
+change "https://a.com/" + "x"*3
+nobodies
+
+-- d-header-plus-block-exact --
+opt wrap=none maxlen=30 header="-H " + "h"*10
+change "https://a.com/" + "x"*2
+body "-H " + "h"*10 + "\nhttps://a.com/" + "x"*2
+
+-- a-exact-maxlen --
+# (a) One block of exactly MaxLen, Unexamined 0: emitted (no reservation
+# for the last block when nothing was omitted).
+opt wrap=none maxlen=30
+change "https://a.com/" + "x"*16
+overflow "-O {o} {u}"
+body "https://a.com/" + "x"*16
+
+-- a-exact-maxlen-unexamined --
+# (a) The same with Unexamined 1 and Overflow set: room is reserved even
+# for a single block (Q27), so it is omitted and Repost returns nil.
+opt wrap=none maxlen=30 unexamined=1
+change "https://a.com/" + "x"*16
+overflow "-O {o} {u}"
+nobodies
+
+-- a-exact-maxlen-unexamined-no-overflow --
+opt wrap=none maxlen=30 unexamined=1
+change "https://a.com/" + "x"*16
+body "https://a.com/" + "x"*16
+
+-- b-maxlen-plus-one --
+opt wrap=none maxlen=30
+change "https://a.com/" + "x"*17
+nobodies
+
+-- c-encoded-line-too-long --
+# (c) A 25-byte URL whose line is 33 bytes after %7C, <> and ||.
+opt maxlen=30
+change "https://a.com/" + "x"*10 + "|" spoiler
+nobodies
+
+-- c-encoded-line-fits --
+opt maxlen=30
+change "https://a.com/" + "x"*10 + "|"
+body "<https://a.com/" + "x"*10 + "%7C>"
+
+-- e-no-changes --
+# (e) No changes: nil, even with Unexamined and Overflow set.
+opt unexamined=5
+overflow "-O {o} {u}"
+nobodies
+
+-- f-maxbodies-2-unexamined --
+# (f) MaxBodies 2 reached with Unexamined 4: body 2 carries both counts.
+opt wrap=none maxlen=50 maxbodies=2 unexamined=4
+change "https://a.com/a" + "x"*5
+change "https://a.com/b" + "x"*5
+change "https://a.com/c" + "x"*5
+change "https://a.com/d" + "x"*5
+change "https://a.com/e" + "x"*5
+overflow "-O {o} {u}"
+body "https://a.com/a" + "x"*5 + "\nhttps://a.com/b" + "x"*5
+body "https://a.com/c" + "x"*5 + "\nhttps://a.com/d" + "x"*5 + "\n-O 1 4"
+
+-- g-no-compact-required-0 --
+# (g) required 0: the block degrades to its URL line; no compact call.
+opt wrap=none maxlen=40
+change "https://a.com/" + "x"*16
+full 0 "-# " + "a"*20
+compact 1 "-# c"
+body "https://a.com/" + "x"*16
+calls 0 1 0
+
+-- g-no-compact-nonempty-body --
+# (g) A block that fails only because the body is not empty moves to a
+# new body whole: no compact call.
+opt wrap=none maxlen=60
+change "https://a.com/a" + "x"*5
+change "https://a.com/b" + "x"*5
+full 1 "-# " + "r"*20
+compact 1 "-# c"
+body "https://a.com/a" + "x"*5
+body "https://a.com/b" + "x"*5 + "\n-# " + "r"*20
+calls 0 1 0
+calls 1 1 0
+
+-- h-moved-then-degrades --
+# (h) Moved to a new body (88 bytes), then degraded there: the front line
+# is dropped (64), then the compact line used (34). One full call, one
+# compact call.
+opt wrap=none maxlen=60
+change "https://a.com/a" + "x"*5
+change "https://a.com/b" + "x"*5
+full 1 "-# " + "w"*20 "-# " + "r"*40
+compact 1 "-# " + "c"*10
+body "https://a.com/a" + "x"*5
+body "https://a.com/b" + "x"*5 + "\n-# " + "c"*10
+calls 1 1 1
+
+-- i-overflow-empty-for-a-count --
+# (i) Overflow returns "" for the final count (2): no line is appended.
+opt wrap=none maxlen=30 maxbodies=1
+change "https://a.com/a" + "x"*5
+change "https://a.com/b" + "x"*5
+change "https://a.com/c" + "x"*5
+overflow "-O {o}"
+overflow-at 2 ""
+body "https://a.com/a" + "x"*5
+
+-- i-overflow-always-empty --
+# (i) An Overflow that always returns "" reserves nothing.
+opt wrap=none maxlen=41 unexamined=1
+change "https://a.com/a" + "x"*5
+change "https://a.com/b" + "x"*5
+overflow ""
+body "https://a.com/a" + "x"*5 + "\nhttps://a.com/b" + "x"*5
+
+-- j-overflow-longer-than-maxlen-unneeded --
+# (j) A 43-byte Overflow line with MaxLen 30: a lone last block with
+# nothing omitted needs no room for it.
+opt wrap=none maxlen=30
+change "https://a.com/" + "x"*6
+overflow "-O " + "o"*40
+body "https://a.com/" + "x"*6
+
+-- j-overflow-longer-than-maxlen-needed --
+# (j) With Unexamined 1 the line could be needed and can never fit: nil.
+opt wrap=none maxlen=30 unexamined=1
+change "https://a.com/" + "x"*6
+overflow "-O " + "o"*40
+nobodies
+
+-- j-overflow-longer-than-maxlen-two --
+opt wrap=none maxlen=30
+change "https://a.com/a" + "x"*5
+change "https://a.com/b" + "x"*5
+overflow "-O " + "o"*40
+nobodies
+
+-- overflow-non-monotone --
+# Overflow's line for 1 (25 bytes) is longer than for 2 or 3: the
+# reservation is the longest line (26), not the one for len(cs). With only
+# the len(cs) line reserved, two lines would be placed, the third omitted,
+# and "-O one…" would no longer fit.
+opt wrap=none maxlen=60 maxbodies=1
+change "https://a.com/a" + "x"*5
+change "https://a.com/b" + "x"*5
+change "https://a.com/c" + "x"*5
+overflow "-O {o}"
+overflow-at 1 "-O one " + "x"*18
+body "https://a.com/a" + "x"*5 + "\n-O 2"
+
+-- annotate-required-clamped --
+# required 5 is clamped to 2, so nothing can be dropped (39 > 30); the
+# compact call returns required -1, clamped to 0: the link is omitted (Q14).
+opt wrap=none maxlen=30
+change "https://a.com/" + "x"*6
+full 5 "-# " + "a"*10 "-# b"
+compact -1 "-# c"
+nobodies
+calls 0 1 1
+
+-- annotate-compact-no-lines --
+# Q14: a compact call with no lines omits the link.
+opt wrap=none maxlen=30
+change "https://a.com/" + "x"*6
+full 1 "-# " + "a"*10
+compact 1
+nobodies
+calls 0 1 1
+
+-- annotate-required-negative --
+opt wrap=none maxlen=30
+change "https://a.com/" + "x"*6
+full -3 "-# " + "a"*10
+body "https://a.com/" + "x"*6
+calls 0 1 0
+
+-- annotate-empty-line-verbatim --
+# Caller lines are verbatim: empty lines, markdown and mentions included.
+opt wrap=none
+change "https://a.com/x"
+full 0 "" "-# *a* _b_ <@1> @everyone"
+body "https://a.com/x\n\n-# *a* _b_ <@1> @everyone"
+
+-- omitted-then-next-body --
+# A block too long for any body closes the current body, is omitted,
+# and the next block starts on an empty body (R21).
+opt wrap=none maxlen=50
+change "https://a.com/a" + "x"*5
+change "https://a.com/" + "x"*46
+change "https://a.com/c" + "x"*5
+body "https://a.com/a" + "x"*5
+body "https://a.com/c" + "x"*5
