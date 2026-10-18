@@ -19,3 +19,11 @@ func newTestResolver(tb testing.TB, cfg Config) *Resolver {
 	})
 	return r
 }
+
+// attestationCount returns the number of transports in the attestation
+// registry.
+func attestationCount() int {
+	n := 0
+	attestations.Range(func(any, any) bool { n++; return true })
+	return n
+}

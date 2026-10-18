@@ -49,6 +49,51 @@
 // NewTransport builds the guarded default transport; GuardTransport guards a
 // transport of your own, and GuardControl and GuardDialer guard a dialer.
 //
+// The guard (code.dny.dev/ssrf, plus 168.63.129.16) runs as the dialer's
+// Control, so it checks the address actually being connected, just before
+// connect(2): per attempt and per Happy Eyeballs racer, after DNS. DNS
+// rebinding and names with several A records are therefore covered. It
+// allows only public unicast addresses on tcp ports 80 and 443. It is not
+// installed on the DNS resolver's own dials, which would deny the local
+// stub resolver. NAT64 (64:ff9b::/96) is denied, so on an IPv6-only host
+// behind DNS64 every dial fails (definitively, cached for NegativeTTL);
+// allowing that prefix would admit 64:ff9b::7f00:1, which is 127.0.0.1.
+//
+// The guard decides by address alone. An attacker who controls DNS for an
+// allowlisted host (a poisoned resolver, a compromised zone) can still
+// reach an address it treats as public: your server's own public IP (a
+// hairpin to anything listening on it on port 80 or 443), a
+// network-specific NAT64 prefix (RFC 6052) inside 2000::/3 that a
+// translator maps to a private or link-local IPv4, an ISATAP-style address
+// embedding one, or public ranges your network uses privately. Where that
+// matters, enforce egress with a firewall or an egress proxy.
+//
+// New accepts a *http.Transport only if NewTransport or GuardTransport
+// built it, and checks again at New that its DialContext and Proxy are
+// still the ones installed (by code pointer) and that Dial, DialTLS and
+// DialTLSContext are nil. It then uses a private clone built from the
+// recorded guard and proxy, never the caller's current fields, so changing
+// the transport after New has no effect. The clone uses net/http's own
+// protocol negotiation (the caller's TLSNextProto and RegisterProtocol
+// entries are not used), disables compression, and caps response headers
+// at 32 KiB. GuardTransport installs the default 2s dial timeout.
+//
+// With TransportOptions.Proxy every request goes through that proxy, and
+// the guard exempts exactly the proxy's address: https targets are
+// tunnelled with CONNECT (the proxy resolves and dials them), and plain
+// http targets are sent to the proxy as absolute URIs, sharing one
+// connection pool. The guard therefore protects nothing behind a proxy:
+// egress policy must be enforced there. The Fetcher's host allowlist and
+// its IP-literal check still apply, and HTTP(S)_PROXY is never read. No
+// error or log line contains the proxy URL, whose userinfo may hold
+// credentials.
+//
+// The fixed header list (Network behaviour) holds for transports built by
+// NewTransport and GuardTransport. With AllowUnguardedTransport and a
+// wrapping RoundTripper, the wrapper may add headers: tracing middleware
+// such as otelhttp adds traceparent and baggage, and baggage can carry
+// user or tenant identifiers. Turn propagation off for this client.
+//
 // # Caching
 //
 // See Cache, CacheEntry and NewMemoryCache.
