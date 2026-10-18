@@ -28,8 +28,9 @@ type RepostOptions struct {
 	// and otherwise emits it verbatim. It does not escape markdown, wrap
 	// spoilers or filter mentions; the callback owns all of that, and it
 	// receives c.Link.Spoiler to do so. The URL line above the annotation is
-	// Repost's own and never carries a raw '`', '|', '<', '>', bidi or
-	// zero-width code point (see Repost). It may carry raw '*', '_' and '~',
+	// Repost's own: the URL on it (inside any <…> wrapper and ||…|| bars)
+	// never carries a raw '`', '|', '<', '>', bidi or zero-width code point
+	// (see Repost). It may carry raw '*', '_' and '~',
 	// which are legal in URIs, so caller lines must not leave those
 	// delimiters unbalanced, or they can pair across lines. A link's URL line
 	// and its annotation lines form one block that is never split across
