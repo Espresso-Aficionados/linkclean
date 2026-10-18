@@ -631,6 +631,14 @@ func TestOnRequestNotForRefusals(t *testing.T) {
 		if !errors.Is(err, ErrTransient) {
 			t.Errorf("err %v", err)
 		}
+		// The caller's deadline is set before its detached hop starts, so
+		// the waiter's hop can outlive its Resolve by a moment. Release
+		// the holder only once that hop has ended: a slot freed earlier
+		// would let it start a request in its last moment.
+		rvWaitFor(t, "the waiter's hop to end", func() bool {
+			_, forHost := r.st.group.InFlight("s.example.net")
+			return forHost == 1
+		})
 		rt.g.open()
 		r.st.group.Wait()
 		if got := infos.all(); len(got) != 1 {
