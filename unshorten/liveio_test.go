@@ -28,8 +28,8 @@ import (
 )
 
 // liveEgress is the results file's egress field. Record and check mode both
-// run from the maintainer's workstation, whose egress is the bot's: the
-// server runs from the same house.
+// run from the maintainer's workstation, which shares its egress with the
+// deployment.
 const liveEgress = "workstation"
 
 // Paths of the committed livenet files, relative to the package directory.

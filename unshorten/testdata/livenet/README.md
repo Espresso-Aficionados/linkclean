@@ -8,11 +8,10 @@ under `unshorten/testdata/responses/`.
 
 - **Only the maintainer runs it.** CI never does: it only compiles the suite
   (`go vet -tags livenet ./unshorten/...`) and tests the scrubber and the
-  file handling (`scrub_test.go`, `liveio_test.go`, untagged). An agent never
-  runs it.
-- **Egress: the workstation.** The bot's server runs from the same house, so
-  the workstation's egress is the deploy egress. Record mode and check mode
-  both run there, and the results file says `egress: workstation`.
+  file handling (`scrub_test.go`, `liveio_test.go`, untagged).
+- **Egress: the workstation.** The workstation shares its egress with the
+  deployment. Record mode and check mode both run there,
+  and the results file says `egress: workstation`.
 - **Nothing private enters the repository.** The links file, the deny list
   and every output directory must be outside every git work tree; the suite
   refuses otherwise. A short link's token can identify the account that

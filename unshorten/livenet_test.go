@@ -6,7 +6,7 @@ package unshorten_test
 // a links file and checks each link's outcome against the file's
 // expectations. Only the maintainer runs it, from the workstation, with the
 // commands in testdata/livenet/README.md. It never runs in CI (CI only
-// compiles it, with go vet -tags livenet), and an agent never runs it.
+// compiles it, with go vet -tags livenet).
 //
 // Check mode uses the production path: New with the default guarded
 // transport, the default cache, NewHostLimiter(1, 1) and an OnRequest
