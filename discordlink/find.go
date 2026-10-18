@@ -22,7 +22,7 @@ const maxDepth = 16
 // whose target is not http(s) is consumed and not reported. Paired rules nest
 // at most 16 deep (see Nesting limit). Schemeless text is never a link. Find
 // never panics, on any input, and runs in O(len(content) × nesting depth):
-// closers are found through next-occurrence tables, never by rescanning (§8).
+// closers are found through next-occurrence tables, never by rescanning.
 // Content of 2 GiB or more (over 200 MiB on 32-bit platforms) is not
 // scanned and yields no links.
 func Find(content string) []Link {

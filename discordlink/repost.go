@@ -2,6 +2,7 @@ package discordlink
 
 import "strings"
 
+// Wrap is how Repost keeps Discord from previewing the URLs it reposts.
 type Wrap uint8
 
 const (
@@ -9,8 +10,9 @@ const (
 	WrapNone              // caller sets SUPPRESS_EMBEDS (1<<2) on the message
 )
 
-// RepostOptions: every zero value is the safe choice, and the zero value of
-// each MA-4 field reproduces the pre-amendment behaviour.
+// RepostOptions configures Repost. Every zero value is the safe choice, and
+// with Header, Annotate, MaxBodies, Unexamined and Overflow all zero the
+// bodies hold only URL lines, one per link, in as many bodies as they need.
 type RepostOptions struct {
 	Wrap      Wrap
 	NoSpoiler bool // zero: spoilered links are reposted inside ||…||
@@ -23,8 +25,8 @@ type RepostOptions struct {
 	// leaves no room for any block yields no bodies.
 	Header string
 
-	// Annotate, if non-nil, returns lines placed directly under c's URL line
-	// (MA-4). They are CALLER TEXT: Repost removes CR and LF inside each line
+	// Annotate, if non-nil, returns lines placed directly under c's URL line.
+	// They are CALLER TEXT: Repost removes CR and LF inside each line
 	// and otherwise emits it verbatim. It does not escape markdown, wrap
 	// spoilers or filter mentions; the callback owns all of that, and it
 	// receives c.Link.Spoiler to do so. The URL line above the annotation is
@@ -48,8 +50,7 @@ type RepostOptions struct {
 	//      compact call that returns required == 0 or no lines omits the link;
 	//   3. if that still does not fit, omit the link and count it, never
 	//      showing it without its required lines.
-	// With required == 0 the block can degrade to its URL line alone (the
-	// pre-round-3 rule). A block that does not fit a non-empty body stops that
+	// With required == 0 the block can degrade to its URL line alone. A block that does not fit a non-empty body stops that
 	// body. Annotate must be pure: Repost may call it twice for one Change.
 	Annotate func(c Change, compact bool) (lines []string, required int)
 

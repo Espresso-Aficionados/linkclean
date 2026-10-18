@@ -10,7 +10,8 @@ import (
 	"github.com/Espresso-Aficionados/linkclean"
 )
 
-// Processor cleans one URL. *unshorten.Resolver implements it; Offline adapts a Cleaner.
+// Processor cleans one URL. Offline adapts a Cleaner; a network unshortener
+// (planned as a separate package) can implement it too.
 type Processor interface {
 	Process(ctx context.Context, rawURL string) (linkclean.Result, error)
 }
@@ -32,12 +33,14 @@ func (o offline) Process(_ context.Context, rawURL string) (linkclean.Result, er
 	return o.c.Explain(rawURL), nil
 }
 
+// Change is one link whose cleaned URL differs, as Process returns it.
 type Change struct {
 	Link   Link
 	Result linkclean.Result // Result.Changed is always true
 	Err    error            // informational (e.g. unshorten failure); Result is still usable
 }
 
+// Options bounds the work Process does for one message.
 type Options struct {
 	Concurrency int // parallel Process calls; 0 (or negative) means 4
 	MaxLinks    int // distinct links (by target before cleaning, in Find order) examined per message; 0 (or negative) means 10 (bounds work per message)
