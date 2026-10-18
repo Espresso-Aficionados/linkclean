@@ -383,6 +383,8 @@ func privateClone(t *http.Transport, a *attestation) *http.Transport {
 // the Resolver uses:
 //
 //   - nil: a fresh NewTransport(TransportOptions{});
+//   - a nil *http.Transport: an error wrapping ErrUnguardedTransport, also
+//     with allow;
 //   - an attested *http.Transport that verifies: its privateClone;
 //   - an attested *http.Transport that was changed, or any other
 //     *http.Transport: an error wrapping ErrUnguardedTransport, or with
@@ -402,6 +404,10 @@ func checkTransport(rt http.RoundTripper, allow bool, log *slog.Logger) (http.Ro
 			return rt, nil
 		}
 		return nil, unguarded("Config.Transport is not an *http.Transport; set AllowUnguardedTransport if it wraps a guarded one")
+	}
+	if t == nil {
+		// Unusable whatever allow says: every request would panic.
+		return nil, unguarded("Config.Transport is a nil *http.Transport")
 	}
 	var err error
 	if a, ok := attested(t); ok {

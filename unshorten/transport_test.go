@@ -411,6 +411,24 @@ func TestTransportCheck(t *testing.T) {
 	})
 }
 
+// TestTransportCheckTypedNil: a nil *http.Transport in Config.Transport is
+// ErrUnguardedTransport, with AllowUnguardedTransport too, never a panic.
+func TestTransportCheckTypedNil(t *testing.T) {
+	for _, allow := range []bool{false, true} {
+		func() {
+			defer func() {
+				if r := recover(); r != nil {
+					t.Errorf("allow %v: New panicked: %v", allow, r)
+				}
+			}()
+			r, err := New(Config{Transport: (*http.Transport)(nil), AllowUnguardedTransport: allow})
+			if r != nil || !errors.Is(err, ErrUnguardedTransport) {
+				t.Errorf("allow %v: New = %v, %v; want ErrUnguardedTransport", allow, r, err)
+			}
+		}()
+	}
+}
+
 func TestPrivateClone(t *testing.T) {
 	for _, c := range []struct{ in, want int64 }{{0, 32 << 10}, {-1, 32 << 10}, {1 << 10, 1 << 10}, {32 << 10, 32 << 10}, {1 << 20, 32 << 10}} {
 		tr, err := GuardTransport(&http.Transport{MaxResponseHeaderBytes: c.in, TLSNextProto: map[string]func(string, *tls.Conn) http.RoundTripper{}}, nil)
