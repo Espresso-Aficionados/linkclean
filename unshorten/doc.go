@@ -59,13 +59,14 @@
 //     endpoints, Follow may also follow their redirect, and Skip never
 //     contacts them.
 //   - With DefaultRegistry the hosts contacted are: t.co, spotify.link, a.co
-//     (/d/… only), amzn.to, amzn.eu, amzn.asia, pin.it, api.pinterest.com (as
-//     hop 2 only), reddit.com and www.reddit.com (/r/<sub>/s/<token> only),
-//     share.google, www.google.com and google.com (/share.google… as hop 2
-//     only), vm.tiktok.com, vt.tiktok.com, www.tiktok.com (/t/… and the oEmbed
-//     endpoint), lnkd.in and fb.me. DefaultRegistry registers no generic
-//     shortener: bit.ly and tinyurl.com are contacted only if you register
-//     them (see Not registered by default).
+//     (/d/… only), amzn.to, amzn.eu, amzn.asia, pin.it, api.pinterest.com
+//     (only as a later hop, never from input), reddit.com and
+//     www.reddit.com (paths of the form /r/…/s/… only), share.google,
+//     www.google.com and google.com (/share.google… only, as a later hop,
+//     never from input), vm.tiktok.com, vt.tiktok.com, www.tiktok.com (/t/…
+//     and the oEmbed endpoint), lnkd.in and fb.me. DefaultRegistry
+//     registers no generic shortener: bit.ly and tinyurl.com are contacted
+//     only if you register them (see Not registered by default).
 //   - Each network hop is cached (in memory by default, keyed by the requested
 //     URL without its fragment; 24h for a hop, 10m for a definitive failure; timeouts of every
 //     kind, rate-limit rejections and overload (HTTP 429, 502, 503, 504) are

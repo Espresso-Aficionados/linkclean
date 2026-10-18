@@ -16,8 +16,11 @@ import (
 // a goroutine the strategy started) is cancelled. Do not call Resolve or
 // Process from a Strategy: a Strategy that resolves its own key waits on
 // itself until the hop deadline. Next may return ErrNotShortLink to stop
-// resolution without a failure. Any error other than the package's sentinels, a *StatusError or
-// an error from Get counts as transient.
+// resolution without a failure. ErrNoRedirect, ErrNoMatch, ErrBadTarget,
+// ErrFetchDenied and ErrBudget are definitive failures of their own kind,
+// a *StatusError is an unexpected status (transient for 429, 502, 503 and
+// 504), and an error from Get keeps its classification. Every other error,
+// the package's other sentinels included, counts as transient.
 type Strategy interface {
 	Name() string
 	Next(ctx context.Context, f *Fetcher, u *url.URL) (*url.URL, error)
