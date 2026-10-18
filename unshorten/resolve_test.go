@@ -837,6 +837,25 @@ func TestLoop(t *testing.T) {
 			t.Errorf("hits %d, want 1", s.Hits())
 		}
 	})
+	// A redirect back to a link already requested, in a form that is
+	// requested as that link again: no second request, even uncached.
+	for name, loc := range map[string]string{
+		"http-location": "http://s.example.net/a",
+		"upper-host":    "https://S.EXAMPLE.NET/a#f",
+		"unwrapped":     "https://l.facebook.com/l.php?u=https%3A%2F%2Fs.example.net%2Fa",
+	} {
+		t.Run(name, func(t *testing.T) {
+			n := installNet(t)
+			s := n.HandleTLS("s.example.net", rvRoutes{"/a": rvRedirect(301, loc)})
+			r := rvResolver(t, n, Config{Registry: rvRegistry(t, rvEntry("s.example.net")), Cache: NoCache()})
+			raw := "https://s.example.net/a"
+			res, err := r.Resolve(context.Background(), raw)
+			rvFailOpen(t, r, raw, res, err, ErrLoop)
+			if s.Hits() != 1 {
+				t.Errorf("hits %d, want 1", s.Hits())
+			}
+		})
+	}
 }
 
 // TestHopLimit: a chain longer than MaxHops fails with ErrHopLimit after

@@ -220,12 +220,18 @@ func (r *Resolver) resolve(ctx context.Context, raw string) chain {
 			}
 		}
 		host := pu.Host
+		served := cur
+		cur = requestForm(&pu, e.AllowHTTP)
+		// The loop check is on the form requested, so a hop back to a
+		// link already requested, as served (http, other case) or after
+		// a destination clean unwrapped it, is never requested again.
+		if hop > 0 && seen[cur] {
+			return fail(rehydrate(CacheEntry{Failure: FailLoop}, e.Name, host, classNone, nil))
+		}
+		seen[cur] = true
 		if hop == st.cfg.maxHops {
 			return fail(rehydrate(CacheEntry{Failure: FailHopLimit}, e.Name, host, classNone, nil))
 		}
-		served := cur
-		cur = requestForm(&pu, e.AllowHTTP)
-		seen[cur] = true
 		key := hopKey(e, st.cfg.policy, cur)
 
 		h, hit := st.cache.Get(ctx, key)
@@ -282,11 +288,9 @@ func (r *Resolver) resolve(ctx context.Context, raw string) chain {
 		if isFallback(e, cur, next) {
 			return fail(rehydrate(CacheEntry{Failure: FailFallback}, e.Name, host, classNone, nil))
 		}
-		nf := seenForm(next)
-		if seen[nf] {
+		if seen[seenForm(next)] {
 			return fail(rehydrate(CacheEntry{Failure: FailLoop}, e.Name, host, classNone, nil))
 		}
-		seen[nf] = true
 		ch.hops = append(ch.hops, Hop{From: cur, To: next, Entry: e.Name, Strategy: h.Strategy, Status: h.Status, Requests: h.Requests})
 		if _, _, ok := st.lookup(next, true); ok {
 			cur = next // a registered hop is requested as served, never cleaned first
@@ -295,7 +299,6 @@ func (r *Resolver) resolve(ctx context.Context, raw string) chain {
 		fin := r.c.Explain(next)
 		ch.fins = append(ch.fins, finClean{after: len(ch.hops) - 1, res: fin})
 		cur = fin.URL
-		seen[seenForm(cur)] = true
 	}
 	ch.url = cur
 	ch.cached = allCached
