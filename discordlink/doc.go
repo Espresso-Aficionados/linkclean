@@ -4,10 +4,50 @@
 // Nesting limit, so replacing it never orphans trailing characters. It has no
 // dependency on any Discord library.
 //
-// TODO(m3): grammar summary; Find, Process and Repost in one paragraph each.
+// The grammar is the inline grammar of Discord's clients: simple-markdown's
+// rules for escapes, code fences, inline code, autolinks (<https://x>),
+// masked links ([label](https://x)), spoilers (||…||), strong, em,
+// underline and strikethrough, Discord's bare-link rule, and its mention,
+// emoji and timestamp tokens, which hold no links. A link is reported only
+// for a lowercase http:// or https:// scheme.
+//
+// Find returns every link Discord would make clickable in a message, with
+// its byte offsets, how it is written (Kind), whether it is inside a spoiler
+// and, for a masked link, its label. Link.WouldEmbed tells whether Discord
+// would preview it.
+//
+// Process runs a Processor over the distinct links Find reports, at most
+// Options.MaxLinks of them and Options.Concurrency at a time, and returns
+// the links whose cleaned URL differs, de-duplicated by that URL, with a
+// count of the links it did not examine. Offline adapts a
+// linkclean.Cleaner; it needs no network and never blocks.
+//
+// Repost renders Process's Changes as the bodies of a reply: one line per
+// cleaned URL, encoded so that it renders as exactly one link and cannot
+// pair with the lines around it, wrapped to suppress previews (Wrap) and
+// spoilered like the original. Bodies are split between links to fit
+// MaxLen. RepostOptions.Annotate adds the caller's lines under each URL,
+// and Overflow a last line counting the links not shown.
 //
 // Guarantees (fuzz-tested):
-//   - TODO(m3)
+//   - Find never panics. Its links are in bounds, ascending and
+//     non-overlapping, content[Start:End] == URL, every URL starts with
+//     http:// or https://, no edge falls inside a valid UTF-8 sequence, only
+//     the masked kinds carry a Label, and the result is deterministic.
+//   - Every body Repost returns is at most MaxLen bytes, the overflow line
+//     included, and holds at most MaxBodies bodies when that is set. A
+//     link's URL line and its lines from Annotate are never split across
+//     bodies, and a link is never shown without its required lines. Caller
+//     lines (Header, Annotate, Overflow) appear verbatim except for CR and
+//     LF.
+//   - No URL line holds invalid UTF-8, a byte up to 0x20, 0x7F, a raw '`',
+//     '|', '<' or '>' (spoiler bars and the <…> wrapper aside), or a bidi or
+//     zero-width code point.
+//   - Without caller lines, Find on the bodies of http(s) URLs returns
+//     exactly the reposted URLs, in order, Suppressed when wrapped in <…> and
+//     Bare otherwise, spoilered iff the original was and NoSpoiler is
+//     unset; outside the URLs the bodies contain no @everyone, @here, <@,
+//     <@& or <#.
 //
 // # Nesting limit
 //
