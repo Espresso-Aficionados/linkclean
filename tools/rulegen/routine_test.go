@@ -15,7 +15,7 @@ var routineDocs = []string{"ROUTINE.md", filepath.Join("..", "..", "CONTRIBUTING
 // GraphQL API, which the routine's environment refuses. gh's PR, issue,
 // label and other GraphQL-backed subcommands are not among them. ROUTINE.md
 // names auth status only to forbid gating on it.
-var routineGhAllowed = []string{"workflow run", "run list", "run view", "run watch", "repo clone", "auth token", "auth setup-git", "auth status"}
+var routineGhAllowed = []string{"workflow run", "run list", "run view", "run watch", "auth token", "auth setup-git", "auth status"}
 
 // routineGhStart finds where a gh invocation's words begin.
 var routineGhStart = regexp.MustCompile(`(?:^|[^A-Za-z0-9_./-])gh[ \t]+`)
@@ -192,6 +192,7 @@ func TestRoutineGhProblems(t *testing.T) {
 		bad  bool
 	}{
 		{"gh pr list", true},
+		{"gh repo clone Espresso-Aficionados/linkclean /tmp/lc/main", true},
 		{"gh -R Espresso-Aficionados/linkclean pr list --state open", true},
 		{"gh --repo Espresso-Aficionados/linkclean pr merge 5 --auto", true},
 		{"gh --repo=Espresso-Aficionados/linkclean issue create", true},

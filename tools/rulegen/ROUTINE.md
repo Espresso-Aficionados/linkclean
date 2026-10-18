@@ -117,8 +117,9 @@ maintainer is watching.
 - Repository: `Espresso-Aficionados/linkclean`. GitHub's GraphQL API is not
   available to this routine, so talk to GitHub only through REST with
   `gh api` (paths `repos/Espresso-Aficionados/linkclean/…`), `gh workflow
-  run`, `gh run list|view|watch`, `gh repo clone` and git. gh's subcommands
-  for PRs, issues and labels use GraphQL and fail here: never use them. Pass
+  run`, `gh run list|view|watch` and git over https. gh's subcommands for
+  PRs, issues, labels and repositories (cloning with gh included) use
+  GraphQL and fail here: never use them; clone with `git clone`. Pass
   `--repo Espresso-Aficionados/linkclean` to every `gh workflow` and `gh run`
   command. When GitHub refuses a call, `gh api` exits non-zero and prints the
   HTTP status on stderr (`gh: <message> (HTTP <code>)`).
@@ -282,7 +283,7 @@ Several alerts in one run may be combined into one message, one line each.
 rm -rf /tmp/lc && mkdir -p /tmp/lc
 gh api repos/Espresso-Aficionados/linkclean --jq .permissions.push   # must print true
 gh auth setup-git
-gh repo clone Espresso-Aficionados/linkclean /tmp/lc/main
+git clone https://github.com/Espresso-Aficionados/linkclean /tmp/lc/main
 git -C /tmp/lc/main checkout --detach origin/main
 git --version             # 2.38 or later (merge-tree --write-tree)
 git -C /tmp/lc/main config user.email   # the maintainer's identity; must be set
