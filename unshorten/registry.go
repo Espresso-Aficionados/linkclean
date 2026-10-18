@@ -270,14 +270,15 @@ func copyEntry(e Entry) Entry {
 // lookup returns the first entry, in Name order among those for u's host,
 // whose patterns match u and which is eligible under p; Intermediate
 // entries only when intermediate is set. A URL that is not requestable
-// (userinfo, an IP host, a port other than "" or its scheme's default)
-// never matches. Every lookup of the resolver, and Match, use it.
+// (userinfo, an IP host, a port other than "" or its scheme's default, a
+// path net/url would not send as written) never matches. Every lookup of
+// the resolver, and Match, use it.
 func (r *Registry) lookup(u *rawurl.URL, intermediate bool, p GenericPolicy) (*compiledEntry, bool) {
-	if r == nil || !requestable(u) {
+	if r == nil {
 		return nil, false
 	}
 	cands := r.byHost[u.Host]
-	if len(cands) == 0 {
+	if len(cands) == 0 || !requestable(u) {
 		return nil, false
 	}
 	t := matchpattern.Target{Scheme: u.Scheme, Host: u.Host, IsIP: u.IsIP, Port: u.EffectivePort()}
@@ -299,12 +300,21 @@ func (r *Registry) lookup(u *rawurl.URL, intermediate bool, p GenericPolicy) (*c
 }
 
 // requestable reports whether u is a URL the Fetcher could request: no
-// userinfo, not an IP host, and a port that is "" or its scheme's default.
+// userinfo, not an IP host, a port that is "" or its scheme's default, and
+// a request form that net/url sends byte for byte (url.Parse accepts it
+// and its RequestURI is the path and query as written). Raw non-ASCII
+// bytes and invalid escapes in the path fail the last test: net/url would
+// re-escape or refuse them, so the bytes on the wire would not be the
+// cache key's.
 func requestable(u *rawurl.URL) bool {
 	if u.Host == "" || u.IsIP || strings.IndexByte(u.Authority, '@') >= 0 {
 		return false
 	}
-	return u.Port == "" || u.Port == defaultPort(u.Scheme)
+	if u.Port != "" && u.Port != defaultPort(u.Scheme) {
+		return false
+	}
+	pu, err := url.Parse(u.RequestForm())
+	return err == nil && pu.Opaque == "" && pu.RequestURI() == u.PathForRequest()
 }
 
 // defaultPort is the port of scheme "https" or "http".

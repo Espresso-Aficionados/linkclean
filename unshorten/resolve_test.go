@@ -969,6 +969,50 @@ func TestLookupRequestable(t *testing.T) {
 	}
 }
 
+// TestLookupRequestForm: a first hop whose request form net/url would not
+// send byte for byte (raw non-ASCII in the path, an invalid or truncated
+// escape) matches nothing: no request, no cache record, the offline result
+// and a nil error. Its percent-encoded form matches, and exactly those
+// bytes go on the wire and into the key.
+func TestLookupRequestForm(t *testing.T) {
+	n := installNet(t)
+	s := n.HandleTLS("s.example.net", rvRedirect(301, "https://example.net/p"))
+	spy := &rvCache{inner: NewMemoryCache(0)}
+	r := rvResolver(t, n, Config{Registry: rvRegistry(t, rvEntry("s.example.net")), Cache: spy})
+	for _, raw := range []string{
+		"https://s.example.net/\xc3\xa4",
+		"http://s.example.net/\xc3\xa4",
+		"https://s.example.net/caf\xe9",
+		"https://s.example.net/%zz",
+		"https://s.example.net/a%2",
+		"https://s.example.net/a%2?q=1",
+	} {
+		if e, ok := r.Match(raw); ok {
+			t.Errorf("Match(%q) = %q, true; want no match", raw, e)
+		}
+		res, err := r.Resolve(context.Background(), raw)
+		if err != nil || res.URL != r.c.Clean(raw) || len(res.Hops) != 0 || res.Resolved {
+			t.Errorf("Resolve(%q) = %+v, %v; want the offline result and nil", raw, res, err)
+		}
+	}
+	r.st.group.Wait()
+	if gets, sets := spy.keys(); s.Hits() != 0 || len(gets) != 0 || len(sets) != 0 {
+		t.Errorf("%d requests, cache gets %q, sets %q; want none", s.Hits(), gets, sets)
+	}
+	raw := "https://s.example.net/%C3%A4"
+	res := rvMust(t, r, raw)
+	r.st.group.Wait()
+	if len(res.Hops) != 1 || res.Hops[0].From != raw {
+		t.Errorf("hops %+v, want one from %q", res.Hops, raw)
+	}
+	if reqs := s.Requests(); len(reqs) != 1 || reqs[0].RequestURI != "/%C3%A4" {
+		t.Errorf("requests %+v, want one for /%%C3%%A4", reqs)
+	}
+	if _, sets := spy.keys(); len(sets) != 1 || !strings.HasSuffix(sets[0], "\x00"+raw) {
+		t.Errorf("cache sets %q, want one keyed by %q", sets, raw)
+	}
+}
+
 // TestSkippedNoNetwork: an input the offline clean skips (SkipTooLong) is
 // returned unchanged and never requested, even though it looks registered:
 // requesting it would send its tracking.

@@ -101,7 +101,9 @@ func fzScript(name string, attempt int, lines []string) Strategy {
 // every request. Neither may panic; a failure returns Clean(raw) and wraps
 // ErrUnresolved; Clean(URL) == URL always; both agree on the URL and on
 // failing; there are at most MaxHops hops, each a CatUnshortened hop of
-// Process; no error holds the token every scripted URL carries.
+// Process; no error holds the token every scripted URL carries; every
+// hop's From (the URL requested and keyed) is what net/url sends as
+// written.
 func FuzzResolve(f *testing.F) {
 	for _, s := range []struct {
 		in, script string
@@ -137,6 +139,9 @@ func FuzzResolve(f *testing.F) {
 		{"7/a?utm_source=x#frag", "4/b", 0, 0, false},
 		{"8/a", "4/b", 0, 0, false},
 		{"https://example.org/x?utm_source=z", "", 0, 0, false},
+		{"0/\xc3\xa4", "4/b", 0, 0, false}, // raw non-ASCII: not requestable
+		{"0/%zz", "4/b", 0, 0, false},      // an invalid escape: not requestable
+		{"0/%C3%A4", "4/b", 0, 0, false},
 	} {
 		f.Add(s.in, s.script, s.policy, s.maxHops, s.strip)
 	}
@@ -208,6 +213,13 @@ func FuzzResolve(f *testing.F) {
 		}
 		if len(res.Hops) > limit {
 			t.Errorf("%d hops, MaxHops %d", len(res.Hops), limit)
+		}
+		for _, h := range res.Hops {
+			ru, skip := rawurl.Parse(h.From)
+			pu, perr := url.Parse(h.From)
+			if skip != rawurl.OK || perr != nil || pu.RequestURI() != ru.PathForRequest() {
+				t.Errorf("hop From %q is not sent as written", h.From)
+			}
 		}
 		network := 0
 		for _, h := range pr.Hops {
