@@ -67,6 +67,12 @@ func TestReleaseStaticClass(t *testing.T) {
 		"testdata/semantics/x.txtar":                    relInert,
 		"discordlink/testdata/find.txtar":               relInert,
 		"discordlink/testdata/fuzz/FuzzFind/0123abcd":   relInert,
+		"unshorten/testdata/responses/t.co/x.txtar":     relInert, // recorded evidence, not expectations
+		"unshorten/testdata/livenet/results.md.tmpl":    relInert,
+		"unshorten/testdata/fuzz/FuzzResolve/0123abcd":  relInert,
+		"unshorten/nettest_test.go":                     relInert,
+		"unshorten/resolve.go":                          relOther,
+		"testdata/golden/network.txtar":                 relOther,
 		"internal/x/testdata/golden/positive.txtar":     relInert, // golden tracking is root-only
 		"discordlink/testdata":                          relOther, // a file, not a directory
 		"discordlink/find.go":                           relOther,
@@ -94,6 +100,8 @@ func TestReleaseStaticClass(t *testing.T) {
 	for p, want := range map[string]bool{
 		"doc.go": true, "internal/rawurl/rawurl.go": true, "rules/overlay/overlay.json": true,
 		"testdata/golden/negative.txt": true, "CHANGELOG.md": false, "LICENSE": false, "x_test.go": false,
+		"testdata/golden/network.txtar": true, "unshorten/resolve.go": true,
+		"unshorten/testdata/responses/t.co/x.txtar": false, "unshorten/nettest_test.go": false,
 	} {
 		if got := relMinorPath(relPath{Path: p, Class: relStaticClass(p)}); got != want {
 			t.Errorf("relMinorPath(%s) = %v", p, got)
@@ -275,6 +283,22 @@ func TestReleaseRowTokens(t *testing.T) {
 	}
 	if got := relChangedRows("testdata/golden/risky-params.txt", []byte("a\n"), []byte("b\n")); len(got) != 0 {
 		t.Errorf("risky-params rows %q", got)
+	}
+	// network.txtar's rows are -- N1 -- sections like positive.txtar's. A
+	// range such as "N1-N3" lists none of its rows, so a CHANGELOG writes
+	// each row out.
+	newNet := "head\n-- N1 --\nin: a\n-- N2 --\nin: b\n"
+	if got := relChangedRows("testdata/golden/network.txtar", nil, []byte(newNet)); !slices.Equal(got, []string{"N1", "N2"}) {
+		t.Errorf("network rows %q", got)
+	}
+	for text, want := range map[string][]string{
+		"Rows N1, N2, N3.": nil,
+		"Rows N1-N3.":      {"N1", "N2", "N3"},
+		"Rows N1\u2013N3.": {"N1", "N2", "N3"},
+	} {
+		if got := relUnlisted(text, []string{"N1", "N2", "N3"}); !slices.Equal(got, want) {
+			t.Errorf("relUnlisted(%q) = %q, want %q", text, got, want)
+		}
 	}
 }
 
