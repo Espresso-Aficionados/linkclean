@@ -98,8 +98,10 @@ commit id) matters, so you never need `git submodule update`.
      (comments and alerts the maintainer) and leaves it open. It works the
      PR again the next week, so a fix that lands on `main` can still make it
      mergeable.
-3. The routine never force-pushes, never pushes to `main`, never uses an
-   admin bypass, and merges only with auto-merge on the head it verified.
+3. The routine never force-pushes, never pushes to `main` and never uses an
+   admin bypass. It merges only once all eight checks are green on the head
+   it verified, through GitHub's REST merge endpoint pinned to that head (no
+   auto-merge), so a push after its review makes GitHub refuse the merge.
 
 **An edited PR blocks the next one.** While a Dependabot submodule PR that
 carries anyone else's commit is open, Dependabot opens no newer one. A commit
@@ -112,8 +114,8 @@ until you settle it. Settle it within the week:
   bypass), then tag it:
   `GH_TOKEN="$(gh auth token)" go -C tools run ./rulegen release -root .. -pr <n>`;
 - or **close it**. Its commits stay reachable at `refs/pull/<n>/head`
-  (`gh pr checkout <n>`), and Dependabot proposes current upstream on its
-  next run.
+  (`git fetch origin pull/<n>/head`), and Dependabot proposes current
+  upstream on its next run.
 
 Do not comment `@dependabot rebase` or `@dependabot recreate` on a rules PR:
 recreate drops every commit that is not Dependabot's, and rebase on an

@@ -86,8 +86,8 @@ const (
 	AlertWaitingEscalated = "data path waiting on #%d (escalated, open %d days; Dependabot opens no newer PR until it is merged or closed)"    // n, days
 	AlertAutoMergeArmed   = "auto-merge armed by maintainer"                                                                                   //
 	AlertOffMaster        = "its gitlink is off the rewritten `master`; close it"                                                              //
-	AlertUnverifiedHead   = "routine-armed auto-merge merged unverified head %s; review before any release"                                    // sha
-	AlertDisarmed         = "auto-merge on #%d did not complete; disarmed"                                                                     // n
+	AlertUnverifiedHead   = "#%d merged at head %s, not the verified head %s; review before any release"                                       // n, sha, V
+	AlertMergeRefused     = "merge of #%d at %s refused: %s; not retried"                                                                      // n, sha, gh's error
 	AlertReleased         = "linkclean rules %s released: +%d/−%d params, upstream %s; sprobot PR #%d"                                         // tag, A, R, short, m
 	CommentGone           = "gitlink left upstream master; closing so Dependabot can propose the rewritten master (§11.6)"                     //
 	CommentRulesMoved     = "main's rules moved (takeover/other sync) since this PR was opened; closing so that Dependabot re-proposes upstream against current main (§11.6)"
