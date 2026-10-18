@@ -1,0 +1,18 @@
+Oracle corpus (TestFindOracle): simple-markdown's answers for generated and
+golden inputs. Generated offline by tools/discordref (see its README); CI never
+runs node. Do not edit by hand.
+
+simple-markdown: version <version>, commit <commit>, index.js sha256 <sha256>
+generator seed: <seed>
+
+One section per row:
+
+  -- <id> --
+  in <string>
+  raw <link>      zero or more: simple-markdown's links (balanced mode)
+  want <link>     zero or more: raw with Find's documented choices applied
+                  (U1 balanced ')', the L1 label filter, the L2 kind rule)
+  want same       instead of want lines: want equals raw
+
+<string> and <link> are as in find.txtar. A row with neither raw nor want
+lines expects no links.

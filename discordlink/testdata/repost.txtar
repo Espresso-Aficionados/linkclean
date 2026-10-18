@@ -1,0 +1,30 @@
+Repost goldens (TestRepostGolden). Annotate, Overflow and Header are
+synthetic; nothing here is any bot's wording.
+
+One section per case:
+
+  -- <name> --
+  opt <key>[=<value>] ...       options, any number of opt lines:
+                                  wrap=angle|none, nospoiler, maxlen=N,
+                                  maxbodies=N, unexamined=N, header=<string>
+  change <string> [spoiler]     one Change, in order: Result.URL and Link.URL
+                                are the string, Result.Changed is true
+  full <required> <string>...   Annotate(c, false) for the preceding change
+  compact <required> <string>...
+                                Annotate(c, true) for the preceding change
+  overflow <string>             Overflow is set: the string with {o} and {u}
+                                replaced by the omitted and unexamined counts
+  overflow-at <omitted> <string>
+                                Overflow's line for that omitted count instead
+                                (an empty string included)
+  body <string>                 one expected body, in order
+  nobodies                      Repost returns nil
+  calls <change> <full> <compact>
+                                expected Annotate call counts for change
+                                number <change> (0-based)
+
+Annotate is nil unless a case has a full or compact line; a change without
+one returns (nil, 0) for that mode. <required> may be any integer (Repost
+clamps it). <string> is as in find.txtar ("x"*N repeats, " + " joins), and
+each <string>... is zero or more strings separated by spaces. Blank lines and
+lines starting with "# " are ignored.

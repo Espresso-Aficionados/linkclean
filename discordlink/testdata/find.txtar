@@ -1,0 +1,25 @@
+Find goldens (TestFindGolden, TestFindAgree, TestUnverifiedInventory).
+
+One section per case:
+
+  -- <name> --
+  in <string>                 the content; or, instead of in:
+  shape <shape name> <n>      the named shapes_test.go generator at n bytes
+  out <link>                  zero or more: Find's links, in order
+  // unverified: <ID> <note>  the expectation rests on an unverified point
+  // uncapped: <link list>    cap rows: the uncapped grammar's answer, when
+                              it differs from Find's capped one
+
+<string> is a Go-quoted string, or several joined by " + ", each optionally
+repeated with *N: "https://a.com/" + "x"*1980. <link> is
+
+  <Kind> <string URL> [spoiler] [label=<string>]
+
+with Kind one of Bare, Suppressed, Masked, MaskedSuppressed; label= appears
+iff the label is not empty, and only for the Masked kinds. A case with no out
+line expects no links. Blank lines and lines starting with "# " are ignored.
+
+Unverified IDs: U1 (is ')' balanced?), U2 (do masked links embed?), U3
+(upper-case scheme), U4 (server unfurl vs client link), L1 (label filter), L2
+([l](<url) kind), L3 (a non-http target is consumed), A1 (whitespace in an
+autolink target), B1 (block rules).
