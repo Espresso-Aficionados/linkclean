@@ -65,6 +65,70 @@ are licensed under MPL-2.0.
 - `testdata/golden/risky-params.txt`: extra parameter names that must never be
   stripped globally, one per line.
 
+## Package unshorten
+
+`unshorten` is the only package that makes network requests, and its tests
+never do: every test that sends a request runs over a loopback test network
+(`unshorten/nettest_test.go`) that reaches production code by the real
+hostnames with the real dial guard in the dial path, and the test binary
+fails if anything tries a real lookup or dial. Never add a test that
+contacts a shortener or any other outside host.
+
+### Network golden rows (`testdata/golden/network.txtar`)
+
+The network rows N1 to N5 are the unshortening cases' network halves; their
+offline halves are rows of `positive.txtar`. `unshorten`'s
+`TestNetworkGolden` replays each section, and the file's header restates
+this grammar. Each `-- <id> --` section is one case of `key: value` lines,
+the value being the rest of the line verbatim; blank lines and lines
+starting with `#` are ignored.
+
+| Key | Meaning |
+|---|---|
+| `in:` | the input URL (required, once) |
+| `registry:` | entries added to `DefaultRegistry`, space-separated; `bit.ly` is the bit.ly entry that ships unregistered (added with `Registry.With`) |
+| `generic:` | `PreviewOnly` (the default), `Follow` or `Skip` |
+| `server:` | `METHOD URL → STATUS [LOCATION]`: the listener for URL's scheme and host answers exactly this request (path and query as written); any other request to it fails the case |
+| `body:` | the `text/html` body of the previous `server:` line's response |
+| `listen:` | `URL`: a listener for URL's scheme and host that answers 500 to every request; with `requests:` it shows that a host is never contacted |
+| `requests:` | `URL N`: the listener for URL's scheme and host received N requests in total, after every run of the case |
+| `want:` | the expected URL under `AffiliateKeep`, and under `AffiliateStrip` unless `want-strip:` is given (required) |
+| `want-strip:` | the expected URL under `AffiliateStrip` |
+| `err:` | `none` (the default), or the sentinel the error wraps besides `ErrUnresolved` (`ErrFallback`, `ErrNoMatch`, …) |
+| `hops: none`, `hop: <JSON>` | `Process`'s Hops in order, under both policies; `hop-keep:`/`hop-strip:` (and `hops-keep: none`, `hops-strip: none`) under one policy only |
+| `removed: none`, `removed: <JSON>` | `Process`'s Removed in order, under both policies; `removed-keep:`/`removed-strip:` under one policy only |
+| `note:` | free text |
+
+The JSON objects use `positive.txtar`'s field names; the listed fields are
+compared and the count must match. Hops or Removed with no line are not
+compared. Every case runs `Resolve` and then `Process` under
+`AffiliateKeep`, then both again through a `WithCleaner(AffiliateStrip)`
+view of the same Resolver; every run after the first must be served from
+the cache, with no new request. Each run also checks `Clean(URL) == URL`
+and `Process(in).URL == Resolve(in).URL`, and on an error `URL == Clean(in)`
+and `errors.Is(err, ErrUnresolved)`.
+
+A change to any file under `testdata/golden/` forces a minor release, and
+its `CHANGELOG.md` section must list each changed, added or removed row ID
+as its own word: `N1, N2, N3` lists three rows, `N1-N3` lists none.
+`TestNetworkGolden` also pins the set of section IDs, so a new row updates
+it.
+
+### Recorded fixtures and the live checks
+
+`unshorten/testdata/responses/<host>/<case>.txtar` are recorded (or, where
+labelled, synthetic) shortener responses, replayed by
+`TestRecordedFixtures`. They are evidence, not expectations, so changing
+them forces no release; they carry synthetic `TOKENn` tokens only, never a
+real short-link token.
+
+The live suite (`unshorten/livenet_test.go`, build tag `livenet`) sends real
+requests to the shorteners and is run only by the maintainer; CI only
+compiles it. `unshorten/testdata/livenet/README.md` is the procedure: the
+links file and deny list kept outside the repository, record mode for
+drafting fixtures, check mode for gating `DefaultRegistry` before a release,
+and pruning the entries the run did not prove.
+
 ## Rule updates
 
 Brave's lists reach linkclean through a git submodule at
