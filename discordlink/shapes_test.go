@@ -87,6 +87,17 @@ var hostileShapes = []hostileShape{
 		m := (n - len(shapeURL)) / 2
 		return fill(shapeURL+strings.Repeat("[", m)+"]", "a", "", n)
 	}},
+	// The three shapes above hold no "](", so Find's prepass skips the
+	// masked rule; these variants end in one and walk the label chains.
+	{"open-bracket-paren", 0, func(n int) string { return fill(shapeURL, "[", "](", n) }},
+	{"label-chain-paren", 0, func(n int) string {
+		m := (n - len(shapeURL)) / 2
+		return fill(shapeURL+strings.Repeat("[", m), "]", "](x", n)
+	}},
+	{"bracket-gap-paren", 0, func(n int) string {
+		m := (n - len(shapeURL)) / 2
+		return fill(shapeURL+strings.Repeat("[", m)+"]", "a", "](", n)
+	}},
 	{"masked-unclosed", 0, func(n int) string { return fill(shapeURL, "[a](https://x ", "", n) }},
 	{"masked-every-level", 6, func(n int) string { return fill(nestedOpen, "a](b ", nestedClose, n) }},
 	// Spoilers, code, autolinks, mentions, escapes.
