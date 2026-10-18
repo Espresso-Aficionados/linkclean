@@ -15,7 +15,11 @@ jobs:
       - run: go vet ./... && go test -race ./...
       - run: go -C tools vet ./... && go -C tools test ./...
       - run: go vet -tags livenet ./unshorten/...
-      - run: go test -gcflags=all=-l -run 'Attest|TransportCheck|GuardTransport' ./unshorten/
+      - name: attestation tests without inlining
+        shell: bash                            # -eo pipefail: a failing go test is not hidden by tee
+        run: go test -gcflags=all=-l -run 'Attest|TransportCheck|GuardTransport' -v ./unshorten/ | tee "$RUNNER_TEMP/attest.log"
+      - name: the attestation tests ran (-run passes vacuously when none matches)
+        run: for t in TestAttestAfterNew TestTransportCheck TestGuardTransport; do grep -qxF "=== RUN   $t" "$RUNNER_TEMP/attest.log" || { echo "$t did not run"; exit 1; }; done
   rules:
     strategy:
       fail-fast: false
