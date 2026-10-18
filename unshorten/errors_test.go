@@ -1,6 +1,6 @@
 package unshorten
 
-// Failure rows of the §12.8 table: the failure invariant over every
+// The Resolver's failure tests: the failure invariant over every
 // FailureKind, TestRequestInfoNoURL over every failure path and error class
 // (fresh and cached, Resolve and Process), and the panic log. One table of
 // failure paths serves all three.
@@ -477,7 +477,7 @@ func TestRequestInfoNoURL(t *testing.T) {
 
 // TestPanicLogNoURL: a strategy that panics with a value built from the URL
 // fails the hop as transient and is logged at Error level with the entry,
-// the host and the value's type, never the value (C2.9).
+// the host and the value's type, never the value.
 func TestPanicLogNoURL(t *testing.T) {
 	var tc rvFailCase
 	for _, c := range rvFailCases() {

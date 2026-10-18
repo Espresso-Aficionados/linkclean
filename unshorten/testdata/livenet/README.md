@@ -24,7 +24,7 @@ under `unshorten/testdata/responses/`.
 | File | What it is |
 |---|---|
 | `links.schema.json` | JSON Schema of the links file. `TestLinksSchema` holds it to the Go types. |
-| `links.example.json` | An example links file: one case per default entry and pattern, plus tinyurl and bit.ly. Its tokens are placeholders (`TOKENn`) and its expectations are the plan's predictions, not observations. `TestLinksExample` parses it. |
+| `links.example.json` | An example links file: one case per default entry and pattern, plus tinyurl and bit.ly. Its tokens are placeholders (`TOKENn`) and its expectations are predictions, not observations. `TestLinksExample` parses it. |
 | `results.md.tmpl` | The results file's template (Go `text/template`). The suite renders it; `TestRenderResults` checks it. |
 | `results-<date>.md` | Committed check-mode results, one per run that gated a release or found drift. |
 

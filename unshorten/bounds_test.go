@@ -1,8 +1,8 @@
 package unshorten
 
-// Concurrency, cache and bound rows of the §12.8 table: coalescing, cache
+// The Resolver's concurrency, cache and bound tests: coalescing, cache
 // hits, the Limiter, caller cancellation, OnRequest, the request and
-// in-flight bounds (D4, U-3, U-R3-1, U-R3-4), transient and definitive
+// in-flight bounds, transient and definitive
 // failures, and the cache's bounds as seen through the Resolver. The cache and limiter units are cache_test.go's and
 // limiter_test.go's. Rows wait on barriers (Joiners, arrival counts,
 // group.Wait), never on sleeps, except where a row asserts that something
@@ -76,7 +76,7 @@ func rvResolveAll(r *Resolver, n int, raw func(i int) string, report func(error)
 // --- Coalescing ---
 
 // TestCoalesce100: 100 concurrent Resolves of one short link make one
-// request, also with NoCache and with an entry too large to store (U-6).
+// request, also with NoCache and with an entry too large to store.
 func TestCoalesce100(t *testing.T) {
 	for _, tc := range []struct {
 		name  string
@@ -259,7 +259,7 @@ func TestLimiterErrorNotCached(t *testing.T) {
 	}
 }
 
-// --- Caller cancellation (U-R3-2) ---
+// --- Caller cancellation ---
 
 // TestCallerCancel: a caller whose ctx is canceled, or whose own deadline
 // passes, while its hop is in flight fails with ErrUnresolved, ErrTransient
@@ -311,7 +311,7 @@ func TestCallerCancel(t *testing.T) {
 }
 
 // TestCallerPastDeadlineStartsNoKey: a caller already past its deadline at
-// hop 1 starts no key and makes no request (C3.6). Hop 0 comes from a Cache
+// hop 1 starts no key and makes no request. Hop 0 comes from a Cache
 // whose Get returns only once the caller's ctx has ended.
 func TestCallerPastDeadlineStartsNoKey(t *testing.T) {
 	n := installNet(t)
@@ -342,7 +342,7 @@ func TestCallerPastDeadlineStartsNoKey(t *testing.T) {
 	}
 }
 
-// --- OnRequest (C1.8, C2.9) ---
+// --- OnRequest ---
 
 // TestOnRequestCalls: one call per request, with entry, strategy, host,
 // hop, status and duration and no error on success; none for a cached hop.
@@ -470,7 +470,7 @@ func TestOnRequestBlockingDoesNotHoldKey(t *testing.T) {
 	}
 }
 
-// --- Request bounds (D4, U-3) ---
+// --- Request bounds ---
 
 // rvHosts returns n FirstParty Redirect entries g1.example.net … gn.example.net.
 func rvHosts(n int) (hosts []string, entries []Entry) {
@@ -589,7 +589,7 @@ func TestBoundHostSlots(t *testing.T) {
 
 // TestBoundInFlight: with MaxInFlight 4 a 5th distinct uncached hop fails
 // at once with ErrTransient and no request; 64 goroutines starting distinct
-// keys at once start exactly 4 (U-R3-4).
+// keys at once start exactly 4.
 func TestBoundInFlight(t *testing.T) {
 	t.Run("fifth", func(t *testing.T) {
 		n := installNet(t)
@@ -660,7 +660,7 @@ func TestBoundInFlight(t *testing.T) {
 
 // TestBoundFloodDefaults: with the defaults and t.co stalling, 300 unique
 // t.co hops hold 16 keys, the other 284 fail at once with ErrTransient and
-// make no request, and an uncached amzn.to hop is still fetched (U-R3-1).
+// make no request, and an uncached amzn.to hop is still fetched.
 func TestBoundFloodDefaults(t *testing.T) {
 	rvRequireEntry(t, "t.co", "amazon")
 	n := installNet(t)
@@ -695,7 +695,7 @@ func TestBoundFloodDefaults(t *testing.T) {
 
 // TestBoundSharedFetchHost: the tiktok match hosts all fetch www.tiktok.com
 // for oEmbed; with it stalled, each match host holds 16 keys (48 in all)
-// and t.co still resolves (C3.5).
+// and t.co still resolves.
 func TestBoundSharedFetchHost(t *testing.T) {
 	rvRequireEntry(t, "tiktok", "t.co")
 	n := installNet(t)
@@ -933,7 +933,7 @@ func TestLimiterFloodRecovery(t *testing.T) {
 	}
 }
 
-// --- Cache bounds through the Resolver (U-6, C2.1) ---
+// --- Cache bounds through the Resolver ---
 
 // rvParallel runs fn(i) for i in [0, n) on 8 workers.
 func rvParallel(n int, fn func(i int)) {
@@ -980,7 +980,7 @@ func TestCacheNegativeBound(t *testing.T) {
 
 // TestCacheFallbackFlood: 1,000 unique amzn.to hops answered with Amazon's
 // homepage, and then 1,000 stops, do not evict a cached success from
-// NewMemoryCache(100): the Resolver stores them in the negative bound (C2.1).
+// NewMemoryCache(100): the Resolver stores them in the negative bound.
 func TestCacheFallbackFlood(t *testing.T) {
 	rvRequireEntry(t, "amazon")
 	n := installNet(t)
@@ -1009,7 +1009,7 @@ func TestCacheFallbackFlood(t *testing.T) {
 }
 
 // TestCacheEntryCap: a hop whose key plus Next exceeds 2 KiB is not stored,
-// and the next call requests again (U-6).
+// and the next call requests again.
 func TestCacheEntryCap(t *testing.T) {
 	n := installNet(t)
 	loc := "https://example.net/p?x=" + strings.Repeat("a", 2100)

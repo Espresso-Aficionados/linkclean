@@ -136,7 +136,7 @@ func dripHandler(n *testNet) http.Handler {
 	})
 }
 
-// TestNetworkN1Scheme is N1's Fetcher half (DR-F11): the Fetcher requests
+// TestNetworkN1Scheme is N1's Fetcher half: the Fetcher requests
 // only https for an entry without AllowHTTP, so an http:// or upper-case
 // input reaches the TLS listener once, in its request form, and never the
 // plain-http one. An AllowHTTP entry is requested over http. N1's Resolver

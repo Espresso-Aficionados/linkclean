@@ -310,7 +310,7 @@ func TestTransportFieldsReviewed(t *testing.T) {
 	}
 }
 
-// TestTransportCheck is New's transport decision table (DR-F13), on
+// TestTransportCheck is New's transport decision table, on
 // checkTransport.
 func TestTransportCheck(t *testing.T) {
 	type tc struct {
@@ -593,7 +593,7 @@ func TestAttestSharedTLSConfig(t *testing.T) {
 
 func TestGuardTransport(t *testing.T) {
 	for name, in := range map[string]*http.Transport{
-		"zero":               {}, // a nil DialContext is not "set to anything other than a guard" (C1.13)
+		"zero":               {}, // a nil DialContext is not "set to anything other than a guard"
 		"NewTransport clone": NewTransport(TransportOptions{}).Clone(),
 		"GuardTransport":     mustTransport(GuardTransport(&http.Transport{}, nil)),
 	} {
@@ -768,7 +768,7 @@ func TestProxySameHostOtherPort(t *testing.T) {
 }
 
 // TestProxyUnmappedFailsClosed: a configured proxy the test network does
-// not map fails before any DNS lookup (C2.7).
+// not map fails before any DNS lookup.
 func TestProxyUnmappedFailsClosed(t *testing.T) {
 	n := installNet(t)
 	n.HandleTLS("t.co", handlerOK)
@@ -786,7 +786,7 @@ func TestProxyUnmappedFailsClosed(t *testing.T) {
 }
 
 // TestProxyErrorRedacted: no error or log line names the proxy URL, whose
-// userinfo can hold credentials (C2.6).
+// userinfo can hold credentials.
 func TestProxyErrorRedacted(t *testing.T) {
 	const secret = "s3cret"
 	for _, raw := range []string{
@@ -859,7 +859,7 @@ func TestGuardDialer(t *testing.T) {
 	}
 
 	// ControlContext wins over Control in net.Dialer, so the guard goes
-	// there and Control is left alone (Q10).
+	// there and Control is left alone.
 	var hookCtx, hookPlain atomic.Int32
 	controlCtx := func(context.Context, string, string, syscall.RawConn) error { hookCtx.Add(1); return nil }
 	plain := func(string, string, syscall.RawConn) error { hookPlain.Add(1); return nil }

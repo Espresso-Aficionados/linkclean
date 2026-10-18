@@ -80,7 +80,8 @@ func rvCall(r *Resolver, raw string) rvOutcome {
 
 // TestResolveRace runs 8 goroutines over one Resolver and its strip view on
 // the corpus and compares every outcome with a serial run on its own
-// Resolver, on every field except Cached (§8-style, C3.15; run under -race).
+// Resolver, on every field except Cached, which depends on timing (run
+// under -race).
 func TestResolveRace(t *testing.T) {
 	rvRequireEntry(t, "t.co", "amazon")
 	n := rvRaceNet(t)

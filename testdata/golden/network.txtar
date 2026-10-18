@@ -1,5 +1,5 @@
-Network golden rows N1-N5: the network halves of the design's network
-rows. Package unshorten's TestNetworkGolden replays each section over its
+Network golden rows N1, N2, N3, N4 and N5: the network halves of the
+unshortening cases. Package unshorten's TestNetworkGolden replays each section over its
 loopback test network: production code reaches the listeners by their real
 hostnames, with the real dial guard in the dial path. Nothing here is ever
 requested from a real host. The offline halves are N1/offline,
@@ -10,8 +10,8 @@ the line verbatim; blank lines and lines starting with '#' are ignored.
 
   in:          input URL (required, once)
   registry:    entries added to DefaultRegistry, space-separated; "bit.ly"
-               is the bit.ly row of the default-registry table, which ships
-               unregistered (added with Registry.With)
+               is the bit.ly entry that DefaultRegistry does not register
+               (added with Registry.With)
   generic:     PreviewOnly (default), Follow or Skip
   server:      METHOD URL → STATUS [LOCATION]: the listener for URL's scheme
                and host answers exactly this request (path and query as
@@ -42,7 +42,7 @@ Result.Cached when there are hops. Each run also asserts Clean(URL) == URL
 and Process(in).URL == Resolve(in).URL, and on an error URL == Clean(in)
 and errors.Is(err, ErrUnresolved).
 -- N1 --
-note: http://t.co: scheme-agnostic match; exactly one HTTPS request, the plain-http listener untouched (DR-F11)
+note: http://t.co: scheme-agnostic match; exactly one HTTPS request, the plain-http listener untouched
 in: http://t.co/abc
 server: GET https://t.co/abc → 301 https://example.net/p?utm_source=x
 listen: http://t.co
@@ -54,7 +54,7 @@ want: https://example.net/p
 hop: {"category":"unshortened","rule":"unshorten:t.co","fromHost":"t.co","from":"https://t.co/abc","to":"https://example.net/p?utm_source=x"}
 removed: {"part":"query","category":"tracker","name":"utm_source"}
 -- N2 --
-note: ‡ affiliate interplay (ER-C5): the destination's tag and linkCode kept under Keep (MD-3), stripped under Strip, with the destination's categories after the CatUnshortened hop (MA-2); the destination is never requested
+note: ‡ affiliate interplay: the destination's tag and linkCode kept under Keep (MD-3), stripped under Strip, with the destination's categories after the CatUnshortened hop; the destination is never requested
 in: https://amzn.to/xyz
 server: GET https://amzn.to/xyz → 301 https://www.amazon.com/dp/B0?tag=aff-20&linkCode=ll1&ref_=as_li
 listen: https://www.amazon.com
@@ -79,7 +79,7 @@ err: ErrFallback
 hops: none
 removed: none
 -- N4 --
-note: stop at the first host that is not allowlisted: returned, never requested. The design's row uses evil.example; .example has no ICANN site, so the approved next-URL validation (rawurl.ParseTarget, Q4) would make that ErrBadTarget, and this row uses evil.example.net to keep pinning the stop
+note: stop at the first host that is not allowlisted: returned, never requested. The host is evil.example.net, not evil.example: a next URL must have an ICANN site (rawurl.ParseTarget), so evil.example would be ErrBadTarget rather than a stop
 in: https://t.co/abc
 server: GET https://t.co/abc → 301 https://evil.example.net/x
 listen: https://evil.example.net
@@ -89,7 +89,7 @@ want: https://evil.example.net/x
 hop: {"category":"unshortened","rule":"unshorten:t.co","fromHost":"t.co","from":"https://t.co/abc","to":"https://evil.example.net/x"}
 removed: none
 -- N5 --
-note: no-click preview first: under PreviewOnly bit.ly is fetched only as GET /abc+ and the destination comes from the info page. bit.ly ships unregistered (Q18), so the row adds the entry with Registry.With; TestNetworkGoldenN5NoMatch pins the ErrNoMatch half
+note: no-click preview first: under PreviewOnly bit.ly is fetched only as GET /abc+ and the destination comes from the info page. DefaultRegistry does not register bit.ly, so the row adds the entry with Registry.With; TestNetworkGoldenN5NoMatch pins the ErrNoMatch half
 in: https://bit.ly/abc
 registry: bit.ly
 server: GET https://bit.ly/abc+ → 200

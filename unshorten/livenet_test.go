@@ -169,7 +169,8 @@ func TestLive(t *testing.T) {
 	}
 }
 
-// liveRegistry is DefaultRegistry, plus tinyurl and bit.ly (§12.4) when
+// liveRegistry is DefaultRegistry, plus tinyurl and bit.ly (the entries
+// doc.go's Not registered by default shows) when
 // marketing is set and DefaultRegistry lacks them.
 func liveRegistry(marketing bool) (*unshorten.Registry, error) {
 	reg := unshorten.DefaultRegistry()

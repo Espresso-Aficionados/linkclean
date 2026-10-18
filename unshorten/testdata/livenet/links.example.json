@@ -1,5 +1,5 @@
 {
-  "comment": "Example only: every token is a placeholder, and the expectations are the plan's predictions (research C), not observations. Copy it outside the repository, replace each TOKENn with a real link or an invented code, and set each expect to what you expect. See README.md.",
+  "comment": "Example only: every token is a placeholder, and the expectations are predictions, not observations. Copy it outside the repository, replace each TOKENn with a real link or an invented code, and set each expect to what you expect. See README.md.",
   "version": 1,
   "links": [
     {"case": "good", "url": "https://t.co/TOKEN1", "kind": "good", "origin": "created", "keep_destination": true,
@@ -70,7 +70,7 @@
                 "hops": [{"entry": "share.google", "strategy": "Redirect", "status": 302},
                          {"entry": "share.google-hop", "strategy": "Redirect", "status": 302}]}},
     {"case": "invalid", "url": "https://share.google/TOKEN20", "kind": "invalid", "origin": "synthetic",
-     "note": "Q17: a 301 to /error widens IsFallback",
+     "note": "if this is a 301 to /error, share.google's IsFallback can cover it",
      "expect": {"entry": "share.google", "failure": "no_redirect", "strategy": "Redirect", "status": 404}},
 
     {"case": "good", "url": "https://vm.tiktok.com/TOKEN21/", "kind": "good", "origin": "created",
@@ -99,7 +99,7 @@
      "expect": {"entry": "lnkd.in", "failure": "no_match", "strategy": "BodyRegexp", "status": 200}},
 
     {"case": "good", "url": "https://fb.me/TOKEN27", "kind": "good", "origin": "public",
-     "note": "verify: a 3xx, not 200 + meta refresh (Q19)",
+     "note": "verify: a 3xx, not 200 + meta refresh; fb.me is dropped otherwise",
      "expect": {"entry": "fb.me", "failure": "none", "strategy": "Redirect", "status": 301,
                 "host": "www.facebook.com", "path": "^/.+"}},
     {"case": "invalid", "url": "https://fb.me/TOKEN28", "kind": "invalid", "origin": "synthetic",

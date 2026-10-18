@@ -19,7 +19,9 @@ type Cache interface {
 // defaultCacheEntries is NewMemoryCache's size for maxEntries ≤ 0.
 const defaultCacheEntries = 10_000
 
-// maxCacheEntryBytes bounds len(key) + len(Next) of a stored entry (U-6).
+// maxCacheEntryBytes bounds len(key) + len(Next) of a stored entry, so the
+// default cache holds at most (10,000 + 2,500) × 2 KiB, about 25 MiB, of
+// URL bytes.
 const maxCacheEntryBytes = 2 << 10
 
 // NewMemoryCache returns a bounded LRU with per-entry expiry; concurrency-safe;

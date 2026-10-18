@@ -40,7 +40,7 @@ func isDenial(err error) bool {
 }
 
 // ssrfTargets are the addresses an allowlisted host must never reach
-// (U-R3-3). Each is denied by the guard before connect(2).
+// Each is denied by the guard before connect(2).
 var ssrfTargets = []string{
 	"127.0.0.1:443",
 	"127.0.0.1:8443",
@@ -61,7 +61,7 @@ var ssrfTargets = []string{
 
 // TestSSRFTransport: an allowlisted name the test network maps to a
 // non-public address is refused by the real guard in NewTransport's dial
-// path, as a definitive FailTransport (U-R3-3).
+// path, as a definitive FailTransport.
 func TestSSRFTransport(t *testing.T) {
 	for _, target := range ssrfTargets {
 		// Check the guard alone first, so a broken guard fails here and
@@ -122,7 +122,7 @@ func TestSSRFMapNameLocalhost(t *testing.T) {
 
 // TestSSRFResolverCached: through the Resolver, a rebinding of an
 // allowlisted host to a private address is a definitive failure, cached:
-// the second call dials nothing (U-R3-3).
+// the second call dials nothing.
 func TestSSRFResolverCached(t *testing.T) {
 	const target = "10.0.0.1:443"
 	if err := guardVerdict(target); !isDenial(err) {
@@ -338,7 +338,7 @@ func TestGuardControlTable(t *testing.T) {
 		{"tcp4", "255.255.255.255:443", ssrf.ErrProhibitedIP},
 		{"tcp4", "0.0.0.0:443", ssrf.ErrProhibitedIP},
 		{"tcp4", "169.254.169.254:80", ssrf.ErrProhibitedIP},
-		{"tcp4", "168.63.129.16:443", ssrf.ErrProhibitedIP}, // Azure WireServer (Q9)
+		{"tcp4", "168.63.129.16:443", ssrf.ErrProhibitedIP}, // Azure WireServer: public, but ssrf allows it
 		{"tcp4", "168.63.129.15:443", nil},
 		{"tcp4", "168.63.129.17:443", nil},
 		{"tcp6", "[2001::1]:443", ssrf.ErrProhibitedIP},       // Teredo, in 2001::/23

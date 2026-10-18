@@ -2,7 +2,7 @@ package unshorten
 
 // TestNetworkGolden replays the root's testdata/golden/network.txtar (rows
 // N1-N5; its header documents the grammar) over the test network. A change
-// to an expectation there is a minor release (Q22).
+// to an expectation there is a minor release, like any golden row's.
 
 import (
 	"bufio"

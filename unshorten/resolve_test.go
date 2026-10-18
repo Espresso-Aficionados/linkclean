@@ -1,6 +1,6 @@
 package unshorten
 
-// Resolver rows of the §12.8 table: hops, scheme, validation, loop, hop
+// The Resolver's resolution tests: hops, scheme, validation, loop, hop
 // limit, budget, requestable lookup, skipped inputs, stops, fallbacks,
 // policy, request form, shared cache across views, affiliate interplay and
 // categories. Every row runs over the test network (nettest_test.go) with
@@ -199,8 +199,8 @@ func rvRequireEntry(t *testing.T, names ...string) {
 	}
 }
 
-// rvBitlyEntry is the bit.ly row of the default-registry table, which ships
-// unregistered (Q18): BitlyInfo, Redirect only under Follow, Marketing,
+// rvBitlyEntry is the bit.ly entry, which DefaultRegistry does not
+// register: BitlyInfo, Redirect only under Follow, Marketing,
 // fallback = a bitly.com or bit.ly root.
 func rvBitlyEntry() Entry {
 	return Entry{
@@ -556,11 +556,11 @@ func rvHopCats(hs []linkclean.Hop) string {
 	return strings.Join(parts, ", ")
 }
 
-// --- Scheme (DR-F11) ---
+// --- Scheme ---
 
 // TestSchemeHTTPInput: http:// and upper-case inputs match the scheme-"*"
 // pattern, and exactly one HTTPS request is made; the plain-http listener
-// is never hit. An explicit :80 is dropped by the upgrade (Q2).
+// is never hit. An explicit :80 is dropped by the upgrade.
 func TestSchemeHTTPInput(t *testing.T) {
 	rvRequireEntry(t, "t.co")
 	for _, raw := range []string{"http://t.co/abc", "HTTP://T.CO/abc", "http://t.co:80/abc"} {
@@ -646,7 +646,8 @@ func TestValidateLocation(t *testing.T) {
 }
 
 // rvBadTargets are next URLs validateNext must reject: each as a Location
-// is FailBadTarget. The IP and IDNA forms are C2.10's.
+// is FailBadTarget. The IP and IDNA forms are also tried as a custom
+// strategy's direct Get.
 var rvBadTargets = []string{
 	"https://u:p@example.net/",
 	"https://u@example.net/",
@@ -663,7 +664,7 @@ var rvBadTargets = []string{
 	"https://[::127.0.0.1]/",
 	"https://[fe80::1%25eth0]/",
 	"https://intranet/",
-	"https://evil.example/x", // no ICANN site (Q4)
+	"https://evil.example/x", // no ICANN site
 	"ftp://example.net/",
 	"https://example.net/" + strings.Repeat("a", 8<<10),
 }
@@ -821,7 +822,8 @@ func TestLoop(t *testing.T) {
 		}
 	})
 	t.Run("self-upgraded", func(t *testing.T) {
-		// http input upgraded to https; the Location is the https form (Q30).
+		// http input upgraded to https; the Location is the https form,
+		// which the loop check has already seen.
 		n := installNet(t)
 		s := n.HandleTLS("s.example.net", rvRoutes{"/a": rvRedirect(301, "https://s.example.net/a")})
 		r := rvResolver(t, n, Config{Registry: rvRegistry(t, rvEntry("s.example.net"))})
@@ -938,7 +940,7 @@ func TestBudgetConcurrent(t *testing.T) {
 
 // TestLookupRequestable: a first hop with userinfo, a non-default port or
 // an IP host matches nothing: no request, the offline result and a nil
-// error (Q2). A default port is requestable.
+// error. A default port is requestable.
 func TestLookupRequestable(t *testing.T) {
 	n := installNet(t)
 	s := n.HandleTLS("s.example.net", rvRedirect(301, "https://example.net/p"))
@@ -969,7 +971,7 @@ func TestLookupRequestable(t *testing.T) {
 
 // TestSkippedNoNetwork: an input the offline clean skips (SkipTooLong) is
 // returned unchanged and never requested, even though it looks registered:
-// requesting it would send its tracking (Q1).
+// requesting it would send its tracking.
 func TestSkippedNoNetwork(t *testing.T) {
 	n := installNet(t)
 	s := n.HandleTLS("s.example.net", rvRedirect(301, "https://example.net/p"))
@@ -1025,7 +1027,7 @@ func TestSkippedDestinationNoRequest(t *testing.T) {
 	})
 }
 
-// --- Stop (ErrNotShortLink, Q31) ---
+// --- Stop (ErrNotShortLink) ---
 
 func rvStopRegistry(t *testing.T) *Registry {
 	return rvRegistry(t,
@@ -1160,10 +1162,10 @@ func rvFallbackCase(t *testing.T, n *testNet, raw string, short, dest *testServe
 	}
 }
 
-// --- Policy, fallback outcome, request form (round 2) ---
+// --- Policy, fallback outcome, request form ---
 
 // TestPolicySkip: under Skip a Marketing entry is unregistered: a hop to it
-// is cleaned and never requested, and Match does not report it (U-1).
+// is cleaned and never requested, and Match does not report it.
 func TestPolicySkip(t *testing.T) {
 	n := installNet(t)
 	n.HandleTLS("s.example.net", rvRoutes{"/x": rvRedirect(301, "https://bit.ly/y?utm_source=a")})
@@ -1188,7 +1190,7 @@ func TestPolicySkip(t *testing.T) {
 
 // TestFallbackOutcome: an oEmbed that stalls past ResponseHeaderTimeout and
 // a Redirect fallback that answers 200 without Location are transient, not
-// a cached ErrNoRedirect; the next call requests again (U-2).
+// a cached ErrNoRedirect; the next call requests again.
 func TestFallbackOutcome(t *testing.T) {
 	n := installNet(t)
 	vm := n.HandleTLS("vm.tiktok.com", rvRoutes{"/a": rvBody("no location")})
@@ -1215,7 +1217,7 @@ func TestFallbackOutcome(t *testing.T) {
 }
 
 // TestRequestFormKey: https://t.co/x#a and HTTP://T.CO/x share one request
-// and one record, and no key holds the fragment (U-4).
+// and one record, and no key holds the fragment.
 func TestRequestFormKey(t *testing.T) {
 	n := installNet(t)
 	s := n.HandleTLS("s.example.net", rvRoutes{"/x": rvRedirect(301, "https://example.net/p")})
@@ -1243,7 +1245,7 @@ func TestRequestFormKey(t *testing.T) {
 	}
 }
 
-// --- Shared cache across policies (D4) ---
+// --- Shared cache across policies ---
 
 // TestWithCleanerShared: the keep view leaves an awin1 affiliate wrapper
 // alone (no request) while the strip view unwraps it to amzn.to and
@@ -1304,7 +1306,7 @@ func rvRemovedNames(rs []linkclean.Removal) string {
 	return strings.Join(parts, " ")
 }
 
-// --- Affiliate interplay (N2, ER-C5) ---
+// --- Affiliate interplay (N2) ---
 
 // rvFixture is one recorded hop fixture (testdata/responses/<host>/<case>.txtar).
 type rvFixture struct {
@@ -1372,8 +1374,8 @@ func (fx *rvFixture) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 // policies: tag and linkCode kept under Keep and stripped under Strip,
 // ref_ always stripped; under Strip one CatUnshortened hop from amzn.to and
 // Removed exactly tag (Amazon Associates, its ID), linkCode, ref_; the same
-// Result again from the cache. R1's shape (a /ref= path, linkCode=ml1) is
-// an extra synthetic row.
+// Result again from the cache. An Associates link with a /ref= path
+// segment and linkCode=ml1 is an extra synthetic row.
 func TestAmznToAffiliate(t *testing.T) {
 	rvRequireEntry(t, "amazon")
 	fx := rvLoadFixture(t, filepath.Join("testdata", "responses", "amzn.to", "amzn_to_affiliate.txtar"))
@@ -1444,20 +1446,20 @@ func TestAmznToAffiliate(t *testing.T) {
 		t.Errorf("cached Process differs or made a request: %+v, %v", again, err)
 	}
 
-	// R1's input shape.
+	// The /ref= path and linkCode=ml1 shape.
 	r1, err := strip.Process(context.Background(), "https://amzn.to/r1")
 	if err != nil {
 		t.Fatal(err)
 	}
 	if r1.URL != "https://www.amazon.com/dp/B0EXAMPLE" || rvRemovedNames(r1.Removed) != "/ref:path linkCode:affiliate tag:affiliate" {
-		t.Errorf("R1 strip: %q removed %s", r1.URL, rvRemovedNames(r1.Removed))
+		t.Errorf("ref= path strip: %q removed %s", r1.URL, rvRemovedNames(r1.Removed))
 	}
 	if k1 := rvMust(t, keep, "https://amzn.to/r1"); k1.URL != "https://www.amazon.com/dp/B0EXAMPLE?linkCode=ml1&tag=somecreator-20" {
-		t.Errorf("R1 keep: %q", k1.URL)
+		t.Errorf("ref= path keep: %q", k1.URL)
 	}
 }
 
-// --- Categories (MA-2) ---
+// --- Categories ---
 
 // TestCategories: every network hop is CatUnshortened from the short host;
 // a destination that unwraps offline adds its CatRedirectUnwrapped hop
