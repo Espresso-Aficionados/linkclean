@@ -9,6 +9,7 @@ package discordlink
 
 import (
 	"strings"
+	"unicode"
 	"unicode/utf8"
 )
 
@@ -171,7 +172,7 @@ func (sc *scanner) autolink(i, hi int, spoiler bool) int {
 //	<:name:id> <a:name:id>                name: [A-Za-z0-9_]+
 //	<t:ts> <t:ts:S>                       ts: -?[0-9]+, S: one of tTdDfFsSR
 //	</name:id>, with up to two more " name" parts
-//	                                      name: 1–32 of [-_A-Za-z0-9] or non-ASCII non-space
+//	                                      name: 1–32 of [-_'A-Za-z0-9], letters, numbers, Devanagari or Thai
 //	<id:customize> <id:browse> <id:guide> <id:linked-roles> <id:linked-roles:id>
 //
 // None is a link, but a mention consumes its bytes, so a '_' inside one
@@ -264,8 +265,7 @@ func (sc *scanner) emoji(j, hi int) int {
 }
 
 // slash matches a slash command's name parts and :id, up to the '>'.
-// Discord's names are [-_\p{L}\p{N}]{1,32}; without the unicode tables any
-// non-ASCII rune that is not whitespace stands in for \p{L} and \p{N}.
+// Discord's names are [-_'\p{L}\p{N}\p{sc=Deva}\p{sc=Thai}]{1,32}.
 func (sc *scanner) slash(j, hi int) int {
 	x := sc.x
 	s := x.s
@@ -277,10 +277,10 @@ func (sc *scanner) slash(j, hi int) int {
 			if b >= utf8.RuneSelf {
 				var r rune
 				r, n = utf8.DecodeRuneInString(s[j:hi])
-				if isJSSpace(r) {
+				if !isNameRune(r) {
 					break
 				}
-			} else if !isWord(b) && b != '-' {
+			} else if !isWord(b) && b != '-' && b != '\'' {
 				break
 			}
 			j += n
@@ -300,6 +300,13 @@ func (sc *scanner) slash(j, hi int) int {
 		return -1
 	}
 	return sc.digits(j+1, hi)
+}
+
+// isNameRune reports whether the non-ASCII rune r may appear in a slash
+// command name: a letter, a number, or a Devanagari or Thai code point. An
+// invalid byte (utf8.RuneError) is none of these.
+func isNameRune(r rune) bool {
+	return r != utf8.RuneError && (unicode.IsLetter(r) || unicode.IsNumber(r) || unicode.Is(unicode.Devanagari, r) || unicode.Is(unicode.Thai, r))
 }
 
 // pairClose finds the closer of a doubled-delimiter rule at i, where

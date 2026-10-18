@@ -18,6 +18,7 @@ var allowedImports = []string{
 	"strings",
 	"sync",
 	"sync/atomic",
+	"unicode",
 	"unicode/utf8",
 	"github.com/Espresso-Aficionados/linkclean",
 }
