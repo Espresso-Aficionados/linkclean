@@ -8,6 +8,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 )
@@ -91,8 +92,9 @@ type target struct {
 
 // preflight checks the token's user is a bot and the channel is a private
 // text channel of the guild: its @everyone overwrite (role ID == guild ID)
-// denies View Channel.
-func preflight(ctx context.Context, c *client, guildID, channelID string) (target, error) {
+// denies View Channel, and every other overwrite that allows View Channel
+// is the bot's own member overwrite or names an ID in allow.
+func preflight(ctx context.Context, c *client, guildID, channelID string, allow []string) (target, error) {
 	var me user
 	if err := c.do(ctx, "GET", "/users/@me", nil, &me); err != nil {
 		return target{}, fmt.Errorf("preflight: %w", err)
@@ -121,6 +123,22 @@ func preflight(ctx context.Context, c *client, guildID, channelID string) (targe
 	}
 	if !private {
 		return target{}, errors.New("preflight: the channel's @everyone overwrite does not deny View Channel; use a private channel")
+	}
+	for _, o := range ch.Overwrites {
+		if o.ID == guildID && o.Type == 0 || o.ID == me.ID && o.Type == 1 || slices.Contains(allow, o.ID) {
+			continue
+		}
+		kind := "role"
+		if o.Type != 0 {
+			kind = "member"
+		}
+		a, err := strconv.ParseUint(o.Allow, 10, 64)
+		switch {
+		case err != nil:
+			return target{}, fmt.Errorf("preflight: the channel's %s overwrite %s has an unreadable allow", kind, printable(o.ID))
+		case a&viewChannel != 0:
+			return target{}, fmt.Errorf("preflight: the channel's %s overwrite %s allows View Channel; remove it, or pass -allow %s if only you hold it", kind, printable(o.ID), printable(o.ID))
+		}
 	}
 	var g guild
 	if err := c.do(ctx, "GET", "/guilds/"+guildID, nil, &g); err != nil {

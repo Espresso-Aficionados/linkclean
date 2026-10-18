@@ -26,6 +26,8 @@ const (
 	testGuild   = "100000000000000001"
 	testChannel = "100000000000000002"
 	testBot     = "100000000000000003"
+	testRole    = "100000000000000004"
+	testUser    = "100000000000000005"
 	testToken   = "test-token.not-a-real-one_42"
 	testName    = "harness-test"
 	testBotName = "harness-bot"
@@ -496,6 +498,15 @@ func TestPreflightRefuses(t *testing.T) {
 		{"another role denied", func(f *fakeDiscord) { f.ch.Overwrites[0].ID = "100000000000000008" }, "does not deny View Channel"},
 		{"member overwrite", func(f *fakeDiscord) { f.ch.Overwrites[0].Type = 1 }, "does not deny View Channel"},
 		{"bad deny", func(f *fakeDiscord) { f.ch.Overwrites[0].Deny = "x" }, "does not deny View Channel"},
+		{"role allows view", func(f *fakeDiscord) {
+			f.ch.Overwrites = append(f.ch.Overwrites, overwrite{ID: testRole, Type: 0, Allow: "1024", Deny: "0"})
+		}, "allows View Channel"},
+		{"member allows view", func(f *fakeDiscord) {
+			f.ch.Overwrites = append(f.ch.Overwrites, overwrite{ID: testUser, Type: 1, Allow: "3072", Deny: "0"})
+		}, "allows View Channel"},
+		{"bad allow", func(f *fakeDiscord) {
+			f.ch.Overwrites = append(f.ch.Overwrites, overwrite{ID: testRole, Type: 0, Allow: "x", Deny: "0"})
+		}, "unreadable allow"},
 		{"guild mismatch", func(f *fakeDiscord) { f.g.ID = "100000000000000009" }, "another guild"},
 	} {
 		t.Run(c.name, func(t *testing.T) {
@@ -506,6 +517,33 @@ func TestPreflightRefuses(t *testing.T) {
 			}
 			if n := h.f.count("POST"); n != 0 || h.prompt.Len() != 0 {
 				t.Errorf("%d POSTs, prompt %q after a failed preflight", n, h.prompt)
+			}
+			h.checkNoLeaks(t)
+		})
+	}
+}
+
+// TestPreflightAllows checks the View Channel allows the preflight accepts:
+// the bot's own, and those -allow names.
+func TestPreflightAllows(t *testing.T) {
+	for _, c := range []struct {
+		name  string
+		extra []string
+		ow    overwrite
+	}{
+		{"bot member", nil, overwrite{ID: testBot, Type: 1, Allow: "1024", Deny: "0"}},
+		{"allowed role", []string{"-allow", testRole}, overwrite{ID: testRole, Type: 0, Allow: "1024", Deny: "0"}},
+		{"allowed member", []string{"-allow", testRole + "," + testUser}, overwrite{ID: testUser, Type: 1, Allow: "1024", Deny: "0"}},
+		{"role without view", nil, overwrite{ID: testRole, Type: 0, Allow: "2048", Deny: "0"}},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			h := newHarness(t, testName+"\n")
+			h.f.ch.Overwrites = append(h.f.ch.Overwrites, c.ow)
+			if code := h.run(append(h.sendArgs(t, "grammar"), c.extra...)...); code != exitOK {
+				t.Errorf("exit %d, stderr %q", code, h.stderr)
+			}
+			if h.f.count("POST") == 0 {
+				t.Error("nothing sent")
 			}
 			h.checkNoLeaks(t)
 		})

@@ -48,7 +48,11 @@ You need, once:
    intents: the harness only uses REST.
 2. **A private text channel** in a server (guild) you control. Deny
    `@everyone` the **View Channel** permission on the channel; the sender
-   refuses any channel whose `@everyone` overwrite does not deny it.
+   refuses any channel whose `@everyone` overwrite does not deny it. It also
+   refuses a channel where any other role or member overwrite allows View
+   Channel, except the bot's own member overwrite and the IDs you pass with
+   `-allow` (comma-separated: yourself, or a role only you and the bot
+   hold). Server owners and administrators see the channel regardless.
 3. **The bot's permissions in that channel:** View Channel, Send Messages,
    Read Message History and Embed Links (the unfurl cases need it). Not
    Manage Messages: a bot can delete its own messages without it.
@@ -89,7 +93,8 @@ The sender then:
 1. checks the token file and `-out`;
 2. runs the preflight: `GET /users/@me` must be a bot, and
    `GET /channels/<channel ID>` must be a text channel of `-guild` whose
-   `@everyone` overwrite denies View Channel;
+   `@everyone` overwrite denies View Channel and whose other overwrites
+   allow View Channel only to the bot and to `-allow`;
 3. shows the bot, server, channel and message count, and waits for you to
    type the channel name;
 4. sends each case to `-channel` only, at least 1.2 s apart, honouring

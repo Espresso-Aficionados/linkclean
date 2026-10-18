@@ -185,9 +185,10 @@ type user struct {
 }
 
 type overwrite struct {
-	ID   string `json:"id"`
-	Type int    `json:"type"` // 0 role, 1 member
-	Deny string `json:"deny"`
+	ID    string `json:"id"`
+	Type  int    `json:"type"` // 0 role, 1 member
+	Allow string `json:"allow"`
+	Deny  string `json:"deny"`
 }
 
 type channel struct {

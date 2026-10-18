@@ -20,7 +20,8 @@
 //     redirects are refused.
 //   - Preflight: GET /users/@me must be a bot, and GET /channels/<id> must be
 //     a text channel of -guild whose @everyone overwrite denies View
-//     Channel.
+//     Channel and whose other overwrites allow View Channel only to the bot
+//     itself and to the role and member IDs passed with -allow.
 //   - The bot, guild, channel and message count are shown on /dev/tty and
 //     the channel name must be typed back; without a terminal it refuses.
 //   - Messages go only to -channel, at least 1.2 s apart, honouring 429
@@ -105,6 +106,7 @@ func main() {
 type options struct {
 	payloads, tokenFile, guild, channel, phase, out string
 	cleanup                                         bool
+	allow                                           []string // role and member IDs that may hold View Channel
 }
 
 var snowflake = regexp.MustCompile(`^[0-9]{15,21}$`)
@@ -122,10 +124,20 @@ func parseFlags(args []string, stderr io.Writer) (options, error) {
 	fs.StringVar(&o.phase, "phase", "", "grammar, reply, bidi or all")
 	fs.StringVar(&o.out, "out", "", "output directory for run.json and observations.md (absolute, outside any git work tree)")
 	fs.BoolVar(&o.cleanup, "cleanup", false, "delete the messages recorded in -out's run.json instead of sending")
+	allow := fs.String("allow", "", "comma-separated role or member IDs whose View Channel allow on -channel you accept (only you, or a role only you hold)")
 	if err := fs.Parse(args); err != nil {
 		return o, err
 	}
 	var errs []error
+	if *allow != "" {
+		for _, id := range strings.Split(*allow, ",") {
+			if !snowflake.MatchString(id) {
+				errs = append(errs, errors.New("-allow: want comma-separated numeric IDs"))
+				break
+			}
+			o.allow = append(o.allow, id)
+		}
+	}
 	if fs.NArg() > 0 {
 		errs = append(errs, fmt.Errorf("unexpected arguments %q", fs.Args()))
 	}
@@ -192,11 +204,11 @@ func prepare(ctx context.Context, e *env, o options, token *string) (*client, ta
 	}
 	*token = t
 	c := newClient(e, t)
-	tg, err := preflight(ctx, c, o.guild, o.channel)
+	tg, err := preflight(ctx, c, o.guild, o.channel, o.allow)
 	if err != nil {
 		return nil, target{}, err
 	}
-	fmt.Fprintf(e.stdout, "preflight ok: bot %q, guild %q, channel #%s (private: @everyone is denied View Channel)\n", tg.botName, tg.guildName, printable(tg.channelName))
+	fmt.Fprintf(e.stdout, "preflight ok: bot %q, guild %q, channel #%s (private: @everyone is denied View Channel, and only the bot and -allow are allowed it)\n", tg.botName, tg.guildName, printable(tg.channelName))
 	return c, tg, nil
 }
 
