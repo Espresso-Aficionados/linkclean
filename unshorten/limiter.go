@@ -44,6 +44,8 @@ func NewHostLimiter(perSecond float64, burst int) Limiter {
 		interval: interval,
 		window:   window,
 		tat:      map[string]time.Time{},
+		started:  map[string]time.Time{},
+		sleeping: map[string][]time.Time{},
 		pruneAt:  limiterPruneAt,
 	}
 }
@@ -59,13 +61,19 @@ var errLimitDeadline = errors.New("unshorten: rate limit: next request slot is p
 // host. tat is each host's theoretical arrival time: the end of its
 // committed schedule. A request commits tat' = max(tat, now) + interval and
 // may start at tat' − window, where window = burst × interval.
+//
+// A cancelled sleeping Wait gives its slot back without moving a later
+// sleeper's start: tat becomes the latest schedule end still standing,
+// that of the last sleeping Wait or else of the last Wait that started.
 type hostLimiter struct {
 	interval time.Duration
 	window   time.Duration
 
-	mu      sync.Mutex
-	tat     map[string]time.Time
-	pruneAt int // prune when len(tat) exceeds it; grows with the live set, so pruning stays amortized O(1)
+	mu       sync.Mutex
+	tat      map[string]time.Time
+	started  map[string]time.Time   // the schedule end the host's last started Wait committed
+	sleeping map[string][]time.Time // the schedule ends the host's sleeping Waits committed, in commit order; no entry when none sleeps
+	pruneAt  int                    // prune when len(tat) exceeds it; grows with the live set, so pruning stays amortized O(1)
 }
 
 func (l *hostLimiter) Wait(ctx context.Context, host string) error {
@@ -85,6 +93,7 @@ func (l *hostLimiter) Wait(ctx context.Context, host string) error {
 	delay := tat.Sub(now) - (l.window - l.interval)
 	if delay <= 0 {
 		l.commit(host, next, now, ok)
+		l.started[host] = next
 		l.mu.Unlock()
 		return nil
 	}
@@ -94,29 +103,56 @@ func (l *hostLimiter) Wait(ctx context.Context, host string) error {
 		return errLimitDeadline // nothing committed
 	}
 	l.commit(host, next, now, ok)
+	l.sleeping[host] = append(l.sleeping[host], next)
 	l.mu.Unlock()
 
 	timer := time.NewTimer(delay)
 	defer timer.Stop()
 	select {
 	case <-timer.C:
+		l.mu.Lock()
+		l.wake(host, next)
+		if _, ok := l.tat[host]; ok { // a pruned host keeps no state
+			l.started[host] = maxTime(l.started[host], next)
+		}
+		l.mu.Unlock()
 		return nil
 	case <-ctx.Done():
-		// Give the slot back if it is still the last one committed, as
-		// x/time/rate restores a cancelled reservation's tokens less those
-		// reserved after it: a later waiter keeps its start time, so
-		// returning an earlier slot would let one request too many start
-		// within the burst window. A later waiter that is itself cancelled
-		// first gives its slot back, and then this one can too. The
-		// schedule never moves into the past.
-		now := time.Now()
+		// Give the slot back. A later sleeper keeps its start time, so
+		// while one sleeps the schedule still ends at its slot (an earlier
+		// slot handed out again would let one request too many start
+		// within the burst window). Once the last sleeper is cancelled the
+		// schedule ends where the last started Wait left it: Waits
+		// cancelled in any order leave no debt.
 		l.mu.Lock()
+		l.wake(host, next)
 		if t, ok := l.tat[host]; ok && t.Equal(next) {
-			l.tat[host] = maxTime(t.Add(-l.interval), now)
+			end := l.started[host]
+			if s := l.sleeping[host]; len(s) > 0 {
+				end = maxTime(end, s[len(s)-1])
+			}
+			l.tat[host] = end
 		}
 		l.mu.Unlock()
 		return ctx.Err()
 	}
+}
+
+// wake removes the sleeping Wait that committed next from host's list.
+// l.mu is held.
+func (l *hostLimiter) wake(host string, next time.Time) {
+	s := l.sleeping[host]
+	for i, t := range s {
+		if t.Equal(next) {
+			s = append(s[:i], s[i+1:]...)
+			break
+		}
+	}
+	if len(s) == 0 {
+		delete(l.sleeping, host)
+		return
+	}
+	l.sleeping[host] = s
 }
 
 // commit records host's new schedule end, pruning first when a new host
@@ -124,8 +160,9 @@ func (l *hostLimiter) Wait(ctx context.Context, host string) error {
 func (l *hostLimiter) commit(host string, tat, now time.Time, existed bool) {
 	if !existed && len(l.tat) >= l.pruneAt {
 		for h, t := range l.tat {
-			if !t.After(now) {
+			if !t.After(now) { // no Wait of h sleeps: its slot would end after now
 				delete(l.tat, h)
+				delete(l.started, h)
 			}
 		}
 		l.pruneAt = max(limiterPruneAt, 2*len(l.tat))

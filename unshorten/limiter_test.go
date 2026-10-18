@@ -170,6 +170,73 @@ func TestHostLimiterCancelReturnsToken(t *testing.T) {
 	})
 }
 
+// TestHostLimiterCancelFIFO: sleeping Waits cancelled oldest first, as
+// callers with equal timeouts are, give every slot back once the last one
+// is cancelled, so the host's schedule is not left in debt; while a later
+// one still sleeps it keeps its start time.
+func TestHostLimiterCancelFIFO(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		l := NewHostLimiter(1, 1)
+		waitFor(t, l, "t.co") // the schedule now ends 1s ahead
+		type waiter struct {
+			cancel context.CancelFunc
+			done   chan error
+		}
+		var ws []waiter
+		for range 5 { // slots at +1s … +5s
+			ctx, cancel := context.WithCancel(context.Background())
+			w := waiter{cancel, make(chan error, 1)}
+			go func() { w.done <- l.Wait(ctx, "t.co") }()
+			synctest.Wait()
+			ws = append(ws, w)
+		}
+		for _, w := range ws[:4] {
+			w.cancel()
+			if err := <-w.done; !errors.Is(err, context.Canceled) {
+				t.Fatalf("cancelled Wait = %v", err)
+			}
+		}
+		// The fifth still sleeps until its +5s slot; a new request queues
+		// behind it.
+		next := time.Now()
+		ok := make(chan error, 1)
+		go func() { ok <- l.Wait(context.Background(), "t.co") }()
+		synctest.Wait()
+		ws[4].cancel()
+		if err := <-ws[4].done; !errors.Is(err, context.Canceled) {
+			t.Fatalf("cancelled Wait = %v", err)
+		}
+		if err := <-ok; err != nil {
+			t.Fatal(err)
+		}
+		if d := time.Since(next); d != 6*time.Second {
+			t.Errorf("the request queued behind the fifth started after %v, want its 6s slot", d)
+		}
+
+		// Again with nothing queued behind: once all five are cancelled the
+		// next request waits only for the one slot granted before them.
+		time.Sleep(time.Hour)
+		waitFor(t, l, "t.co")
+		ws = ws[:0]
+		for range 5 {
+			ctx, cancel := context.WithCancel(context.Background())
+			w := waiter{cancel, make(chan error, 1)}
+			go func() { w.done <- l.Wait(ctx, "t.co") }()
+			synctest.Wait()
+			ws = append(ws, w)
+		}
+		for _, w := range ws {
+			w.cancel()
+			if err := <-w.done; !errors.Is(err, context.Canceled) {
+				t.Fatalf("cancelled Wait = %v", err)
+			}
+		}
+		if d := waitFor(t, l, "t.co"); d != time.Second {
+			t.Errorf("after FIFO cancels the next request waited %v, want 1s (every slot back)", d)
+		}
+	})
+}
+
 // TestHostLimiterConcurrent: many goroutines on one host; exactly burst of
 // them pass without waiting, and the rest are spaced by the interval. Run it
 // under -race.
