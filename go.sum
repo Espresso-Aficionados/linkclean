@@ -1,3 +1,7 @@
+code.dny.dev/ssrf v0.3.0 h1:QDbeKauc3vR5/w9TwlhVYAQwK15cECL7sHkCUUT55ms=
+code.dny.dev/ssrf v0.3.0/go.mod h1:5thKUcQNqSxzz5TVBRkvHZOGmfRM3vI+WU2GGx9xUbw=
+github.com/google/go-cmp v0.5.9 h1:O2Tfq5qg4qc4AmwVlvv0oLiVAGB7enBSJ2x2DqQFi38=
+github.com/google/go-cmp v0.5.9/go.mod h1:17dUlkBOakJ0+DkrSSNjCkIjxS6bF9zb3elmeNGIjoY=
 golang.org/x/net v0.61.0 h1:RR+6j/BTBCrggOLugxa+66R8FvoN6MHlzDlZIbN9YFw=
 golang.org/x/net v0.61.0/go.mod h1:WgDCOTH8iwtB66T4/GfI94AHo/hhdb7Hah9NDseQfiI=
 golang.org/x/text v0.43.0 h1:1QivrlhwAsnMOcqgOdl9my7s9OyZl8O5/UGUTJVXoWc=
