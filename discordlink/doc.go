@@ -11,9 +11,23 @@
 //
 // # Nesting limit
 //
-// TODO(m3): the depth cap, the Spoiler rule at the cap, trailing delimiter
-// bytes in capped spans, and every cap row whose answer differs from the
-// uncapped grammar.
+// Spoilers, strong, em, underline and strikethrough nest at most 16 deep:
+// inside 16 of them, Find does not try them again. Discord has no such
+// limit, but a run of '*' or '_' nests about half its length deep, and
+// without a limit the scan would be quadratic in the length of such runs.
+// In a span at the limit:
+//   - escapes, code, autolinks, mentions, masked links and bare links are
+//     still found;
+//   - every link has Spoiler set if an enclosing span is a spoiler or the
+//     span contains "||", so a link Discord would hide is never reported as
+//     visible (one it shows can be reported as spoilered);
+//   - a link can take in trailing delimiters that Discord would parse as
+//     closers, as in https://a.com/x|| or https://a.com/x**.
+//
+// The inputs that reach the limit are long delimiter runs, such as 34 or
+// more '*' on each side of a link. Those runs pair among themselves, not
+// around the link, so Find reports the same links for them as the grammar
+// without a limit.
 //
 // # Unverified grammar
 //

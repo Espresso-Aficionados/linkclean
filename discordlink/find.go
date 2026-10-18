@@ -23,6 +23,8 @@ const maxDepth = 16
 // at most 16 deep (see Nesting limit). Schemeless text is never a link. Find
 // never panics, on any input, and runs in O(len(content) × nesting depth):
 // closers are found through next-occurrence tables, never by rescanning (§8).
+// Content of 2 GiB or more (over 200 MiB on 32-bit platforms) is not
+// scanned and yields no links.
 func Find(content string) []Link {
 	links, _, _, _ := findSteps(content, 0)
 	return links
@@ -33,7 +35,13 @@ func Find(content string) []Link {
 // meaningless); steps counts every loop iteration and rescans every
 // non-monotone cursor query. Find == findSteps(content, 0).
 func findSteps(content string, budget int) (links []Link, steps, rescans int, aborted bool) {
-	x := &index{s: content, budget: budget}
+	// Every link contains "http://" or "https://".
+	nh := strings.Count(content, "http")
+	if nh == 0 || len(content) > maxContent {
+		return nil, 0, 0, false
+	}
+	x := &index{s: content, budget: budget, nhttp: nh}
+	x.prepare()
 	sc := scanner{x: x}
 	sc.scan(0, len(content), false, 0)
 	return sc.out, x.steps, x.rescans, x.over()
@@ -47,33 +55,84 @@ type scanner struct {
 	span int32
 }
 
+// ruleStart marks the bytes that can start a rule Find models. The text
+// rule stops before every ASCII punctuation byte and before every \w+:\S, so
+// each of these is a token boundary wherever the scan meets it, and trying
+// the rules at every byte is exact.
+var ruleStart = [256]bool{'\\': true, '`': true, '<': true, '[': true, '|': true, '*': true, '_': true, '~': true, 'h': true}
+
 // scan scans the span [lo, hi) at nesting depth depth; spoiler reports
-// whether an enclosing span is a spoiler.
-//
-// This body is a placeholder for the full grammar: it knows only bare links
-// and ||spoilers||, so it agrees with Find's contract on content made of
-// plain text, whitespace-separated bare http(s) links ending in a letter,
-// digit or '/', and ||…|| spans with no other markup characters.
+// whether an enclosing span is a spoiler. A parent skips the spans it
+// recurses into, so every byte is scanned by exactly one span loop.
 func (sc *scanner) scan(lo, hi int, spoiler bool, depth int) {
-	s := sc.x.s
-	for i := lo; i < hi && !sc.x.over(); {
-		sc.x.steps++
-		if s[i] == '|' && i+1 < hi && s[i+1] == '|' && depth < maxDepth {
-			if c := strings.Index(s[min(i+3, hi):hi], "||"); c >= 0 {
-				c += min(i+3, hi)
-				sc.span++
-				sc.scan(i+2, c, true, depth+1)
-				i = c + 2
-				continue
-			}
-		}
-		if s[i] == 'h' {
-			if e := bareEnd(s, i, hi); e >= 0 {
-				sc.out = append(sc.out, Link{URL: s[i:e], Start: i, End: e, Kind: Bare, Spoiler: spoiler})
-				i = e
-				continue
-			}
-		}
-		i++
+	x := sc.x
+	s := x.s
+	x.spans++
+	sc.span = x.spans
+	span := sc.span
+	capped := depth >= maxDepth
+	if capped && !spoiler {
+		// At the cap, paired rules are not tried. A link in a capped span
+		// that contains "||" might be inside a spoiler Discord would
+		// parse, so it is reported as spoilered. Capped spans are
+		// disjoint, so this costs O(n) in total.
+		x.steps += hi - lo
+		spoiler = strings.Contains(s[lo:hi], "||")
 	}
+	for i := lo; i < hi; {
+		if x.over() {
+			return
+		}
+		x.steps++
+		b := s[i]
+		if !ruleStart[b] {
+			i++
+			for i < hi && !ruleStart[s[i]] {
+				i++
+				x.steps++
+			}
+			continue
+		}
+		switch b {
+		case '\\':
+			i = sc.escape(i, hi)
+		case '`':
+			i = sc.code(i, hi)
+		case '<':
+			i = sc.angle(i, hi, spoiler)
+		case '[':
+			i = sc.masked(i, hi, spoiler)
+		case 'h':
+			e := bareEnd(s, i, hi)
+			if e < 0 {
+				i++
+				continue
+			}
+			x.steps += e - i
+			sc.emit(Link{URL: s[i:e], Start: i, End: e, Kind: Bare, Spoiler: spoiler})
+			i = e
+		default: // '|', '*', '_', '~'
+			if capped {
+				i++
+				continue
+			}
+			lo2, hi2, end := sc.paired(i, hi)
+			if end < 0 {
+				i++
+				continue
+			}
+			sc.scan(lo2, hi2, spoiler || b == '|', depth+1)
+			sc.span = span
+			i = end
+		}
+	}
+}
+
+// emit appends l to the output. The first append sizes the slice by the
+// number of "http" occurrences, capped, so a typical message allocates once.
+func (sc *scanner) emit(l Link) {
+	if sc.out == nil {
+		sc.out = make([]Link, 0, min(sc.x.nhttp, 64))
+	}
+	sc.out = append(sc.out, l)
 }
