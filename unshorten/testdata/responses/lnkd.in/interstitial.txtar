@@ -1,0 +1,26 @@
+# lnkd.in interstitial. capture 2026-10-15, by hand before the livenet suite
+# existed; scrubbed by hand (TOKENn only; the destination, a third-party
+# page, rewritten to example.net with its path shape kept). Only the body
+# was captured: the status and Content-Type are assumed. The body is an
+# excerpt around the destination anchor; replay pads it to body_len.
+-- meta.json --
+{"entry":"lnkd.in","strategy":"BodyRegexp","request":"https://lnkd.in/TOKEN1",
+ "expect":{"next":"https://example.net/preprints/2026/TOKEN2/","failure":"none","status":0},
+ "set_cookie":false,"body":"excerpt","body_len":5225}
+-- response --
+HTTP/1.1 200
+Content-Type: text/html; charset=utf-8
+-- body --
+      <icon class="nav-logo--inbug flex text-color-brand
+           linkedin-logo mb4" data-svg-class-name="h-[34px] w-[34px] babybear:h-[26px] babybear:w-[26px]" data-delayed-url="https://static.licdn.com/aero-v1/sc/h/4zqr0f9jf98vi2nkijyc3bex2"></icon>
+<!---->  
+            <h1 class="t-24 t-bold t-black mb2">This link will take you to a page that’s not on LinkedIn</h1>
+            <h2 class="t-16 t-black mb3">Because this is an external link, we’re unable to verify it for safety.</h2>
+            <a class="artdeco-button artdeco-button--tertiary" data-tracking-control-name="external_url_click" data-tracking-will-navigate href="https://example.net/preprints/2026/TOKEN2/">
+                https://example.net/preprints/2026/TOKEN2/
+            </a>
+            <p class="t-16 t-black--light hidden" id="browser-support-message">This experience is optimized for Chrome, Edge, and Safari</p>
+        </main>
+        <footer>
+            <span class="t-14 t-black--light">Have questions?</span>
+            <a class="t-14 artdeco-button artdeco-button--tertiary" data-tracking-control-name="learn_more_click" data-tracking-will-navigate href="https://www.linkedin.com/help/linkedin/answer/a1341680?trk=in_page_learn_more_click" target="_blank">

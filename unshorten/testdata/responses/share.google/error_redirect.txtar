@@ -1,0 +1,13 @@
+# share.google error_redirect. capture 2026-10-15, by hand before the livenet
+# suite existed; scrubbed by hand (TOKENn only). Only the body was captured:
+# the status and Location are read from it ("301 Moved", its HREF), and
+# Content-Type from its meta tag.
+-- meta.json --
+{"entry":"share.google","strategy":"Redirect","request":"https://share.google/TOKEN1",
+ "expect":{"next":"https://share.google/error","failure":"none","status":301},
+ "set_cookie":false,"body":"none","body_len":223}
+-- response --
+HTTP/1.1 301
+Location: https://share.google/error
+Content-Type: text/html; charset=utf-8
+-- body --

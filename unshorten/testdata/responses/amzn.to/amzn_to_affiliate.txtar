@@ -1,0 +1,14 @@
+# amzn.to amzn_to_affiliate. synthetic: no live capture. An amzn.to link
+# needs an Amazon Associates account, so this positive is written by hand
+# in the shape of a 301 to a product page, with network row N2's
+# destination. The live check uses a link already public, kept outside the
+# repository; the invalid-code fixture is recorded live.
+-- meta.json --
+{"entry":"amazon","strategy":"Redirect","request":"https://amzn.to/TOKEN1",
+ "expect":{"next":"https://www.amazon.com/dp/B0?tag=aff-20&linkCode=ll1&ref_=as_li","failure":"none","status":301},
+ "set_cookie":true,"body":"none","body_len":0}
+-- response --
+HTTP/1.1 301
+Location: https://www.amazon.com/dp/B0?tag=aff-20&linkCode=ll1&ref_=as_li
+Content-Type: text/html; charset=UTF-8
+-- body --

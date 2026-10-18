@@ -1,0 +1,37 @@
+# tinyurl.com preview. capture 2026-10-15, by hand before the livenet suite
+# existed; scrubbed by hand (TOKENn only; the alias and the script nonce).
+# Only the body was captured: the status and Content-Type are assumed. The
+# body is an excerpt around the long-link anchor; replay pads it to
+# body_len. tinyurl is not in DefaultRegistry: the entry is the one the
+# package doc's "Not registered by default" section shows.
+-- meta.json --
+{"entry":"tinyurl","strategy":"TinyURLPreview","request":"https://tinyurl.com/TOKEN1",
+ "fetch":"https://tinyurl.com/preview/TOKEN1",
+ "expect":{"next":"https://www.example.com","failure":"none","status":0},
+ "set_cookie":false,"body":"excerpt","body_len":30277}
+-- response --
+HTTP/1.1 200
+Content-Type: text/html; charset=utf-8
+-- body --
+                            src="https://icons.duckduckgo.com/ip3/www.example.com.ico" />
+                    </div>
+                    <script nonce="TOKEN2">
+                        document.getElementById('favicon-img').onerror = function() {
+                            this.src = 'https://tinyurl.com/images/external/favicon.png';
+                        };
+                    </script>
+                    <a id="long-link" href="https://www.example.com"
+                        class="text-3xl font-weight-bold text-blue ml-2 break-all _preview-destination" target="_blank">
+                        https://www.example.com
+                    </a>
+                </div>
+            </div>
+                <p class="text-center _preview-status-note">
+            You currently have the preview feature <b id="preview-status" class="_preview-status">d</b>.
+            <a id="preview-link" class="_preview-toggle" href="/"></a>
+        </p>
+        <p class="text-center _preview-warning" id="preview-warning">
+            The preview feature requires cookies to be enabled in your web browser.
+        </p>
+        <div class="my-4">&nbsp;</div>
+

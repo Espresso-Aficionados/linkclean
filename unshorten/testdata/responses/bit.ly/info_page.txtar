@@ -1,0 +1,48 @@
+# bit.ly info_page. capture 2026-10-15, by hand before the livenet suite
+# existed; scrubbed by hand (TOKENn only; the destination, a third party's
+# campaign link, rewritten to example.net with its path and query shape
+# kept). Only the body was captured: the status and Content-Type are
+# assumed. The body is an excerpt around the destination anchor; replay
+# pads it to body_len. bit.ly is not in DefaultRegistry: the entry is the
+# one the package doc's "Not registered by default" section shows.
+-- meta.json --
+{"entry":"bit.ly","strategy":"BitlyInfo","request":"https://bit.ly/TOKEN1",
+ "fetch":"https://bit.ly/TOKEN1+",
+ "expect":{"next":"https://example.net/SMSTrackingClick?destinationURL=https://example.net/churner-sms?cid=TOKEN2&PersonContactId=TOKEN2&SMSname=TOKEN3&id=TOKEN4","failure":"none","status":0},
+ "set_cookie":false,"body":"excerpt","body_len":15311}
+-- response --
+HTTP/1.1 200
+Content-Type: text/html; charset=utf-8
+-- body --
+              <title data-i18n="infoPlus.iconTitle">Icon</title>
+              <path fill="none" d="M0 0h24v24H0z"></path>
+              <path d="M6.99 11L3 15l3.99 4v-3H14v-2H6.99v-3zM21 9l-3.99-4v3H10v2h7.01v3L21 9z"></path>
+            </svg>
+          </span>
+          <div class="bitlink--destination-text">
+            <span class="bitlink-item-label" data-i18n="infoPlus.textDestinationsHeader">Destinations</span>
+            
+            <ul>
+              <li>
+                <a class="item-detail--url"
+                  href="https://example.net/SMSTrackingClick?destinationURL=https://example.net/churner-sms?cid=TOKEN2&amp;PersonContactId=TOKEN2&amp;SMSname=TOKEN3&amp;id=TOKEN4"
+                  title="https://example.net/SMSTrackingClick?destinationURL=https://example.net/churner-sms?cid=TOKEN2&amp;PersonContactId=TOKEN2&amp;SMSname=TOKEN3&amp;id=TOKEN4"
+                  target="_blank"
+                  rel="noopener noreferrer">
+                  https://example.net/SMSTrackingClick?destinationURL=https://example.net/churner-sms?cid=TOKEN2&amp;PersonContactId=TOKEN2&amp;SMSname=TOKEN3&amp;id=TOKEN4
+                </a>
+              </li>
+              
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="empty-state--CONFIDENTIAL">
+      <div class="empty-state--gradient-wrapper">
+        <div
+          class="empty-state--text"
+          data-i18n="[html]infoPlus.textLinkYouCreated"
+          data-i18n-options='{
+            "appLink": "https://app.bitly.com/default/bitlinks/TOKEN1",
+            "class": "help-center-link",
