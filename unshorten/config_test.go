@@ -65,9 +65,16 @@ func TestUserAgent(t *testing.T) {
 }
 
 // TestNewConfigErrors: New rejects a negative count or duration, an unknown
-// GenericPolicy and a UserAgent with CR, LF or NUL, naming each field, all
-// in one joined error. No request is made.
+// GenericPolicy and a UserAgent net/http would refuse to send (a control
+// byte other than tab), naming each field, all in one joined error. No
+// request is made.
 func TestNewConfigErrors(t *testing.T) {
+	// Accepted: a tab and non-ASCII bytes, which net/http sends.
+	for _, ua := range []string{"bot/1\t(x)", "bot/1 caf\xc3\xa9"} {
+		if _, err := resolveConfig(Config{UserAgent: ua}); err != nil {
+			t.Errorf("UserAgent %q: %v", ua, err)
+		}
+	}
 	for _, tc := range []struct {
 		cfg    Config
 		fields []string
@@ -83,6 +90,9 @@ func TestNewConfigErrors(t *testing.T) {
 		{Config{Generic: Skip + 1}, []string{"Config.Generic"}},
 		{Config{UserAgent: "bot\r\nX-Evil: 1"}, []string{"Config.UserAgent"}},
 		{Config{UserAgent: "bot\x00"}, []string{"Config.UserAgent"}},
+		{Config{UserAgent: "x\x01y"}, []string{"Config.UserAgent"}},
+		{Config{UserAgent: "x\x1fy"}, []string{"Config.UserAgent"}},
+		{Config{UserAgent: "x\x7fy"}, []string{"Config.UserAgent"}},
 		{Config{MaxHops: -1, Timeout: -1, UserAgent: "a\nb"}, []string{"Config.MaxHops", "Config.Timeout", "Config.UserAgent"}},
 	} {
 		r, err := New(tc.cfg)

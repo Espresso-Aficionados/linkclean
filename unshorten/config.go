@@ -6,7 +6,6 @@ import (
 	"log/slog"
 	"net/http"
 	"runtime/debug"
-	"strings"
 	"sync"
 	"time"
 
@@ -68,8 +67,9 @@ type Config struct {
 	PositiveTTL        time.Duration // per successful hop; 0 means 24h
 	NegativeTTL        time.Duration // per definitive failure; 0 means 10m; transient failures are never cached
 	// UserAgent: "" means "linkclean/<module version>
-	// (+https://github.com/Espresso-Aficionados/linkclean)". One containing CR,
-	// LF or NUL is an error.
+	// (+https://github.com/Espresso-Aficionados/linkclean)". One containing a
+	// control character other than tab (CR, LF, NUL, …), which net/http
+	// would refuse to send, is an error.
 	UserAgent string
 	// OnRequest is called after every outbound request: once per Fetcher.Get
 	// that reached the transport (a dial failure counts), never for a Fetcher
@@ -136,9 +136,9 @@ const (
 )
 
 // resolveConfig fills cfg's scalar defaults and validates them: a negative
-// count or duration, an unknown GenericPolicy, or a UserAgent with CR, LF or
-// NUL is an error; MaxHops above 5 becomes 5. The Cleaner, Transport,
-// Logger, Registry, Cache and Limiter are New's.
+// count or duration, an unknown GenericPolicy, or a UserAgent with a
+// control character other than tab is an error; MaxHops above 5 becomes 5.
+// The Cleaner, Transport, Logger, Registry, Cache and Limiter are New's.
 func resolveConfig(cfg Config) (resolvedConfig, error) {
 	var errs []error
 	count := func(name string, v, def int) int {
@@ -175,8 +175,8 @@ func resolveConfig(cfg Config) (resolvedConfig, error) {
 	if cfg.Generic > Skip {
 		errs = append(errs, fmt.Errorf("unshorten: Config.Generic is not a GenericPolicy (%d)", cfg.Generic))
 	}
-	if strings.ContainsAny(cfg.UserAgent, "\r\n\x00") {
-		errs = append(errs, errors.New("unshorten: Config.UserAgent contains CR, LF or NUL"))
+	if !validHeaderValue(cfg.UserAgent) {
+		errs = append(errs, errors.New("unshorten: Config.UserAgent contains a control character (CR, LF, NUL or another)"))
 	}
 	if rc.ua == "" {
 		rc.ua = defaultUA()
@@ -185,6 +185,18 @@ func resolveConfig(cfg Config) (resolvedConfig, error) {
 		return resolvedConfig{}, err
 	}
 	return rc, nil
+}
+
+// validHeaderValue reports whether net/http would send v as a header
+// value: no control byte other than tab (RFC 9110 field-value). A
+// User-Agent it refuses would fail every request without one being sent.
+func validHeaderValue(v string) bool {
+	for i := 0; i < len(v); i++ {
+		if c := v[i]; c < ' ' && c != '\t' || c == 0x7f {
+			return false
+		}
+	}
+	return true
 }
 
 // modulePath is linkclean's module path, looked up in the build info.
