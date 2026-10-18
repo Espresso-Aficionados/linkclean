@@ -3,7 +3,9 @@ package discordlink
 // The rules Find emulates. Each comment quotes the JavaScript regular
 // expression of the rule, as Discord's client evaluates it on the span
 // substring s[i:hi] (so $ and lookaheads see the span's end). The regex text
-// is from simple-markdown (MIT, copyright Khan Academy and Aria Buckles),
+// is from simple-markdown (MIT, copyright (c) 2018 Khan Academy, Aria
+// Buckles and Christopher Jeffrey; its inline rules are adapted from
+// marked.js, copyright (c) 2011-2014 Christopher Jeffrey; see NOTICE.md),
 // with Discord's overrides for del and spoilers; the matchers are
 // hand-written and follow JavaScript's backtracking order exactly.
 
