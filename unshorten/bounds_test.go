@@ -11,6 +11,7 @@ package unshorten
 import (
 	"context"
 	"errors"
+	"log/slog"
 	"net"
 	"net/http"
 	"net/url"
@@ -423,6 +424,74 @@ func TestOnRequestFailureKinds(t *testing.T) {
 		if info.Err != nil && strings.Contains(info.Err.Error(), rvToken) {
 			t.Errorf("RequestInfo.Err %q holds the token", info.Err)
 		}
+	}
+}
+
+// TestOnRequestStrategyPanic: a request made before its strategy panicked
+// still reaches OnRequest; the hop fails as transient and the panic is
+// still logged, without its value.
+func TestOnRequestStrategyPanic(t *testing.T) {
+	n := installNet(t)
+	s := n.HandleTLS("s.example.net", rvRedirect(301, "https://example.net/p"))
+	strat := rvStrategy{name: "Panicker", next: func(ctx context.Context, f *Fetcher, u *url.URL) (*url.URL, error) {
+		if _, err := f.Get(ctx, u, false); err != nil {
+			return nil, err
+		}
+		panic("panicked after a request for " + u.String())
+	}}
+	var logs lockedBuffer
+	infos := &rvInfos{}
+	r := rvResolver(t, n, Config{
+		Registry:  rvRegistry(t, Entry{Name: "p", Match: []string{"*://s.example.net/*"}, Strategy: strat}),
+		OnRequest: infos.record, Logger: slog.New(slog.NewTextHandler(&logs, nil)),
+	})
+	raw := "https://s.example.net/" + rvToken
+	res, err := r.Resolve(context.Background(), raw)
+	rvFailOpen(t, r, raw, res, err, ErrTransient)
+	r.st.group.Wait()
+	got := infos.all()
+	if s.Hits() != 1 || len(got) != 1 || got[0].Status != 301 || got[0].Strategy != "Panicker" {
+		t.Errorf("hits %d, OnRequest calls %+v; want 1 and one 301 call from Panicker", s.Hits(), got)
+	}
+	log := logs.String()
+	for _, want := range []string{"level=ERROR", "entry=p", "host=s.example.net", "panic_type=string", "stack="} {
+		if !strings.Contains(log, want) {
+			t.Errorf("log lacks %q:\n%s", want, log)
+		}
+	}
+	if strings.Contains(log, rvToken) {
+		t.Errorf("the log holds the panic value:\n%s", log)
+	}
+}
+
+// TestOnRequestStrayGet: a Get a strategy started on its own goroutine
+// that is still in progress when Next returns is ended, recorded and
+// reported to OnRequest; group.Wait returns only after it has ended.
+func TestOnRequestStrayGet(t *testing.T) {
+	n := installNet(t)
+	infos := &rvInfos{}
+	var s *testServer
+	var g *rvGate
+	strat := rvStrategy{name: "Stray", next: func(ctx context.Context, f *Fetcher, u *url.URL) (*url.URL, error) {
+		go func() { _, _ = f.Get(context.Background(), u, false) }()
+		rvWaitFor(t, "the stray request", func() bool { return g.arrived.Load() == 1 })
+		return nil, ErrNotShortLink
+	}}
+	r := rvResolver(t, n, Config{
+		Registry:  rvRegistry(t, Entry{Name: "stray", Match: []string{"*://s.example.net/*"}, Strategy: strat}),
+		OnRequest: infos.record,
+	})
+	g = rvNewGate(t)
+	s = n.HandleTLS("s.example.net", g.hold(rvRedirect(301, "https://example.net/p")))
+	raw := "https://s.example.net/x"
+	res, err := r.Resolve(context.Background(), raw)
+	if err != nil || res.URL != raw || len(res.Hops) != 0 {
+		t.Errorf("Resolve = %+v, %v; want the offline result (a stop)", res, err)
+	}
+	r.st.group.Wait()
+	got := infos.all()
+	if s.Hits() != 1 || len(got) != 1 || got[0].Failure != FailTransient {
+		t.Errorf("hits %d, OnRequest calls %+v; want 1 and one transient call", s.Hits(), got)
 	}
 }
 

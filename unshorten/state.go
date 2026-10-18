@@ -28,9 +28,17 @@ type state struct {
 // hopOutcome is what one hop's flight call delivers.
 type hopOutcome struct {
 	e         CacheEntry
-	fromCache bool          // the re-check inside the call hit the Cache: no request was made
-	class     errClass      // fresh-path detail for the error text
-	infos     []RequestInfo // emitted by the call's after func, once the key is released
+	fromCache bool           // the re-check inside the call hit the Cache: no request was made
+	class     errClass       // fresh-path detail for the error text
+	infos     []RequestInfo  // emitted by the call's after func, once the key is released
+	panicked  *strategyPanic // a recovered strategy panic, logged by the after func
+}
+
+// strategyPanic is a strategy panic fetchHop recovered: the value (never
+// logged) and the stack.
+type strategyPanic struct {
+	value any
+	stack []byte
 }
 
 // newState builds the shared state over a transport New has already

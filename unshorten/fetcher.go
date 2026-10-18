@@ -20,14 +20,18 @@ import (
 type Fetcher struct {
 	st       *state
 	e        *compiledEntry
-	hop      int             // hop index for RequestInfo.Hop
-	hopCtx   context.Context // the detached hop context; Get never outlives it
-	deadline time.Time       // hopCtx's deadline, applied to every Get's ctx
+	hop      int                // hop index for RequestInfo.Hop
+	hopCtx   context.Context    // the detached hop context; Get never outlives it
+	stop     context.CancelFunc // cancels hopCtx; finish calls it (nil in some tests)
+	deadline time.Time          // hopCtx's deadline, applied to every Get's ctx
 
 	mu   sync.Mutex
 	used int  // Gets that passed the checks: at most 2 per hop
 	done bool // set once the hop's last strategy returned: every later Get is ErrBudget
 	recs []requestRecord
+	// running counts the Gets past the budget check that have not
+	// returned; finish waits for them, so their records are reported.
+	running sync.WaitGroup
 	// resp is 1 + the index in recs of the last Get's record when a
 	// response arrived for it, else 0: the response a strategy that then
 	// fails decided on.
@@ -111,7 +115,9 @@ func (f *Fetcher) Get(ctx context.Context, u *url.URL, readBody bool) (*Response
 		return nil, ErrBudget
 	}
 	f.used++
+	f.running.Add(1) // under f.mu while !f.done: finish's Wait sees it
 	f.mu.Unlock()
+	defer f.running.Done()
 
 	// Host slot, then global slot, then the Limiter: a slot wait that ends
 	// consumes no rate token. Both slots are released on every path, after
@@ -259,12 +265,20 @@ func (f *Fetcher) record(r requestRecord) int {
 	return len(f.recs)
 }
 
-// finish marks f done, so every later Get is ErrBudget, and returns its
-// records. The hop calls it once its last strategy has returned.
+// finish marks f done, so every later Get is ErrBudget, ends the Gets a
+// strategy left running (on its own goroutine) by cancelling hopCtx, waits
+// for them and returns every record. The hop calls it once its last
+// strategy has returned.
 func (f *Fetcher) finish() []requestRecord {
 	f.mu.Lock()
-	defer f.mu.Unlock()
 	f.done = true
+	f.mu.Unlock()
+	if f.stop != nil {
+		f.stop()
+	}
+	f.running.Wait()
+	f.mu.Lock()
+	defer f.mu.Unlock()
 	return slices.Clone(f.recs)
 }
 

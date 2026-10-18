@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"net/url"
+	"runtime/debug"
 	"strings"
 	"time"
 
@@ -247,9 +248,9 @@ func (r *Resolver) resolve(ctx context.Context, raw string) chain {
 			}
 			// The call may outlive this caller: it gets copies, not the
 			// loop's variables.
-			entry, reqForm, hopIndex := e, cur, hop
+			entry, reqForm, hopIndex, hopHost := e, cur, hop, host
 			out, started := st.group.DoChan(key, host, func() (hopOutcome, func()) {
-				return st.runHop(ctx, entry, hopIndex, reqForm, key)
+				return st.runHop(ctx, entry, hopIndex, hopHost, reqForm, key)
 			})
 			if !started {
 				return fail(rehydrate(CacheEntry{Failure: FailTransient}, e.Name, host, classInFlight, nil))
@@ -318,9 +319,10 @@ func callerGone(e *compiledEntry, host string, ctxErr error) error {
 // runHop is a hop's flight call. It runs detached from the caller that
 // started it, under its own Timeout: it checks the Cache again (a call for
 // the key may have completed since the caller's miss), else fetches the
-// hop and stores a definitive outcome. The returned func emits the hop's
-// RequestInfos once the key is released.
-func (st *state) runHop(ctx context.Context, e *compiledEntry, hop int, reqForm, key string) (hopOutcome, func()) {
+// hop and stores a definitive outcome. The returned func runs once the key
+// is released: it logs a recovered strategy panic (see state.logPanic) and
+// emits the hop's RequestInfos. host is the hop URL's host.
+func (st *state) runHop(ctx context.Context, e *compiledEntry, hop int, host, reqForm, key string) (hopOutcome, func()) {
 	hctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), st.cfg.timeout)
 	defer cancel()
 	if ce, ok := st.cache.Get(hctx, key); ok {
@@ -328,13 +330,19 @@ func (st *state) runHop(ctx context.Context, e *compiledEntry, hop int, reqForm,
 	}
 	o := st.fetchHop(hctx, e, hop, reqForm)
 	st.store(hctx, e, key, reqForm, o.e)
-	infos := o.infos
-	o.infos = nil
+	infos, p := o.infos, o.panicked
+	o.infos, o.panicked = nil, nil
 	onRequest := st.cfg.onRequest
-	if onRequest == nil || len(infos) == 0 {
+	if onRequest == nil {
+		infos = nil
+	}
+	if len(infos) == 0 && p == nil {
 		return o, nil
 	}
 	return o, func() {
+		if p != nil {
+			st.logPanic(key, host, p.value, p.stack)
+		}
 		for _, info := range infos {
 			emit(onRequest, info)
 		}
@@ -387,21 +395,42 @@ type attempt struct {
 // request if it did not read the body, else 0. Requests counts the request
 // writes of both attempts. A failed attempt whose last Get returned a
 // response reports its failure on that request's RequestInfo.
-func (st *state) fetchHop(ctx context.Context, e *compiledEntry, hop int, reqForm string) hopOutcome {
+//
+// A strategy panic is recovered here: the hop is transient (the flight's
+// abnormal value), the requests made before it are still reported, and
+// the outcome carries the panic for runHop to log.
+func (st *state) fetchHop(ctx context.Context, e *compiledEntry, hop int, reqForm string) (out hopOutcome) {
 	u, err := url.Parse(reqForm)
 	if err != nil {
 		return hopOutcome{e: CacheEntry{Failure: FailBadTarget}, class: classBadTarget}
 	}
 	deadline, _ := ctx.Deadline()
-	f := &Fetcher{st: st, e: e, hop: hop, hopCtx: ctx, deadline: deadline}
-	defer f.finish() // also when a strategy panics
-	primary, fallback := e.eligible(st.cfg.policy)
+	life, stop := context.WithCancel(ctx) // finish ends the Gets still running
+	defer stop()
+	f := &Fetcher{st: st, e: e, hop: hop, hopCtx: life, stop: stop, deadline: deadline}
+	defer f.finish() // also on runtime.Goexit
 	var atts []attempt
+	defer func() {
+		if r := recover(); r != nil {
+			stack := debug.Stack()
+			recs := f.finish()
+			if n := len(atts); n > 0 {
+				atts[n-1].to = len(recs) // the attempt that panicked
+			}
+			infos, _ := requestInfos(e, hop, recs, atts)
+			out = hopOutcome{
+				e: CacheEntry{Failure: FailTransient}, class: classOther,
+				infos: infos, panicked: &strategyPanic{value: r, stack: stack},
+			}
+		}
+	}()
+	primary, fallback := e.eligible(st.cfg.policy)
 	for _, s := range [...]Strategy{primary, fallback} {
 		if s == nil {
 			continue
 		}
-		a := attempt{strategy: s.Name(), from: f.recCount()}
+		atts = append(atts, attempt{strategy: s.Name(), from: f.recCount()})
+		a := &atts[len(atts)-1]
 		uc := *u // a strategy cannot change the next attempt's URL
 		next, err := s.Next(ctx, f, &uc)
 		a.kind, a.class, a.status = classifyStrategy(err)
@@ -413,7 +442,6 @@ func (st *state) fetchHop(ctx context.Context, e *compiledEntry, hop int, reqFor
 			}
 		}
 		a.to, a.resp = f.recState()
-		atts = append(atts, a)
 		if a.kind == FailNone {
 			break
 		}
@@ -439,11 +467,25 @@ func (st *state) fetchHop(ctx context.Context, e *compiledEntry, hop int, reqFor
 	case dec.to > dec.from && dec.to <= len(recs) && !recs[dec.to-1].readBody:
 		status = recs[dec.to-1].status
 	}
-	wire := 0
-	infos := make([]RequestInfo, 0, len(recs))
+	infos, wire := requestInfos(e, hop, recs, atts)
+	return hopOutcome{
+		e:     CacheEntry{Next: dec.next, Strategy: dec.strategy, Status: status, Requests: wire, Failure: dec.kind},
+		class: dec.class,
+		infos: infos,
+	}
+}
+
+// requestInfos turns a hop's request records into RequestInfos, naming
+// each request's strategy by the attempt that made it (the last attempt's
+// for a request recorded after it ended), and sums their request writes.
+func requestInfos(e *compiledEntry, hop int, recs []requestRecord, atts []attempt) (infos []RequestInfo, wire int) {
+	infos = make([]RequestInfo, 0, len(recs))
 	for i, rec := range recs {
 		wire += rec.wire
-		name := atts[len(atts)-1].strategy
+		name := ""
+		if len(atts) > 0 {
+			name = atts[len(atts)-1].strategy
+		}
 		for _, a := range atts {
 			if a.from <= i && i < a.to {
 				name = a.strategy
@@ -462,11 +504,7 @@ func (st *state) fetchHop(ctx context.Context, e *compiledEntry, hop int, reqFor
 			Status: rec.status, Duration: rec.dur, Failure: rec.kind, Err: rec.err,
 		})
 	}
-	return hopOutcome{
-		e:     CacheEntry{Next: dec.next, Strategy: dec.strategy, Status: status, Requests: wire, Failure: dec.kind},
-		class: dec.class,
-		infos: infos,
-	}
+	return infos, wire
 }
 
 // recCount is the number of requests f has recorded.
