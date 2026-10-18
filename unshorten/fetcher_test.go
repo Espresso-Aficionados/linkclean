@@ -36,7 +36,7 @@ var allowAll = limitFunc(func(ctx context.Context, _ string) error { return ctx.
 
 // newTestState builds a state over rt for reg, with cfg's bounds and lim
 // (allowAll when nil), through newState.
-func newTestState(tb testing.TB, cfg Config, reg *Registry, lim Limiter, rt http.RoundTripper) (st *state) {
+func newTestState(tb testing.TB, cfg Config, reg *Registry, lim Limiter, rt http.RoundTripper) *state {
 	tb.Helper()
 	rc, err := resolveConfig(cfg)
 	if err != nil {
@@ -46,34 +46,6 @@ func newTestState(tb testing.TB, cfg Config, reg *Registry, lim Limiter, rt http
 		lim = allowAll
 	}
 	log := slog.New(slog.DiscardHandler)
-	defer func() {
-		r := recover()
-		if r == nil {
-			return
-		}
-		if r != "flight: not implemented" {
-			panic(r)
-		}
-		// Until internal/flight lands, newState panics building its group.
-		// The Fetcher never uses the group, so build the rest as newState
-		// does. Remove this once flight.New is implemented.
-		st = &state{
-			cfg: rc, reg: reg, lim: lim, log: log,
-			client: &http.Client{
-				Transport:     rt,
-				CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse },
-			},
-			hostSlots: map[string]chan struct{}{},
-			global:    make(chan struct{}, rc.maxReq),
-		}
-		for _, e := range reg.entries {
-			for _, h := range e.hosts {
-				if st.hostSlots[h] == nil {
-					st.hostSlots[h] = make(chan struct{}, rc.maxReqHost)
-				}
-			}
-		}
-	}()
 	return newState(rc, reg, nil, lim, rt, log)
 }
 
@@ -87,18 +59,6 @@ func newTestFetcher(tb testing.TB, st *state, name string, hopCtx context.Contex
 	}
 	dl, _ := hopCtx.Deadline()
 	return &Fetcher{st: st, e: e, hopCtx: hopCtx, deadline: dl}
-}
-
-// requireClassify skips a test whose path runs classifyTransport until it
-// is implemented.
-func requireClassify(tb testing.TB) {
-	tb.Helper()
-	defer func() {
-		if r := recover(); r != nil {
-			tb.Skipf("classifyTransport: %v", r)
-		}
-	}()
-	classifyTransport(errors.New("probe"), context.Background())
 }
 
 // testRegistry has t.co, a tiktok-like entry with a FetchHost, and an
@@ -671,7 +631,6 @@ func TestGetLimiterError(t *testing.T) {
 // TestGetTransportError checks the record and error of a failed RoundTrip:
 // the error is classified, sanitized, and releases both slots.
 func TestGetTransportError(t *testing.T) {
-	requireClassify(t)
 	synctest.Test(t, func(t *testing.T) {
 		rt := rtFunc(func(req *http.Request) (*http.Response, error) {
 			return nil, errors.New("dial " + req.URL.String() + ": boom")
@@ -698,7 +657,6 @@ func TestGetTransportError(t *testing.T) {
 // TestGetIgnoresStrategyCtx checks that a strategy passing
 // context.Background() cannot hold a request past the hop deadline.
 func TestGetIgnoresStrategyCtx(t *testing.T) {
-	requireClassify(t)
 	synctest.Test(t, func(t *testing.T) {
 		rt := rtFunc(func(req *http.Request) (*http.Response, error) {
 			<-req.Context().Done()
