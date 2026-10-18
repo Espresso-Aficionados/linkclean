@@ -124,7 +124,6 @@ func TestSSRFMapNameLocalhost(t *testing.T) {
 // allowlisted host to a private address is a definitive failure, cached:
 // the second call dials nothing (U-R3-3).
 func TestSSRFResolverCached(t *testing.T) {
-	needResolver(t)
 	const target = "10.0.0.1:443"
 	if err := guardVerdict(target); !isDenial(err) {
 		t.Fatalf("guard allows %s", target)
@@ -172,7 +171,6 @@ func TestSSRFResolverCached(t *testing.T) {
 // TestTransportCheckNew is TestTransportCheck's table through New, with
 // AllowUnguardedTransport and a captured Logger.
 func TestTransportCheckNew(t *testing.T) {
-	needResolver(t)
 	for name, c := range map[string]struct {
 		rt         http.RoundTripper
 		ok, warned bool
@@ -208,7 +206,6 @@ func TestTransportCheckNew(t *testing.T) {
 // TestAttestAfterNew: after New, changing the caller's transport does not
 // affect the Resolver.
 func TestAttestAfterNew(t *testing.T) {
-	needResolver(t)
 	n := installNet(t)
 	s := n.HandleTLS("t.co", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "https://example.net/p", http.StatusMovedPermanently)
@@ -234,7 +231,6 @@ func TestAttestAfterNew(t *testing.T) {
 // TestProxyErrorRedactedNew: New's error and warning never name the proxy
 // URL.
 func TestProxyErrorRedactedNew(t *testing.T) {
-	needResolver(t)
 	tr := NewTransport(TransportOptions{Proxy: urlOf(t, "http://user:s3cret@proxy.test/s3cret")})
 	var logs capturedLog
 	_, err := New(Config{Transport: tr, Logger: logs.logger()})
@@ -247,32 +243,6 @@ func TestProxyErrorRedactedNew(t *testing.T) {
 	if logs.lines() != 1 || strings.Contains(logs.String(), "s3cret") {
 		t.Errorf("warning: %s", logs.String())
 	}
-}
-
-// needResolver skips the test while New and the parts it builds on panic
-// "not implemented": on a branch without them, the Resolver-level rows
-// cannot run. Once they are merged the probe passes and the test runs;
-// remove the helper then.
-func needResolver(t *testing.T) {
-	t.Helper()
-	defer func() {
-		if r := recover(); r != nil {
-			if s, ok := r.(string); ok && strings.HasSuffix(s, ": not implemented") {
-				t.Skipf("needs the Resolver: %s", s)
-			}
-			panic(r)
-		}
-	}()
-	reg, err := NewRegistry(Entry{Name: "t.co", Match: []string{"*://t.co/*"}, Strategy: Redirect()})
-	if err != nil {
-		t.Fatal(err)
-	}
-	r, err := New(Config{Registry: reg, Limiter: NoLimit()})
-	if err != nil {
-		t.Fatal(err)
-	}
-	r.Match("https://t.co/x")
-	DefaultRegistry()
 }
 
 // TestProxyEnvIgnored: HTTP(S)_PROXY is never read, by NewTransport or by

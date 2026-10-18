@@ -284,7 +284,7 @@ func TestFixtureStrategies(t *testing.T) {
 				got := ""
 				if next != nil {
 					got = next.String()
-					if v, ok := validateNextForFixture(next); !ok {
+					if v, ok := validateNext(next); !ok {
 						kind = FailBadTarget
 					} else {
 						got = v
@@ -329,19 +329,4 @@ func kindOf(err error) FailureKind {
 		}
 	}
 	return FailTransient
-}
-
-// validateNextForFixture is validateNext once it exists, else the next URL
-// as serialized: fixtures pin the extraction, and the resolver's own
-// validation is tested where it is implemented.
-func validateNextForFixture(u *url.URL) (next string, ok bool) {
-	defer func() {
-		if r := recover(); r != nil {
-			if r != "unshorten: not implemented" {
-				panic(r)
-			}
-			next, ok = u.String(), true // remove once validateNext lands
-		}
-	}()
-	return validateNext(u)
 }
