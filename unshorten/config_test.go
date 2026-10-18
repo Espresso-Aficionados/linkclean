@@ -129,11 +129,11 @@ func TestNewDefaults(t *testing.T) {
 	}
 }
 
-// TestNewState: New builds one client that never follows redirects and has
+// TestNewBuildsState: New builds one client that never follows redirects and has
 // no jar and no timeout, a slot channel per allowlisted host (Match hosts
 // and FetchHosts) with MaxConcurrentRequestsPerHost slots, MaxConcurrentRequests
 // global slots, and uses the given Cache, Limiter and Logger.
-func TestNewState(t *testing.T) {
+func TestNewBuildsState(t *testing.T) {
 	reg := rvRegistry(t,
 		rvEntry("a.example.net"),
 		Entry{Name: "b", Match: []string{"*://b.example.net/*", "*://www.b.example.net/*"}, FetchHosts: []string{"api.b.example.net", "a.example.net"}, Strategy: Redirect()},
