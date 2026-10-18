@@ -20,6 +20,9 @@ jobs:
           - {target: FuzzHostView,     pkg: ./internal/rawurl}
           - {target: FuzzReserialize,  pkg: ./internal/rawurl}
           - {target: FuzzRequestForm,  pkg: ./internal/rawurl}
+          - {target: FuzzResolve,      pkg: ./unshorten}
+          - {target: FuzzNextURL,      pkg: ./unshorten}
+          - {target: FuzzExtract,      pkg: ./unshorten}
           - {target: FuzzQuery,        pkg: ./internal/query}
           - {target: FuzzMatchPattern, pkg: ./internal/matchpattern}
           - {target: FuzzFind,         pkg: ./discordlink}
