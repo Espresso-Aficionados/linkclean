@@ -23,6 +23,10 @@ const maxDepth = 16
 // at most 16 deep (see Nesting limit). Schemeless text is never a link. Find
 // never panics, on any input, and runs in O(len(content) × nesting depth):
 // closers are found through next-occurrence tables, never by rescanning.
+// Those tables take up to 48 bytes of memory per byte of content (about 40
+// when it holds every kind of opener), allocated at once, so a caller that
+// accepts content far longer than a Discord message should bound its length
+// before calling Find.
 // Content longer than 2^31-1 bytes (longer than 214,748,364 bytes on 32-bit
 // platforms) is not scanned and yields no links.
 func Find(content string) []Link {

@@ -51,7 +51,8 @@ type Options struct {
 // unexamined counts the distinct links that were not processed: those beyond
 // MaxLinks and those not started before ctx was done (pass it to
 // RepostOptions.Unexamined so a reply can say so).
-// ctx bounds the whole message.
+// ctx bounds the whole message. Process scans all of content with Find,
+// whose memory grows with its length (see Find).
 //
 // p receives each link's target as Discord links it: Link.URL, except that
 // in a masked link's target a backslash before anything but an ASCII letter,
