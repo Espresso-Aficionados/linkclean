@@ -1,0 +1,104 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "unshorten livenet links file",
+  "description": "The -livenet.links file of unshorten's live suite (livenet_test.go). It lives outside every git work tree and is never committed: a short link's token can identify the account that shared it. links.example.json is the committed example; it holds placeholder tokens only. The suite also enforces what JSON Schema cannot say here: case names are unique per host; an expected failure has no hops; entry \"\" means no request.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "links"],
+  "properties": {
+    "comment": {"type": "string", "description": "Free text for the maintainer; ignored."},
+    "version": {"const": 1},
+    "links": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/link"}}
+  },
+  "$defs": {
+    "link": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["case", "url", "kind", "origin", "expect"],
+      "properties": {
+        "case": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9_-]{0,39}$",
+          "description": "The case name. Record mode writes the drafts of the link's requests as drafts/<request host>/<case>.txtar, the fixture names under testdata/responses/."
+        },
+        "url": {
+          "type": "string",
+          "maxLength": 2048,
+          "pattern": "^https?://",
+          "description": "The link as a user would post it: absolute http(s), no userinfo. A live run refuses the placeholder TOKEN."
+        },
+        "kind": {
+          "enum": ["good", "invalid"],
+          "description": "good: a link that resolves to its destination. invalid: an unknown code, which exercises the shortener's fallback or error path."
+        },
+        "origin": {
+          "enum": ["created", "public", "synthetic"],
+          "description": "created: a link the maintainer made from their own account. public: a link someone else made, already public; it is checked but never recorded, and its entry's committed positive fixture is synthetic (labelled so). synthetic: an invented code, safe to commit; kind must be invalid."
+        },
+        "generic": {
+          "enum": ["PreviewOnly", "Follow", "Skip"],
+          "description": "Config.Generic for this link. Default PreviewOnly."
+        },
+        "keep_destination": {
+          "type": "boolean",
+          "description": "Keep the destination's host and path in the drafts. Set it only when the destination is the maintainer's own target; otherwise the drafts move it to example.net with its path shape kept. Query values that look like tokens are replaced either way."
+        },
+        "note": {
+          "type": "string",
+          "description": "What the case confirms, for the maintainer. Never written to the results or the drafts."
+        },
+        "expect": {"$ref": "#/$defs/expect"}
+      }
+    },
+    "expect": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["entry", "failure", "strategy", "status"],
+      "properties": {
+        "entry": {
+          "type": "string",
+          "description": "The entry Resolver.Match reports, offline. \"\" when the link must not match: then failure is none, strategy \"\", status 0, and no request may be made."
+        },
+        "failure": {
+          "enum": ["none", "hop_limit", "loop", "fallback", "no_redirect", "no_match", "bad_target", "status", "fetch_denied", "transport", "budget", "not_short_link"],
+          "description": "The resolution's outcome, from the sentinels the returned error wraps: none (no error), a FailureKind name, or not_short_link (an Intermediate entry stopped and the resolution failed open). transient is never expected: a transient outcome fails the case."
+        },
+        "strategy": {
+          "type": "string",
+          "description": "The Strategy name of the case's last request (RequestInfo.Strategy); \"\" when no request is made."
+        },
+        "status": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 999,
+          "description": "The HTTP status of the case's last request (RequestInfo.Status, the real status even for body strategies); 0 when no request is made or no response arrived."
+        },
+        "host": {
+          "type": "string",
+          "description": "The host of the final URL (Result.URL). Required when failure is none and entry is not \"\"."
+        },
+        "path": {
+          "type": "string",
+          "description": "A Go regexp the final URL's escaped path must match; anchor it. Required when failure is none and entry is not \"\"."
+        },
+        "hops": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/hop"},
+          "description": "When given, Result.Hops must be exactly these (entry, strategy, status). Only with failure none: a failed resolution reports no hops."
+        }
+      },
+      "if": {"properties": {"failure": {"const": "none"}, "entry": {"minLength": 1}}},
+      "then": {"required": ["host", "path"]}
+    },
+    "hop": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["entry", "strategy", "status"],
+      "properties": {
+        "entry": {"type": "string"},
+        "strategy": {"type": "string"},
+        "status": {"type": "integer", "minimum": 0, "maximum": 999, "description": "Hop.Status: 0 for body and preview strategies."}
+      }
+    }
+  }
+}

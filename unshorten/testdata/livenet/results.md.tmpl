@@ -1,0 +1,39 @@
+# unshorten livenet results, {{.Date}}
+
+Written by TestLive (unshorten/livenet_test.go) from
+unshorten/testdata/livenet/results.md.tmpl. It names entries, outcomes,
+statuses and destination hosts only: no short tokens, paths, queries or
+destinations beyond their host. The suite refuses to write it otherwise.
+
+- mode: {{.Mode}}
+- egress: {{.Egress}}
+- commit: {{if .Commit}}{{.Commit}}{{else}}not given (-livenet.commit){{end}}
+- go: {{.GoVersion}}
+- user agent: {{.UserAgent}}
+- tinyurl and bit.ly registered for the run: {{if .Marketing}}yes (-livenet.marketing){{else}}no{{end}}
+- cases: {{len .Cases}} ({{.Passed}} passed, {{.Failed}} failed)
+
+## Cases
+
+`outcome` is the resolution's (a FailureKind name, or `not_short_link`);
+`strategy` and `status` are those of the case's last request.
+
+{{if eq .Mode "record"}}| case | kind | origin | policy | entry | outcome | strategy | status | destination host | result | drafts |
+|---|---|---|---|---|---|---|---|---|---|---|
+{{range .Cases}}| {{cell .Case}} | {{cell .Kind}} | {{cell .Origin}} | {{cell .Policy}} | {{cell .Entry}} | {{cell .Outcome}} | {{cell .Strategy}} | {{.Status}} | {{cell .DestHost}} | {{if .Pass}}pass{{else}}FAIL: {{cell (join .Problems "; ")}}{{end}} | {{cell .Drafts}} |
+{{end}}{{else}}| case | kind | origin | policy | entry | outcome | strategy | status | destination host | result |
+|---|---|---|---|---|---|---|---|---|---|
+{{range .Cases}}| {{cell .Case}} | {{cell .Kind}} | {{cell .Origin}} | {{cell .Policy}} | {{cell .Entry}} | {{cell .Outcome}} | {{cell .Strategy}} | {{.Status}} | {{cell .DestHost}} | {{if .Pass}}pass{{else}}FAIL: {{cell (join .Problems "; ")}}{{end}} |
+{{end}}{{end}}
+## Gating
+
+An entry is proven when it has a passing good case, a passing invalid case
+(not required of Intermediate entries), no failing case, and every one of
+its hosts answered in a passing case. An unproven entry, or the patterns of
+its unreached hosts, leaves DefaultRegistry (see
+unshorten/testdata/livenet/README.md).
+
+| entry | good | invalid | verdict |
+|---|---|---|---|
+{{range .Gating}}| {{cell .Entry}} | {{.Good}} | {{.Invalid}} | {{cell .Verdict}} |
+{{end}}
