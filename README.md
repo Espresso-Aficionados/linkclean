@@ -14,6 +14,10 @@ if out := linkclean.Clean(in); out != in {
 from one pinned commit, plus an overlay maintained here. See the package
 documentation for the guarantees, the guards and the deviations from Brave.
 
+For chat bots, the `discordlink` package finds the links in a Discord message
+as Discord's clients parse them, cleans them, and renders the cleaned URLs as
+reply bodies that fit Discord's limits.
+
 ## How rule updates work
 
 A submodule gitlink at `tools/upstream/adblock-lists` tracks Brave's

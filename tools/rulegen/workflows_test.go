@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"fmt"
+	"io/fs"
 	"maps"
 	"os"
 	"path"
@@ -175,6 +176,150 @@ func TestWorkflowSecrets(t *testing.T) {
 			t.Errorf("fixture testdata/workflows/%s.txtar missing", name)
 		}
 	}
+}
+
+// TestFuzzMatrix keeps fuzz.yml's matrix in step with the fuzz targets:
+// every top-level func FuzzX( in a *_test.go file of the root module has
+// exactly one {target: FuzzX, pkg: ./dir} row, and every row names such a
+// target. Directories with their own go.mod (the tools module), testdata
+// directories and directories go ignores (leading '.' or '_') are skipped.
+func TestFuzzMatrix(t *testing.T) {
+	t.Run("real", func(t *testing.T) {
+		root := filepath.Join("..", "..")
+		yml, err := os.ReadFile(filepath.Join(root, ".github", "workflows", "fuzz.yml"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if errs := wfFuzzMatrix(t, root, yml); len(errs) > 0 {
+			t.Errorf("fuzz.yml's matrix and the fuzz targets disagree:\n\t%s", strings.Join(errs, "\n\t"))
+		}
+	})
+	t.Run("negatives", func(t *testing.T) {
+		root := t.TempDir()
+		for p, src := range map[string]string{
+			"go.mod":                 "module m\n",
+			"a_test.go":              "package m\nfunc FuzzA(f *testing.F) {}\nfunc FuzzB(f *testing.F) {}\n",
+			"sub/b_test.go":          "package sub\nfunc FuzzC(f *testing.F) {}\n",
+			"sub/testdata/x_test.go": "package x\nfunc FuzzT(f *testing.F) {}\n",
+			"tools/go.mod":           "module t\n",
+			"tools/y_test.go":        "package t\nfunc FuzzTool(f *testing.F) {}\n",
+			"sub/c.go":               "package sub\nfunc FuzzNotATest(f *testing.F) {}\n",
+			"_ignored/z_test.go":     "package z\nfunc FuzzZ(f *testing.F) {}\n",
+			"sub/method_test.go":     "package sub\nfunc (x) FuzzM(f *testing.F) {}\n",
+		} {
+			if err := os.MkdirAll(filepath.Dir(filepath.Join(root, p)), 0o755); err != nil {
+				t.Fatal(err)
+			}
+			if err := os.WriteFile(filepath.Join(root, p), []byte(src), 0o644); err != nil {
+				t.Fatal(err)
+			}
+		}
+		yml := "jobs:\n  fuzz:\n    strategy:\n      matrix:\n        include:\n" +
+			"          - {target: FuzzA, pkg: .}\n" +
+			"          - {target: FuzzA, pkg: .}\n" +
+			"          - {target: FuzzC, pkg: .}\n" +
+			"          - {target: FuzzGone, pkg: ./sub}\n" +
+			"          - target: FuzzC\n"
+		want := []string{
+			`fuzz.yml:10: cannot read the matrix row "- target: FuzzC"`,
+			"FuzzA in .: 2 matrix rows",
+			"FuzzB in .: no matrix row",
+			"FuzzC in ./sub: no matrix row",
+			"fuzz.yml: row {target: FuzzC, pkg: .} names no fuzz target",
+			"fuzz.yml: row {target: FuzzGone, pkg: ./sub} names no fuzz target",
+		}
+		if got := wfFuzzMatrix(t, root, []byte(yml)); !slices.Equal(got, want) {
+			t.Errorf("got\n\t%s\nwant\n\t%s", strings.Join(got, "\n\t"), strings.Join(want, "\n\t"))
+		}
+	})
+}
+
+var (
+	wfFuzzFuncRe = regexp.MustCompile(`(?m)^func (Fuzz\w*)\(`)
+	wfFuzzRowRe  = regexp.MustCompile(`^\s*-\s*\{\s*target:\s*(Fuzz\w*)\s*,\s*pkg:\s*(\.(?:/[^\s,}]+)?)\s*\}\s*(?:#.*)?$`)
+)
+
+// wfFuzzMatrix compares fuzz.yml's matrix rows with the fuzz targets of
+// the module rooted at root and returns the disagreements, unreadable rows
+// first, then targets by package and name, then stale rows.
+func wfFuzzMatrix(t *testing.T, root string, yml []byte) []string {
+	t.Helper()
+	type key struct{ target, pkg string }
+	targets := map[key]bool{}
+	err := filepath.WalkDir(root, func(p string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		rel, err := filepath.Rel(root, p)
+		if err != nil {
+			return err
+		}
+		if d.IsDir() {
+			if rel == "." {
+				return nil
+			}
+			if n := d.Name(); n == "testdata" || strings.HasPrefix(n, ".") || strings.HasPrefix(n, "_") {
+				return filepath.SkipDir
+			}
+			if _, err := os.Stat(filepath.Join(p, "go.mod")); err == nil {
+				return filepath.SkipDir
+			}
+			return nil
+		}
+		if !strings.HasSuffix(d.Name(), "_test.go") {
+			return nil
+		}
+		src, err := os.ReadFile(p)
+		if err != nil {
+			return err
+		}
+		pkg := "."
+		if dir := filepath.ToSlash(filepath.Dir(rel)); dir != "." {
+			pkg = "./" + dir
+		}
+		for _, m := range wfFuzzFuncRe.FindAllStringSubmatch(string(src), -1) {
+			targets[key{m[1], pkg}] = true
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var errs []string
+	rows := map[key]int{}
+	var order []key
+	for i, line := range strings.Split(string(yml), "\n") {
+		if !strings.Contains(line, "target:") {
+			continue
+		}
+		m := wfFuzzRowRe.FindStringSubmatch(line)
+		if m == nil {
+			errs = append(errs, fmt.Sprintf("fuzz.yml:%d: cannot read the matrix row %q", i+1, strings.TrimSpace(line)))
+			continue
+		}
+		k := key{m[1], m[2]}
+		if rows[k] == 0 {
+			order = append(order, k)
+		}
+		rows[k]++
+	}
+	for _, k := range slices.SortedFunc(maps.Keys(targets), func(a, b key) int {
+		return strings.Compare(a.pkg+" "+a.target, b.pkg+" "+b.target)
+	}) {
+		switch n := rows[k]; n {
+		case 1:
+		case 0:
+			errs = append(errs, fmt.Sprintf("%s in %s: no matrix row", k.target, k.pkg))
+		default:
+			errs = append(errs, fmt.Sprintf("%s in %s: %d matrix rows", k.target, k.pkg, n))
+		}
+	}
+	for _, k := range order {
+		if !targets[k] {
+			errs = append(errs, fmt.Sprintf("fuzz.yml: row {target: %s, pkg: %s} names no fuzz target", k.target, k.pkg))
+		}
+	}
+	return errs
 }
 
 const wfAlertFile = "rules-alert.yml"

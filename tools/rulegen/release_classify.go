@@ -80,8 +80,11 @@ func relStaticClass(p string) relClass {
 	// whatever their extension.
 	case strings.HasPrefix(p, "rules/overlay/"), strings.HasPrefix(p, "testdata/golden/"), path.Base(p) == "CHANGELOG.md":
 		return relOther
+	// Go builds no package in a testdata directory at any depth, so a
+	// package's own test data (discordlink/testdata/) is inert like the
+	// root's; golden-row tracking stays with the root's testdata/golden/.
 	case strings.HasPrefix(p, ".github/"), strings.HasPrefix(p, "tools/"), p == data.GitmodulesPath, p == data.AcksPath,
-		strings.HasPrefix(p, "testdata/"), strings.HasSuffix(p, "_test.go"), strings.HasSuffix(p, ".md"):
+		strings.HasPrefix(p, "testdata/"), strings.Contains(p, "/testdata/"), strings.HasSuffix(p, "_test.go"), strings.HasSuffix(p, ".md"):
 		return relInert
 	case p == "go.mod", p == "go.sum":
 		return relDeps

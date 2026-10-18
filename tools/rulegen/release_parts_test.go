@@ -59,6 +59,11 @@ func TestReleaseStaticClass(t *testing.T) {
 		".gitmodules":                                   relInert,
 		"testdata/corpus/eval-2026-10/known-broken.txt": relInert,
 		"testdata/semantics/x.txtar":                    relInert,
+		"discordlink/testdata/find.txtar":               relInert,
+		"discordlink/testdata/fuzz/FuzzFind/0123abcd":   relInert,
+		"internal/x/testdata/golden/positive.txtar":     relInert, // golden tracking is root-only
+		"discordlink/testdata":                          relOther, // a file, not a directory
+		"discordlink/find.go":                           relOther,
 		"testdata/golden/positive.txtar":                relOther,
 		"testdata/golden/README.md":                     relOther,
 		"semantics_test.go":                             relInert,
