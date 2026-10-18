@@ -278,8 +278,9 @@ type Response struct {
 
 // buildRequest applies Get's checks to u for entry e and builds the GET for
 // its request form (no fragment), with no headers yet. It is pure. An input
-// rawurl.Parse skips, an opaque URL, userinfo, an IP host, or a scheme or
-// port outside https 443 / http 80 (http only with AllowHTTP) is
+// rawurl.Parse skips, an opaque URL, userinfo, an IP host, a dot segment
+// in the path, or a scheme or port outside https 443 / http 80 (http only
+// with AllowHTTP) is
 // ErrBadTarget; a host outside e's hosts is ErrFetchDenied. The request's
 // RequestURI must equal the request form's path and query byte for byte,
 // else ErrBadTarget, so the bytes on the wire are the cache key's. host is
@@ -292,7 +293,7 @@ func buildRequest(ctx context.Context, u *url.URL, e *compiledEntry) (req *http.
 		return nil, "", ErrBadTarget
 	}
 	rv, skip := rawurl.Parse(u.String())
-	if skip != rawurl.OK || rv.IsIP || strings.IndexByte(rv.Authority, '@') >= 0 {
+	if skip != rawurl.OK || rv.IsIP || strings.IndexByte(rv.Authority, '@') >= 0 || hasDotSegment(rv.Path) {
 		return nil, "", ErrBadTarget
 	}
 	switch {

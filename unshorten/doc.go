@@ -39,12 +39,13 @@
 //     FetchHosts), and only when the offline-cleaned input matches a
 //     non-intermediate entry. Matching ignores the scheme: http://t.co/x and
 //     https://t.co/x both match. Only a requestable URL matches: one with
-//     userinfo, an IP host, a port other than its scheme's default, or a
-//     path that would not be sent exactly as written (raw non-ASCII bytes,
-//     an invalid percent escape) never does. The first request is always
-//     made over https unless the entry sets AllowHTTP: an http input is
-//     upgraded (an explicit :80 is dropped), and plain http is used only
-//     for entries with AllowHTTP. No DefaultRegistry entry sets it.
+//     userinfo, an IP host, a port other than its scheme's default, a "."
+//     or ".." path segment (raw or percent-encoded), or a path that would
+//     not be sent exactly as written (raw non-ASCII bytes, an invalid
+//     percent escape) never does. The first request is always made over
+//     https unless the entry sets AllowHTTP: an http input is upgraded (an
+//     explicit :80 is dropped), and plain http is used only for entries
+//     with AllowHTTP. No DefaultRegistry entry sets it.
 //   - A hop to any host that is not allowlisted ends resolution. That URL is
 //     returned WITHOUT being requested.
 //   - Method GET only, never HEAD. Headers: a fixed non-browser User-Agent and

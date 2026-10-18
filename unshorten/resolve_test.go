@@ -759,6 +759,9 @@ func TestValidateDirectGet(t *testing.T) {
 		{&url.URL{Scheme: "https", User: url.User("u"), Host: "d.example.net", Path: "/x"}, ErrBadTarget},
 		{&url.URL{Scheme: "https", Opaque: "//d.example.net/x"}, ErrBadTarget},
 		{&url.URL{Scheme: "http", Host: "d.example.net", Path: "/x"}, ErrBadTarget},
+		{&url.URL{Scheme: "https", Host: "d.example.net", Path: "/a/../x"}, ErrBadTarget},
+		{&url.URL{Scheme: "https", Host: "d.example.net", Path: "/./x"}, ErrBadTarget},
+		{&url.URL{Scheme: "https", Host: "d.example.net", Path: "/a/../x", RawPath: "/a/%2E%2e/x"}, ErrBadTarget},
 		{https("other.example.net"), ErrFetchDenied},
 	}
 	var mu sync.Mutex
@@ -1010,6 +1013,56 @@ func TestLookupRequestForm(t *testing.T) {
 	}
 	if _, sets := spy.keys(); len(sets) != 1 || !strings.HasSuffix(sets[0], "\x00"+raw) {
 		t.Errorf("cache sets %q, want one keyed by %q", sets, raw)
+	}
+}
+
+// TestLookupDotSegments: a path with a "." or ".." segment, written raw or
+// percent-encoded, matches nothing and is never requested: the server
+// would resolve the segments itself and serve a path the entry's pattern
+// does not cover, and "/./x" would key one link twice. Segments that only
+// contain dots ("...", "a..b") are ordinary.
+func TestLookupDotSegments(t *testing.T) {
+	n := installNet(t)
+	var hits []*testServer
+	for _, h := range []string{"www.reddit.com", "a.co", "www.tiktok.com", "t.co"} {
+		hits = append(hits, n.HandleTLS(h, rvRedirect(302, "https://example.net/x")))
+	}
+	reg := rvRegistry(t,
+		Entry{Name: "reddit-share", Match: []string{"*://www.reddit.com/r/*/s/*"}, Strategy: Redirect()},
+		Entry{Name: "amazon", Match: []string{"*://a.co/d/*"}, Strategy: Redirect()},
+		Entry{Name: "tiktok", Match: []string{"*://www.tiktok.com/t/*"}, Strategy: Redirect()},
+		rvEntry("t.co"),
+	)
+	r := rvResolver(t, n, Config{Registry: reg})
+	for _, raw := range []string{
+		"https://www.reddit.com/r/x/s/../../../user/someone/saved",
+		"https://www.reddit.com/r/x/s/%2e%2e/%2E%2E/%2e./api/v1/me",
+		"https://www.reddit.com/r/x/s/.%2E/.%2e/x",
+		"https://a.co/d/../gp/your-account",
+		"https://www.tiktok.com/t/../oembed?url=x",
+		"https://t.co/./" + rvToken,
+		"https://t.co/%2e/" + rvToken,
+		"https://t.co/" + rvToken + "/.",
+		"https://t.co/" + rvToken + "/..",
+		"https://t.co/a/%2E%2E",
+	} {
+		if e, ok := r.Match(raw); ok {
+			t.Errorf("Match(%q) = %q, true; want no match", raw, e)
+		}
+		res, err := r.Resolve(context.Background(), raw)
+		if err != nil || res.URL != r.c.Clean(raw) || len(res.Hops) != 0 || res.Resolved {
+			t.Errorf("Resolve(%q) = %+v, %v; want the offline result and nil", raw, res, err)
+		}
+	}
+	for _, s := range hits {
+		if s.Hits() != 0 {
+			t.Errorf("%d requests, want 0: %+v", s.Hits(), s.Requests())
+		}
+	}
+	for _, raw := range []string{"https://t.co/...", "https://t.co/a..b", "https://t.co/.x", "https://t.co/x.", "https://t.co/x?p=../y"} {
+		if _, ok := r.Match(raw); !ok {
+			t.Errorf("Match(%q) = false, want a match", raw)
+		}
 	}
 }
 

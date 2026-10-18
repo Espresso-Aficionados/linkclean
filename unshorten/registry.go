@@ -271,8 +271,13 @@ func copyEntry(e Entry) Entry {
 // whose patterns match u and which is eligible under p; Intermediate
 // entries only when intermediate is set. A URL that is not requestable
 // (userinfo, an IP host, a port other than "" or its scheme's default, a
-// path net/url would not send as written) never matches. Every lookup of
+// dot segment, a path net/url would not send as written) never matches.
+// Every lookup of
 // the resolver, and Match, use it.
+//
+// Patterns match the path as written, and their '*' also matches '/' and
+// dots, so without the dot-segment rule "/r/x/s/../../user" would match
+// reddit-share's "/r/*/s/*" while the server resolves it to "/user".
 func (r *Registry) lookup(u *rawurl.URL, intermediate bool, p GenericPolicy) (*compiledEntry, bool) {
 	if r == nil {
 		return nil, false
@@ -300,12 +305,12 @@ func (r *Registry) lookup(u *rawurl.URL, intermediate bool, p GenericPolicy) (*c
 }
 
 // requestable reports whether u is a URL the Fetcher could request: no
-// userinfo, not an IP host, a port that is "" or its scheme's default, and
-// a request form that net/url sends byte for byte (url.Parse accepts it
-// and its RequestURI is the path and query as written). Raw non-ASCII
-// bytes and invalid escapes in the path fail the last test: net/url would
-// re-escape or refuse them, so the bytes on the wire would not be the
-// cache key's.
+// userinfo, not an IP host, a port that is "" or its scheme's default, no
+// dot segment in the path (see hasDotSegment), and a request form that
+// net/url sends byte for byte (url.Parse accepts it and its RequestURI is
+// the path and query as written). Raw non-ASCII bytes and invalid escapes
+// in the path fail the last test: net/url would re-escape or refuse them,
+// so the bytes on the wire would not be the cache key's.
 func requestable(u *rawurl.URL) bool {
 	if u.Host == "" || u.IsIP || strings.IndexByte(u.Authority, '@') >= 0 {
 		return false
@@ -313,8 +318,30 @@ func requestable(u *rawurl.URL) bool {
 	if u.Port != "" && u.Port != defaultPort(u.Scheme) {
 		return false
 	}
+	if hasDotSegment(u.Path) {
+		return false
+	}
 	pu, err := url.Parse(u.RequestForm())
 	return err == nil && pu.Opaque == "" && pu.RequestURI() == u.PathForRequest()
+}
+
+// hasDotSegment reports whether path has a "." or ".." segment, with each
+// dot written as '.' or as "%2e" in either case. A server removes such
+// segments (RFC 3986, section 5.2.4) before it routes the request, so
+// the resource it serves is not the path an entry's pattern matched, and
+// "/./x" would give one link a second cache key. They are refused, never
+// normalised: the bytes sent stay the bytes keyed.
+func hasDotSegment(path string) bool {
+	for seg := range strings.SplitSeq(path, "/") {
+		if len(seg) > 6 { // longer than "%2e%2e"
+			continue
+		}
+		seg = strings.ReplaceAll(strings.ReplaceAll(seg, "%2e", "."), "%2E", ".")
+		if seg == "." || seg == ".." {
+			return true
+		}
+	}
+	return false
 }
 
 // defaultPort is the port of scheme "https" or "http".
