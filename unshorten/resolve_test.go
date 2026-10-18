@@ -1,11 +1,11 @@
 package unshorten
 
-// Resolver rows of the §12.8 table (PLAN §6.2, owner A4t): hops, scheme,
-// validation, loop, hop limit, budget, requestable lookup, skipped inputs,
-// stops, fallbacks, policy, request form, shared cache across views,
-// affiliate interplay and categories. Every row runs over the test network
-// (nettest_test.go) with the real dial guard in the path, unless it says
-// otherwise. Helpers shared by the A4t files are prefixed "rv".
+// Resolver rows of the §12.8 table: hops, scheme, validation, loop, hop
+// limit, budget, requestable lookup, skipped inputs, stops, fallbacks,
+// policy, request form, shared cache across views, affiliate interplay and
+// categories. Every row runs over the test network (nettest_test.go) with
+// the real dial guard in the path, unless it says otherwise. Helpers shared
+// by the Resolver test files are prefixed "rv".
 
 import (
 	"context"

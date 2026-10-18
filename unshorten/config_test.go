@@ -1,8 +1,8 @@
 package unshorten
 
-// Config rows (PLAN §6.2, owner A4t): the default User-Agent from the build
-// info (C1.4), New's validation, defaults and shared state, and
-// WithCleaner. resolveConfig's own table is resolveconfig_test.go's.
+// Config rows: the default User-Agent from the build info, New's validation,
+// defaults and shared state, and WithCleaner. resolveConfig's own table is
+// resolveconfig_test.go's.
 
 import (
 	"errors"

@@ -1,9 +1,9 @@
 package unshorten
 
-// Failure rows of the §12.8 table (PLAN §6.2, owner A4t): the failure
-// invariant over every FailureKind, TestRequestInfoNoURL over every failure
-// path and error class (fresh and cached, Resolve and Process), and the
-// panic log (C2.9). One table of failure paths serves all three.
+// Failure rows of the §12.8 table: the failure invariant over every
+// FailureKind, TestRequestInfoNoURL over every failure path and error class
+// (fresh and cached, Resolve and Process), and the panic log. One table of
+// failure paths serves all three.
 
 import (
 	"bytes"

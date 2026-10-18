@@ -1,10 +1,9 @@
 package unshorten
 
-// Concurrency, cache and bound rows of the §12.8 table (PLAN §6.2, owner
-// A4t): coalescing, cache hits, the Limiter, caller cancellation,
-// OnRequest, the request and in-flight bounds (D4, U-3, U-R3-1, U-R3-4),
-// transient and definitive failures, and the cache's bounds as seen through
-// the Resolver. The cache and limiter units are cache_test.go's and
+// Concurrency, cache and bound rows of the §12.8 table: coalescing, cache
+// hits, the Limiter, caller cancellation, OnRequest, the request and
+// in-flight bounds (D4, U-3, U-R3-1, U-R3-4), transient and definitive
+// failures, and the cache's bounds as seen through the Resolver. The cache and limiter units are cache_test.go's and
 // limiter_test.go's. Rows wait on barriers (Joiners, arrival counts,
 // group.Wait), never on sleeps, except where a row asserts that something
 // does NOT happen for a while.
