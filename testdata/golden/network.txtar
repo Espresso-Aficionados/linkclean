@@ -1,0 +1,102 @@
+Network golden rows N1-N5: the network halves of the design's network
+rows. Package unshorten's TestNetworkGolden replays each section over its
+loopback test network: production code reaches the listeners by their real
+hostnames, with the real dial guard in the dial path. Nothing here is ever
+requested from a real host. The offline halves are N1/offline,
+N2/offline and N2/offline-categories in positive.txtar.
+
+Each "-- <id> --" section is one case: "key: value" lines, value = rest of
+the line verbatim; blank lines and lines starting with '#' are ignored.
+
+  in:          input URL (required, once)
+  registry:    entries added to DefaultRegistry, space-separated; "bit.ly"
+               is the bit.ly row of the default-registry table, which ships
+               unregistered (added with Registry.With)
+  generic:     PreviewOnly (default), Follow or Skip
+  server:      METHOD URL → STATUS [LOCATION]: the listener for URL's scheme
+               and host answers exactly this request (path and query as
+               written); any other request to it fails the case
+  body:        the text/html body of the previous server: line's response
+  listen:      URL: a listener for URL's scheme and host that answers 500 to
+               every request; with requests: it shows a host is never
+               contacted
+  requests:    URL N: the listener for URL's scheme and host received N
+               requests in total, after every run of the case
+  want:        expected URL under AffiliateKeep, and under AffiliateStrip
+               unless want-strip is given
+  want-strip:  expected URL under AffiliateStrip
+  err:         none (the default), or the sentinel the error wraps besides
+               ErrUnresolved (ErrFallback, ErrNoMatch, ...)
+  hops: none | hop: <JSON>     Process's Hops in order, under both policies
+  hop-keep:, hop-strip:        likewise, under one policy only
+  removed: none | removed: <JSON>   Process's Removed in order, both policies
+  removed-keep:, removed-strip:     likewise, under one policy only
+               (JSON fields as in positive.txtar; listed fields compared,
+               the count must match)
+  note:        free text
+
+Every case runs Resolve and then Process under AffiliateKeep, then both
+again through a WithCleaner(AffiliateStrip) view of the same Resolver.
+Every run after the first is served from the cache: no new request, and
+Result.Cached when there are hops. Each run also asserts Clean(URL) == URL
+and Process(in).URL == Resolve(in).URL, and on an error URL == Clean(in)
+and errors.Is(err, ErrUnresolved).
+-- N1 --
+note: http://t.co: scheme-agnostic match; exactly one HTTPS request, the plain-http listener untouched (DR-F11)
+in: http://t.co/abc
+server: GET https://t.co/abc → 301 https://example.net/p?utm_source=x
+listen: http://t.co
+listen: https://example.net
+requests: https://t.co 1
+requests: http://t.co 0
+requests: https://example.net 0
+want: https://example.net/p
+hop: {"category":"unshortened","rule":"unshorten:t.co","fromHost":"t.co","from":"https://t.co/abc","to":"https://example.net/p?utm_source=x"}
+removed: {"part":"query","category":"tracker","name":"utm_source"}
+-- N2 --
+note: ‡ affiliate interplay (ER-C5): the destination's tag and linkCode kept under Keep (MD-3), stripped under Strip, with the destination's categories after the CatUnshortened hop (MA-2); the destination is never requested
+in: https://amzn.to/xyz
+server: GET https://amzn.to/xyz → 301 https://www.amazon.com/dp/B0?tag=aff-20&linkCode=ll1&ref_=as_li
+listen: https://www.amazon.com
+requests: https://amzn.to 1
+requests: https://www.amazon.com 0
+want: https://www.amazon.com/dp/B0?tag=aff-20&linkCode=ll1
+want-strip: https://www.amazon.com/dp/B0
+hop: {"category":"unshortened","rule":"unshorten:amazon","fromHost":"amzn.to","from":"https://amzn.to/xyz","to":"https://www.amazon.com/dp/B0?tag=aff-20&linkCode=ll1&ref_=as_li"}
+removed-keep: {"part":"query","category":"tracker","name":"ref_"}
+removed-strip: {"part":"query","category":"affiliate","name":"tag","network":"Amazon Associates","id":"aff-20"}
+removed-strip: {"part":"query","category":"affiliate","name":"linkCode","network":"Amazon Associates","id":""}
+removed-strip: {"part":"query","category":"tracker","name":"ref_"}
+-- N3 --
+note: per-entry fallback: amzn.to's answer is Amazon's homepage, so the input is returned with ErrFallback; also from the cache
+in: https://amzn.to/xyz
+server: GET https://amzn.to/xyz → 301 https://www.amazon.com/
+listen: https://www.amazon.com
+requests: https://amzn.to 1
+requests: https://www.amazon.com 0
+want: https://amzn.to/xyz
+err: ErrFallback
+hops: none
+removed: none
+-- N4 --
+note: stop at the first host that is not allowlisted: returned, never requested. The design's row uses evil.example; .example has no ICANN site, so the approved next-URL validation (rawurl.ParseTarget, Q4) would make that ErrBadTarget, and this row uses evil.example.net to keep pinning the stop
+in: https://t.co/abc
+server: GET https://t.co/abc → 301 https://evil.example.net/x
+listen: https://evil.example.net
+requests: https://t.co 1
+requests: https://evil.example.net 0
+want: https://evil.example.net/x
+hop: {"category":"unshortened","rule":"unshorten:t.co","fromHost":"t.co","from":"https://t.co/abc","to":"https://evil.example.net/x"}
+removed: none
+-- N5 --
+note: no-click preview first: under PreviewOnly bit.ly is fetched only as GET /abc+ and the destination comes from the info page. bit.ly ships unregistered (Q18), so the row adds the entry with Registry.With; TestNetworkGoldenN5NoMatch pins the ErrNoMatch half
+in: https://bit.ly/abc
+registry: bit.ly
+server: GET https://bit.ly/abc+ → 200
+body: <div class="bitlink--destination-text"><ul><li><a class="item-detail--url" href="https://example.net/dest?utm_source=bitly" title="https://example.net/dest?utm_source=bitly" target="_blank" rel="noopener noreferrer">https://example.net/dest?utm_source=bitly</a></li></ul></div>
+listen: https://example.net
+requests: https://bit.ly 1
+requests: https://example.net 0
+want: https://example.net/dest
+hop: {"category":"unshortened","rule":"unshorten:bit.ly","fromHost":"bit.ly","from":"https://bit.ly/abc","to":"https://example.net/dest?utm_source=bitly"}
+removed: {"part":"query","category":"tracker","name":"utm_source"}
