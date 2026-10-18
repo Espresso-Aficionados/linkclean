@@ -486,11 +486,11 @@ in "</it's_:1> https://a.com/x_ y"
 out Bare "https://a.com/x_"
 
 -- mention-slash-combining-mark --
-in "</it́s_:1> https://a.com/x_ y"
+in "</it\u0301s_:1> https://a.com/x_ y"
 out Bare "https://a.com/x"
 
 -- mention-slash-apostrophe-run --
-in "*</a____':1>\t​<https://__"
+in "*</a____':1>\t\u200b<https://__"
 out Bare "https://__"
 
 -- mention-animated-emoji --
