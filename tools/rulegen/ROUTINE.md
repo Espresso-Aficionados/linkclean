@@ -148,10 +148,11 @@ maintainer is watching.
   after the comment, the PR stays open and is worked again next week; say so
   in the alert.
 - **Checks on commit `<sha>`.** The eight checks named above are the
-  required checks. Read every check run on the commit, then the newest run
-  (highest `id`) of each of the eight:
+  required checks. Read every check run on the commit (`filter=all`: the
+  default, `filter=latest`, returns only the runs GitHub counts as most
+  recent), then the newest run (highest `id`) of each of the eight:
   ```
-  gh api --paginate "repos/Espresso-Aficionados/linkclean/commits/<sha>/check-runs?per_page=100" --jq '.check_runs[]' > /tmp/lc/checks-<sha>.json
+  gh api --paginate "repos/Espresso-Aficionados/linkclean/commits/<sha>/check-runs?filter=all&per_page=100" --jq '.check_runs[]' > /tmp/lc/checks-<sha>.json
   jq -rs --args '. as $runs | [$ARGS.positional[] as $n | [$runs[] | select(.name == $n)] | max_by(.id) // {name: $n, status: "missing"}] | (.[] | "\(.name)\t\(.status)\t\(.conclusion // "")\t\(.id // "")"), (if all(.status == "completed" and .conclusion == "success") then "green" else "not green" end)' \
     'test (1.26.x)' 'test (stable)' rules-provenance rules-schema rules-compile rules-counts rules-risky rules-golden < /tmp/lc/checks-<sha>.json
   ```
@@ -160,6 +161,14 @@ maintainer is watching.
   check with no run on the commit prints `missing` and is not green. A check
   is **red** if it is `completed` with any other conclusion; **pending** if
   it is missing or not `completed`.
+- **All checks on commit `<sha>`** (steps 10b and 13, after the checks on
+  `<sha>` above): every check, not only the eight, by its newest run:
+  ```
+  jq -rs 'group_by(.name) | map(max_by(.id)) | if any(.status == "completed" and (.conclusion | IN("success", "skipped") | not)) then "red" elif all(.status == "completed") then "all green" else "pending" end' /tmp/lc/checks-<sha>.json
+  ```
+  It prints `all green` only if the newest run of every check name is
+  `completed` with conclusion `success` or `skipped`; `red` if any is
+  `completed` with another conclusion; otherwise `pending`.
 - **Merge PR `<n>` at head `<sha>`** (merge path enabled only, and only once
   the checks on `<sha>` print `green`):
   `gh api -X PUT repos/Espresso-Aficionados/linkclean/pulls/<n>/merge -f merge_method=squash -f sha=<sha> --jq '[.merged, .sha] | @tsv'`
@@ -271,7 +280,7 @@ Several alerts in one run may be combined into one message, one line each.
 
 ```
 rm -rf /tmp/lc && mkdir -p /tmp/lc
-gh api repos/Espresso-Aficionados/linkclean --jq .full_name   # must print Espresso-Aficionados/linkclean
+gh api repos/Espresso-Aficionados/linkclean --jq .permissions.push   # must print true
 gh auth setup-git
 gh repo clone Espresso-Aficionados/linkclean /tmp/lc/main
 git -C /tmp/lc/main checkout --detach origin/main
@@ -283,21 +292,26 @@ go -C /tmp/lc/main/tools build -o /tmp/lc/rulegen ./rulegen
 gh api repos/Espresso-Aficionados/linkclean/rules/branches/main --jq '[.[].type] | index("required_status_checks") != null'
 ```
 
-If any command fails (other than the last), alert with the error and stop
-the whole run. Do not invent a git identity. `cat /tmp/lc/up-main/STATUS`
-should be `ok`; `unreachable: …` means upstream is down (steps 1 to 3 then
-fail or escalate on their own).
+If any command fails (other than the last), or the repository read prints
+anything but `true`, alert with the error and stop the whole run. Do not
+invent a git identity. `cat /tmp/lc/up-main/STATUS` should be `ok`;
+`unreachable: …` means upstream is down (steps 1 to 3 then fail or escalate
+on their own).
 
 Do not run `gh auth status`: in this environment it reports the token in
 `GH_TOKEN` as invalid and exits non-zero although REST calls succeed (the
 environment authenticates them). The REST read of the repository above is
-the authentication and reachability check.
+the authentication and reachability check: the repository is public, so
+the read alone succeeds without credentials, but GitHub reports
+`permissions` only to an authenticated caller (`null` otherwise), and
+`permissions.push` is `true` only for one that can push.
 
 If the ruleset query does not print `true`, the merge path is **disabled**
 for this run unless the prompt that started the run says the maintainer is
 watching: steps 5 and 9 do not merge and escalate instead, with
-"`main` ruleset not active; merge path disabled", and steps 10b and 13 only
-comment.
+"`main` ruleset not active; merge path disabled"; step 10b only comments
+that a PR is ready, and step 13 lists its cleanup PR in the monthly alert
+for the maintainer to merge.
 
 ### 1. Liveness
 
@@ -693,16 +707,19 @@ disarm here. Leave any auto-merge the maintainer armed as it is.
      --jq '.[] | select(.user.login == "dependabot[bot]" and (.head.ref | startswith("dependabot/submodules/") | not) and (any(.labels[]; .name == "rules-update") | not)) | [.number, .head.sha, .head.ref] | @tsv'
    ```
 2. For each PR `<m>` with head `<h>`:
-   - Every commit of `gh api --paginate "repos/Espresso-Aficionados/linkclean/pulls/<m>/commits?per_page=100" --jq '.[].sha'`
+   - List its commits, oldest first:
+     `gh api --paginate "repos/Espresso-Aficionados/linkclean/pulls/<m>/commits?per_page=100" --jq '.[].sha'`.
+     If the last SHA it prints is not `<h>`, the head moved since the
+     listing: leave the PR for next week. Otherwise every SHA it prints
      must be a Dependabot commit (Conventions); if one is not, comment and
      alert, and do not merge it.
-   - Read the checks on `<h>` (Conventions). `green`, and no other check run
-     in `/tmp/lc/checks-<h>.json` completed with a conclusion other than
-     `success`, `skipped` or `neutral`: merge PR `<m>` at `<h>` (only with the
-     merge path enabled; otherwise comment that it is ready). A refused merge
-     is not sent again: comment and alert
-     `merge of #<m> at <h> refused: <gh's error>; not retried`. Any red: comment
-     and alert. Pending: leave for next week.
+   - Read the checks on `<h>`, then all checks on `<h>` (Conventions). The
+     eight print `green` and all checks print `all green`: merge PR `<m>` at
+     `<h>` (only with the merge path enabled; otherwise comment that it is
+     ready). A refused merge is not sent again: comment and alert
+     `merge of #<m> at <h> refused: <gh's error>; not retried`. Any red (one
+     of the eight red, or `red`): comment and alert. Otherwise (pending):
+     leave for next week.
 
    They are released by the next data release or a manual one.
 
@@ -745,10 +762,11 @@ report in one alert:
   **without** the `rules-update` label (that label would make it look like a
   takeover PR):
   `gh api -X POST repos/Espresso-Aficionados/linkclean/pulls -f title="rules/acks.json: remove lapsed, expired and stale entries (<YYYY-MM>)" -f head=acks-cleanup-<YYYY-MM> -f base=main -F body=@/tmp/lc/cleanup-body.md --jq .number`.
-  With the merge path enabled, read the checks on the pushed head every
-  minute for at most 30 minutes and, once `green`, merge PR `<m>` at that
-  head; if they are not green in time, or the merge path is disabled, list
-  the PR in this alert for the maintainer to merge. It never blocks a data
+  With the merge path enabled, read the checks and all checks on the pushed
+  head (Conventions) every minute for at most 30 minutes and, once the eight
+  print `green` and all checks print `all green`, merge PR `<m>` at that
+  head; if they do not in time, or the merge path is disabled, list the PR
+  in this alert for the maintainer to merge. It never blocks a data
   release;
 - overlay entries whose names still await captured evidence, and the age of
   the held-out accuracy measurement (alert if older than 45 days), if the
@@ -792,4 +810,5 @@ and verified routine commits.
 | merge_refused_head_moved | All eight checks green on `V`; a push moves the head after the last re-read | The merge with `sha=V` gets HTTP 409: never sent again; a human commit on the new head → `data path waiting on #<n> (human-edited, …)` hand-off; otherwise escalate with `merge of #<n> at <sha> refused: …; not retried` |
 | required_check_missing | Seven of the eight checks green on `V`; `rules-golden` has no run on `V` | Not green: the checks read `missing`; after 30 minutes alert and stop; no merge |
 | check_rerun_newest | `rules-counts` failed on `V`, then a re-run succeeded | The newest run (highest id) of each check counts: green |
-| auth_status_invalid | `gh auth status` reports the token in `GH_TOKEN` invalid; REST calls succeed | Never run or gate on `gh auth status`; step 0's REST read of the repository is the check, and the run continues |
+| auth_status_invalid | `gh auth status` reports the token in `GH_TOKEN` invalid; REST calls succeed | Never run or gate on `gh auth status`; step 0's REST read of the repository (`permissions.push` is `true`) is the check, and the run continues |
+| auth_missing | No credential reaches GitHub; the public repository still reads | Step 0's read prints `null`, not `true`: alert and stop the run |
