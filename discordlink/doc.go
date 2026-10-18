@@ -31,12 +31,56 @@
 //
 // # Unverified grammar
 //
-// TODO(m3): one entry per remaining unverified marker (U1–U4, L1–L3, A1, B1).
+// Find's answers rest on these points of Discord's grammar, which have not
+// yet been confirmed against Discord's clients. The tests pin each one, under
+// its ID, until a private-channel run settles it:
+//   - U1: whether Discord balances ')'. Find drops a bare link's trailing ')'
+//     while the link holds more ')' than '(', so
+//     https://en.wikipedia.org/wiki/Foo_(bar) keeps its ')' and
+//     (https://a.com/x) does not. If Discord does not balance, such links
+//     end elsewhere.
+//   - U2: whether masked links are previewed. WouldEmbed reports true for
+//     Masked, the conservative answer for a caller deciding whether to
+//     suppress previews.
+//   - U3: upper-case schemes. Only lowercase http:// and https:// start a
+//     link: HTTPS://a.com is text, and <HTTPS://a.com> is consumed as an
+//     autolink without reporting a link.
+//   - U4: server previews versus client links. Find reports what the client
+//     makes clickable: a URL in a code span is not a link, though the server
+//     might still preview it, and a spoilered link counts as previewed.
+//   - L1: the label filter. A masked link whose label contains http:// or
+//     https:// is not a masked link; Find reports the bare links in its text
+//     instead, so [https://a.com/x](https://b.com/y) is one bare link,
+//     https://a.com/x](https://b.com/y).
+//   - L2: [label](<https://a.com/x) without the closing '>' is Masked, not
+//     MaskedSuppressed (simple-markdown says MaskedSuppressed), so WouldEmbed
+//     errs towards reporting a preview.
+//   - L3: a masked link whose target is not http(s), such as
+//     [l](javascript:x), is consumed and reports nothing. If Discord shows
+//     it as plain text instead, bare links in that text would count.
+//   - A1: an autolink target may contain a newline, a tab or an NBSP, as the
+//     autolink regex allows: <https://a.com/x\ny> is one Suppressed link.
+//   - B1: block rules are not modelled (see Not modelled).
 //
 // # Not modelled
 //
-// TODO(m3): block rules (subtext, headings, quotes, lists), the look-alike
-// label filter, emoji labels.
+// Find models Discord's inline grammar only. It does not model:
+//   - Block rules: subtext (-# ), headings (#, ##, ###), block quotes (> and
+//     >>> ) and lists. They matter only when a spoiler, emphasis, code span
+//     or autolink crosses into or out of a line that starts one. In
+//     "-# ||a\n||https://a.com/x||" Find reports the bare link
+//     https://a.com/x|| without Spoiler; if Discord scopes inline spans to
+//     the subtext line, the link is https://a.com/x and spoilered.
+//   - Discord's filter for look-alike characters in masked-link labels.
+//   - Emoji in labels, whose rendering depends on the author.
+//   - simple-markdown's input normalisation, which turns each tab into four
+//     spaces and each CR LF or lone CR into LF, and drops form feeds, before
+//     parsing. Find parses the content as sent, so its offsets index it; a
+//     tab inside an autolink target, or a form feed inside a link, can make
+//     the answer differ from Discord's.
+//   - The shrug emoticon, which some Discord markdown parsers read as one
+//     token. Find reads its "\_" as an escape and its second '_' as a
+//     possible emphasis opener.
 //
 // # Limitations (Repost)
 //

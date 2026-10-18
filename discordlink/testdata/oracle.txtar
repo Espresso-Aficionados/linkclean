@@ -2,17 +2,5547 @@ Oracle corpus (TestFindOracle): simple-markdown's answers for generated and
 golden inputs. Generated offline by tools/discordref (see its README); CI never
 runs node. Do not edit by hand.
 
-simple-markdown: version <version>, commit <commit>, index.js sha256 <sha256>
-generator seed: <seed>
+simple-markdown: version 0.7.3, commit f5bfed64a68d2689ee9137f35679b8b6b31193b7, simple-markdown.js sha256 d2caf4a7608e292712d85bb7c95ab0b73c2089ac8a519d4642fed3b15b159046
+generator seed: 20261018, 120 golden rows, 1380 generated rows (1028 with links)
 
 One section per row:
 
   -- <id> --
   in <string>
-  raw <link>      zero or more: simple-markdown's links (balanced mode)
-  want <link>     zero or more: raw with Find's documented choices applied
-                  (U1 balanced ')', the L1 label filter, the L2 kind rule)
+  raw <link>      zero or more: simple-markdown's links, with Discord's
+                  rules and the bare-link rule's balanced ')' (U1)
+  want <link>     zero or more: Find's answer, which is raw with Find's
+                  other documented choices applied (the L1 label filter
+                  and the L2 kind rule)
   want same       instead of want lines: want equals raw
+  want none       instead of want lines: raw has links, want has none
 
 <string> and <link> are as in find.txtar. A row with neither raw nor want
-lines expects no links.
+lines expects no links. Row ids starting with g are find.txtar's inputs
+(except shapes, inputs with invalid UTF-8, and inputs with a tab, CR or form
+feed, which simple-markdown rewrites before parsing); ids starting with t
+come from the template generator. Every row nests at most 15 paired rules
+deep, so Find's nesting limit cannot change its answer.
+
+-- g0001 --
+in "see https://a.com/x."
+raw Bare "https://a.com/x"
+want same
+-- g0002 --
+in "(https://a.com/x)"
+raw Bare "https://a.com/x"
+want same
+-- g0003 --
+in "https://en.wikipedia.org/wiki/Foo_(bar)"
+raw Bare "https://en.wikipedia.org/wiki/Foo_(bar)"
+want same
+-- g0004 --
+in "https://a.com/x)"
+raw Bare "https://a.com/x"
+want same
+-- g0005 --
+in "(see https://a.com/wiki/Foo_(bar))"
+raw Bare "https://a.com/wiki/Foo_(bar)"
+want same
+-- g0006 --
+in "https://a.com/x'"
+raw Bare "https://a.com/x"
+want same
+-- g0007 --
+in "\"https://a.com/x\""
+raw Bare "https://a.com/x"
+want same
+-- g0008 --
+in "https://a.com/x]"
+raw Bare "https://a.com/x"
+want same
+-- g0009 --
+in "https://a.com/a<b"
+raw Bare "https://a.com/a"
+want same
+-- g0010 --
+in "x https://a.com/a_(b)_c)"
+raw Bare "https://a.com/a_(b)_c"
+want same
+-- g0011 --
+in "https://a.com/x;)"
+raw Bare "https://a.com/x"
+want same
+-- g0012 --
+in "http://a.com/.,:;"
+raw Bare "http://a.com/"
+want same
+-- g0013 --
+in "https://a.com/x>"
+raw Bare "https://a.com/x>"
+want same
+-- g0014 --
+in "https://a.com/x||"
+raw Bare "https://a.com/x||"
+want same
+-- g0015 --
+in "https://a.com/`x`"
+raw Bare "https://a.com/`x`"
+want same
+-- g0016 --
+in "https://a.com/x**y**"
+raw Bare "https://a.com/x**y**"
+want same
+-- g0017 --
+in "https://a.com/\\_x_"
+raw Bare "https://a.com/\\_x_"
+want same
+-- g0018 --
+in "https://a.com/x\u00a0tail"
+raw Bare "https://a.com/x"
+want same
+-- g0019 --
+in "https://a.com/x\u3000tail"
+raw Bare "https://a.com/x"
+want same
+-- g0020 --
+in "https://a.com/x\u200btail"
+raw Bare "https://a.com/x\u200btail"
+want same
+-- g0021 --
+in "https://a.com/x\u0085tail"
+raw Bare "https://a.com/x\u0085tail"
+want same
+-- g0022 --
+in "https://a.com/x\ufefftail"
+raw Bare "https://a.com/x"
+want same
+-- g0023 --
+in "https://"
+-- g0024 --
+in "https://a"
+-- g0025 --
+in "foohttps://a.com/x"
+raw Bare "https://a.com/x"
+want same
+-- g0026 --
+in "HTTPS://a.com/x"
+-- g0027 --
+in "Https://a.com/x"
+-- g0028 --
+in "steam://run/1 https://a.com"
+raw Bare "https://a.com"
+want same
+-- g0029 --
+in "\\https://a.com/x"
+raw Bare "https://a.com/x"
+want same
+-- g0030 --
+in "h\\ttps://a.com/x"
+-- g0031 --
+in "<https://a.com/x"
+raw Bare "https://a.com/x"
+want same
+-- g0032 --
+in "\\<https://a.com/x>"
+raw Bare "https://a.com/x>"
+want same
+-- g0033 --
+in "\\[lbl](https://a.com/x)"
+raw Bare "https://a.com/x"
+want same
+-- g0034 --
+in "https://a.com/x\n```\ncode\n```"
+raw Bare "https://a.com/x"
+want same
+-- g0035 --
+in "<https://a.com/x>"
+raw Suppressed "https://a.com/x"
+want same
+-- g0036 --
+in "<https://a.com/x y>"
+raw Bare "https://a.com/x"
+want same
+-- g0037 --
+in "<https://a.com/x\ny>"
+raw Suppressed "https://a.com/x\ny"
+want same
+-- g0038 --
+in "<https://a.com/x\u00a0y>"
+raw Suppressed "https://a.com/x\u00a0y"
+want same
+-- g0039 --
+in "<https:/a.com>"
+-- g0040 --
+in "<ftp://a.com/x>"
+-- g0041 --
+in "<mailto:a@b.c>"
+-- g0042 --
+in "<HTTPS://a.com/x> https://b.com/y"
+raw Bare "https://b.com/y"
+want same
+-- g0043 --
+in "<<https://a.com/x>>"
+-- g0044 --
+in "<https://a.com/x>>"
+raw Suppressed "https://a.com/x"
+want same
+-- g0045 --
+in "||<https://a.com/x>||"
+raw Suppressed "https://a.com/x" spoiler
+want same
+-- g0046 --
+in "[lbl](https://a.com/x)"
+raw Masked "https://a.com/x" label="lbl"
+want same
+-- g0047 --
+in "[lbl](<https://a.com/x>)"
+raw MaskedSuppressed "https://a.com/x" label="lbl"
+want same
+-- g0048 --
+in "[lbl](https://a.com/(b))"
+raw Masked "https://a.com/(b)" label="lbl"
+want same
+-- g0049 --
+in "[lbl](https://a.com/x \"title\")"
+raw Masked "https://a.com/x" label="lbl"
+want same
+-- g0050 --
+in "[l[i]b](https://a.com/x)"
+raw Masked "https://a.com/x" label="l[i]b"
+want same
+-- g0051 --
+in "[lbl](javascript:alert(1)) https://b.com"
+raw Bare "https://b.com"
+want same
+-- g0052 --
+in "[l](ftp://a.com/x) https://b.com/y"
+raw Bare "https://b.com/y"
+want same
+-- g0053 --
+in "[https://a.com/x](https://b.com/y)"
+raw Masked "https://b.com/y" label="https://a.com/x"
+want Bare "https://a.com/x](https://b.com/y)"
+-- g0054 --
+in "[see https://a.com/x here](https://b.com/y) z"
+raw Masked "https://b.com/y" label="see https://a.com/x here"
+want Bare "https://a.com/x"
+want Bare "https://b.com/y"
+-- g0055 --
+in "[lbl](https://a.com/x)>"
+raw Masked "https://a.com/x" label="lbl"
+want same
+-- g0056 --
+in "[l](https://a.com/x)(b)"
+raw Masked "https://a.com/x" label="l"
+want same
+-- g0057 --
+in "[l]( https://a.com/x )"
+raw Masked "https://a.com/x" label="l"
+want same
+-- g0058 --
+in "[l](https://a.com/x y)"
+raw Bare "https://a.com/x"
+want same
+-- g0059 --
+in "[l]\n(https://a.com/x)"
+raw Bare "https://a.com/x"
+want same
+-- g0060 --
+in "[l\nm](https://a.com/x)"
+raw Masked "https://a.com/x" label="l\nm"
+want same
+-- g0061 --
+in "[](https://a.com/x)"
+raw Masked "https://a.com/x"
+want same
+-- g0062 --
+in "[l](https://a.com/x\\)y)"
+raw Masked "https://a.com/x\\)y" label="l"
+want same
+-- g0063 --
+in "[a](b](https://a.com/x)"
+raw Masked "https://a.com/x" label="a](b"
+want same
+-- g0064 --
+in "[l](a(b \"t\") https://c.com/d"
+raw Bare "https://c.com/d"
+want same
+-- g0065 --
+in "[l]( \"https://a.com b\")"
+-- g0066 --
+in "[l](<https://a.com/x) z"
+raw MaskedSuppressed "https://a.com/x" label="l"
+want Masked "https://a.com/x" label="l"
+-- g0067 --
+in "||**[l](<https://a.com/x>)**||"
+raw MaskedSuppressed "https://a.com/x" spoiler label="l"
+want same
+-- g0068 --
+in "||https://a.com/x||"
+raw Bare "https://a.com/x" spoiler
+want same
+-- g0069 --
+in "||https://a.com/x||y||"
+raw Bare "https://a.com/x" spoiler
+want same
+-- g0070 --
+in "||a|| https://a.com/x ||b||"
+raw Bare "https://a.com/x"
+want same
+-- g0071 --
+in "|| unclosed https://a.com/x"
+raw Bare "https://a.com/x"
+want same
+-- g0072 --
+in "||||https://a.com/x||"
+raw Bare "https://a.com/x" spoiler
+want same
+-- g0073 --
+in "||a\\||https://a.com/x||"
+raw Bare "https://a.com/x||"
+want same
+-- g0074 --
+in "**https://a.com/x**"
+raw Bare "https://a.com/x"
+want same
+-- g0075 --
+in "**https://a.com/x***"
+raw Bare "https://a.com/x*"
+want same
+-- g0076 --
+in "**a\\** https://b.com/y**"
+raw Bare "https://b.com/y"
+want same
+-- g0077 --
+in "**a`**`https://a.com/x"
+raw Bare "https://a.com/x"
+want same
+-- g0078 --
+in "*https://a.com/a*b*"
+raw Bare "https://a.com/a"
+want same
+-- g0079 --
+in "* https://a.com/x*"
+raw Bare "https://a.com/x*"
+want same
+-- g0080 --
+in "*https://a.com/x *"
+raw Bare "https://a.com/x"
+want same
+-- g0081 --
+in "*https://a.com/x\\ *"
+raw Bare "https://a.com/x\\"
+want same
+-- g0082 --
+in "***https://a.com/x*"
+raw Bare "https://a.com/x"
+want same
+-- g0083 --
+in "*a ***https://a.com/x*"
+raw Bare "https://a.com/x*"
+want same
+-- g0084 --
+in "_https://a.com/x_"
+raw Bare "https://a.com/x"
+want same
+-- g0085 --
+in "a_https://a.com/x_"
+raw Bare "https://a.com/x"
+want same
+-- g0086 --
+in "_https://a.com/a_b_"
+raw Bare "https://a.com/a_b_"
+want same
+-- g0087 --
+in "_a https://a.com/x_"
+raw Bare "https://a.com/x"
+want same
+-- g0088 --
+in "__https://a.com/a__b__"
+raw Bare "https://a.com/a"
+want same
+-- g0089 --
+in "__https://a.com/x___"
+raw Bare "https://a.com/x_"
+want same
+-- g0090 --
+in "~~https://a.com/x~~"
+raw Bare "https://a.com/x"
+want same
+-- g0091 --
+in "~~https://a.com/x~~~"
+raw Bare "https://a.com/x"
+want same
+-- g0092 --
+in "~~https://a.com/x~~_"
+raw Bare "https://a.com/x~~_"
+want same
+-- g0093 --
+in "`https://a.com/x`"
+-- g0094 --
+in "``a`https://a.com/x``"
+-- g0095 --
+in "``a`https://a.com/x` https://b.com/z"
+raw Bare "https://a.com/x`"
+raw Bare "https://b.com/z"
+want same
+-- g0096 --
+in "`` https://a.com/x ``"
+-- g0097 --
+in "`a\nhttps://a.com/x`"
+-- g0098 --
+in "`unclosed https://a.com/x"
+raw Bare "https://a.com/x"
+want same
+-- g0099 --
+in "```\nhttps://a.com/x\n```"
+-- g0100 --
+in "```https://a.com/x```"
+-- g0101 --
+in "```go\nfmt.Println(\"https://a.com/x\")\n``` https://b.com/y"
+raw Bare "https://b.com/y"
+want same
+-- g0102 --
+in "``` https://a.com/x"
+raw Bare "https://a.com/x"
+want same
+-- g0103 --
+in "<@123> https://a.com/x <#456> <:e:789> <t:1:R>"
+raw Bare "https://a.com/x"
+want same
+-- g0104 --
+in "<:a_:1> https://a.com/x_"
+raw Bare "https://a.com/x_"
+want same
+-- g0105 --
+in "<@!1> https://a.com/x"
+raw Bare "https://a.com/x"
+want same
+-- g0106 --
+in "<@&1> https://a.com/x"
+raw Bare "https://a.com/x"
+want same
+-- g0107 --
+in "<#1> https://a.com/x"
+raw Bare "https://a.com/x"
+want same
+-- g0108 --
+in "<@$1> https://a.com/x"
+raw Bare "https://a.com/x"
+want same
+-- g0109 --
+in "</a_b c:1> https://a.com/x_"
+raw Bare "https://a.com/x_"
+want same
+-- g0110 --
+in "<a:b_c:1> https://a.com/x_"
+raw Bare "https://a.com/x_"
+want same
+-- g0111 --
+in "<t:1> https://a.com/x"
+raw Bare "https://a.com/x"
+want same
+-- g0112 --
+in "<t:1_> https://a.com/x_"
+raw Bare "https://a.com/x"
+want same
+-- g0113 --
+in "<t:-1:F> https://a.com/x"
+raw Bare "https://a.com/x"
+want same
+-- g0114 --
+in "<1:linked-roles:2> https://a.com/x"
+raw Bare "https://a.com/x"
+want same
+-- g0115 --
+in "<1:browse> https://a.com/x"
+raw Bare "https://a.com/x"
+want same
+-- g0116 --
+in "-# https://a.com/x"
+raw Bare "https://a.com/x"
+want same
+-- g0117 --
+in "> https://a.com/x"
+raw Bare "https://a.com/x"
+want same
+-- g0118 --
+in "-# ||a\n||https://a.com/x||"
+raw Bare "https://a.com/x||"
+want same
+-- g0119 --
+in "# **a\nhttps://a.com/x**"
+raw Bare "https://a.com/x"
+want same
+-- g0120 --
+in "> `a\nhttps://a.com/x` https://b.com/y"
+raw Bare "https://b.com/y"
+want same
+-- t0121 --
+in " https://e.co/%7C)** ```https://c.net/(z)["
+raw Bare "https://e.co/%7C)**"
+raw Bare "https://c.net/(z)["
+want same
+-- t0122 --
+in "http://a.com_http://a.com**~~http://e.co/%7C\\"
+raw Bare "http://a.com_http://a.com**~~http://e.co/%7C\\"
+want same
+-- t0123 --
+in "https://a.com<:a:1>(||http://d.com/?q=1&r=2\\][ahttp://b.org/p`"
+raw Bare "https://a.com"
+raw Bare "http://d.com/?q=1&r=2\\][ahttp://b.org/p`"
+want same
+-- t0124 --
+in "https://d.com/?q=1&r=2```HTTPS://a.com`__)https://d.com/?q=1&r=2https://b.org/p~~https://e.co/%7C*\u00e9https://x.io/a_b"
+raw Bare "https://d.com/?q=1&r=2```HTTPS://a.com`__)https://d.com/?q=1&r=2https://b.org/p~~https://e.co/%7C*\u00e9https://x.io/a_b"
+want same
+-- t0125 --
+in ")```HTTPS://e.co/%7C\"\nhttp://c.net/(z)\u00a0\n\u00e9https://e.co/%7C__"
+raw Bare "http://c.net/(z)"
+raw Bare "https://e.co/%7C__"
+want same
+-- t0126 --
+in "__\u200b'https://b.org/p>'"
+raw Bare "https://b.org/p>"
+want same
+-- t0127 --
+in "]<t:1:R>`||\nhttps://b.org/p"
+raw Bare "https://b.org/p"
+want same
+-- t0128 --
+in "](<<@1>https://b.org/p[\n<t:1:R>word`)https://e.co/%7C\n"
+raw Bare "https://b.org/p["
+raw Bare "https://e.co/%7C"
+want same
+-- t0129 --
+in "*1(~~https://c.net/(z)\"\u200b"
+raw Bare "https://c.net/(z)\"\u200b"
+want same
+-- t0130 --
+in "```https://f.com/x.https://x.io/a_b~~`` (HTTPS://x.io/a_b>```HTTPS://d.com/?q=1&r=2"
+-- t0131 --
+in "\"<(https://d.com/?q=1&r=2)HTTPS://d.com/?q=1&r=2||'https://b.org/phttps://g.com/\u00e9||"
+raw Bare "https://d.com/?q=1&r=2)HTTPS://d.com/?q=1&r=2||'https://b.org/phttps://g.com/\u00e9||"
+want same
+-- t0132 --
+in "word()HTTPS://x.io/a_b<1a\\-"
+-- t0133 --
+in "**)"
+-- t0134 --
+in "word__1 "
+-- t0135 --
+in "'>"
+-- t0136 --
+in "https://g.com/\u00e9]-https://a.com"
+raw Bare "https://g.com/\u00e9]-https://a.com"
+want same
+-- t0137 --
+in "](https://f.com/x.```"
+raw Bare "https://f.com/x.```"
+want same
+-- t0138 --
+in "https://f.com/x.[#'https://x.io/a_b*<t:1:R>"
+raw Bare "https://f.com/x.[#'https://x.io/a_b*"
+want same
+-- t0139 --
+in "<t:1:R>)\""
+-- t0140 --
+in "~~'\nhttps://c.net/(z)http://g.com/\u00e9http://g.com/\u00e9_("
+raw Bare "https://c.net/(z)http://g.com/\u00e9http://g.com/\u00e9_("
+want same
+-- t0141 --
+in "https://a.com>\n]<-"
+raw Bare "https://a.com>"
+want same
+-- t0142 --
+in "\nhttps://e.co/%7C<:a:1>\n\u200b_`'HTTPS://d.com/?q=1&r=2](<http://x.io/a_b"
+raw Bare "https://e.co/%7C"
+raw Bare "http://x.io/a_b"
+want same
+-- t0143 --
+in "<t:1:R>](<"
+-- t0144 --
+in "](<>"
+-- t0145 --
+in "https://e.co/%7C_http://f.com/x.__https://g.com/\u00e9<)https://x.io/a_b*http://f.com/x."
+raw Bare "https://e.co/%7C_http://f.com/x.__https://g.com/\u00e9"
+raw Bare "https://x.io/a_b*http://f.com/x"
+want same
+-- t0146 --
+in "\\https://d.com/?q=1&r=2__https://x.io/a_b ((http://x.io/a_b<https://e.co/%7C"
+raw Bare "https://d.com/?q=1&r=2__https://x.io/a_b"
+raw Bare "http://x.io/a_b"
+raw Bare "https://e.co/%7C"
+want same
+-- t0147 --
+in "<](<]http://f.com/x.~~)"
+raw Bare "http://f.com/x.~~"
+want same
+-- t0148 --
+in "\n1**(\n __https://a.com~~"
+raw Bare "https://a.com~~"
+want same
+-- t0149 --
+in "https://a.com`https://f.com/x.1http://c.net/(z))http://b.org/phttp://a.com>\\<t:1:R>("
+raw Bare "https://a.com`https://f.com/x.1http://c.net/(z))http://b.org/phttp://a.com>\\"
+want same
+-- t0150 --
+in "(~~'"
+-- t0151 --
+in "HTTPS://d.com/?q=1&r=2\\'__https://x.io/a_bhttps://x.io/a_b__\u00a0]```~~"
+raw Bare "https://x.io/a_bhttps://x.io/a_b"
+want same
+-- t0152 --
+in "\u200bhttps://g.com/\u00e9](http://b.org/phttp://g.com/\u00e9```"
+raw Bare "https://g.com/\u00e9](http://b.org/phttp://g.com/\u00e9```"
+want same
+-- t0153 --
+in "__<\u200b"
+-- t0154 --
+in "]||__`\u00e9] 1~~"
+-- t0155 --
+in "](\u00e9\\ahttps://f.com/x. a<HTTPS://e.co/%7C\""
+raw Bare "https://f.com/x"
+want same
+-- t0156 --
+in "||||](~~http://b.org/p```ahttp://f.com/x.\"1\u00a0"
+raw Bare "http://b.org/p```ahttp://f.com/x.\"1"
+want same
+-- t0157 --
+in "__HTTPS://b.org/p__https://d.com/?q=1&r=2]word1\u00a0https://x.io/a_b\"]([a"
+raw Bare "https://d.com/?q=1&r=2]word1"
+raw Bare "https://x.io/a_b\"]([a"
+want same
+-- t0158 --
+in "HTTPS://b.org/phttp://e.co/%7C```<HTTPS://x.io/a_b](<\\https://d.com/?q=1&r=2"
+raw Bare "http://e.co/%7C```"
+raw Bare "https://d.com/?q=1&r=2"
+want same
+-- t0159 --
+in "||<:a:1>```"
+-- t0160 --
+in "word\u00e9 "
+-- t0161 --
+in "\"*<@1>]https://c.net/(z)*http://c.net/(z)-](||"
+raw Bare "https://c.net/(z)"
+raw Bare "http://c.net/(z)-](||"
+want same
+-- t0162 --
+in "HTTPS://d.com/?q=1&r=2<@1>~~http://g.com/\u00e9\\<@1> "
+raw Bare "http://g.com/\u00e9\\"
+want same
+-- t0163 --
+in "\u200bhttps://g.com/\u00e9https://g.com/\u00e9\nhttps://b.org/p(http://a.com\""
+raw Bare "https://g.com/\u00e9https://g.com/\u00e9"
+raw Bare "https://b.org/p(http://a.com"
+want same
+-- t0164 --
+in ")HTTPS://c.net/(z)<'HTTPS://f.com/x.<)http://e.co/%7C"
+raw Bare "http://e.co/%7C"
+want same
+-- t0165 --
+in "~~](https://e.co/%7C||](<__`"
+raw Bare "https://e.co/%7C||]("
+want same
+-- t0166 --
+in "\u00e9\\http://f.com/x.https://x.io/a_bHTTPS://f.com/x.<https://x.io/a_b]-\n"
+raw Bare "http://f.com/x.https://x.io/a_bHTTPS://f.com/x"
+raw Bare "https://x.io/a_b]-"
+want same
+-- t0167 --
+in "http://x.io/a_bHTTPS://x.io/a_b`\"\n\u00a0["
+raw Bare "http://x.io/a_bHTTPS://x.io/a_b`"
+want same
+-- t0168 --
+in "ahttp://b.org/p<||1>HTTPS://e.co/%7Chttps://b.org/p~~HTTPS://d.com/?q=1&r=2]"
+raw Bare "http://b.org/p"
+raw Bare "https://b.org/p~~HTTPS://d.com/?q=1&r=2"
+want same
+-- t0169 --
+in "HTTPS://c.net/(z)_<-`]https://e.co/%7C]("
+raw Bare "https://e.co/%7C]("
+want same
+-- t0170 --
+in "```https://x.io/a_b<\u00a0__"
+raw Bare "https://x.io/a_b"
+want same
+-- t0171 --
+in "HTTPS://b.org/p]`)https://g.com/\u00e9<\"<@1>["
+raw Bare "https://g.com/\u00e9"
+want same
+-- t0172 --
+in " https://e.co/%7C**HTTPS://f.com/x.*```_\n(*<t:1:R>"
+raw Bare "https://e.co/%7C**HTTPS://f.com/x.*```_"
+want same
+-- t0173 --
+in "||[`HTTPS://f.com/x.||#](<>>~~"
+-- t0174 --
+in ")<t:1:R><"
+-- t0175 --
+in " \nhttps://f.com/x.](HTTPS://c.net/(z) http://b.org/p)a[](<"
+raw Bare "https://f.com/x.](HTTPS://c.net/(z)"
+raw Bare "http://b.org/p)a[]("
+want same
+-- t0176 --
+in "http://d.com/?q=1&r=2``` https://c.net/(z)]"
+raw Bare "http://d.com/?q=1&r=2```"
+raw Bare "https://c.net/(z)"
+want same
+-- t0177 --
+in "~~`**"
+-- t0178 --
+in "](<\u00a0HTTPS://d.com/?q=1&r=2https://f.com/x.()'<__"
+raw Bare "https://f.com/x.()"
+want same
+-- t0179 --
+in "\n]"
+-- t0180 --
+in "http://e.co/%7CHTTPS://g.com/\u00e9word"
+raw Bare "http://e.co/%7CHTTPS://g.com/\u00e9word"
+want same
+-- t0181 --
+in "a]( "
+-- t0182 --
+in "HTTPS://b.org/pHTTPS://e.co/%7Chttp://d.com/?q=1&r=2http://x.io/a_b<[https://a.comhttps://f.com/x.)~~ "
+raw Bare "http://d.com/?q=1&r=2http://x.io/a_b"
+raw Bare "https://a.comhttps://f.com/x.)~~"
+want same
+-- t0183 --
+in "\u200bhttps://c.net/(z)_1`HTTPS://e.co/%7Chttp://e.co/%7C`"
+raw Bare "https://c.net/(z)_1`HTTPS://e.co/%7Chttp://e.co/%7C`"
+want same
+-- t0184 --
+in "http://e.co/%7C~~\"\u00e9\u200b **#](<](<"
+raw Bare "http://e.co/%7C~~\"\u00e9\u200b"
+want same
+-- t0185 --
+in "https://b.org/p](<"
+raw Bare "https://b.org/p]("
+want same
+-- t0186 --
+in "http://f.com/x.( (*-https://x.io/a_b``` ("
+raw Bare "http://f.com/x.("
+raw Bare "https://x.io/a_b```"
+want same
+-- t0187 --
+in "<@1><@1>>"
+-- t0188 --
+in "**\\a)\u200b**HTTPS://a.com**]"
+-- t0189 --
+in "'https://x.io/a_b\\"
+raw Bare "https://x.io/a_b\\"
+want same
+-- t0190 --
+in "<t:1:R><'https://c.net/(z)\"-<\\]"
+raw Bare "https://c.net/(z)\"-"
+want same
+-- t0191 --
+in "'\n)\\<]([https://e.co/%7C\\https://f.com/x.<"
+raw Bare "https://e.co/%7C\\https://f.com/x"
+want same
+-- t0192 --
+in "<https://b.org/p```http://c.net/(z)http://b.org/p]([http://e.co/%7C)"
+raw Bare "https://b.org/p```http://c.net/(z)http://b.org/p]([http://e.co/%7C)"
+want same
+-- t0193 --
+in "https://f.com/x.<:a:1>https://f.com/x.\\]http://a.comhttps://e.co/%7C)word__"
+raw Bare "https://f.com/x"
+raw Bare "https://f.com/x.\\]http://a.comhttps://e.co/%7C)word__"
+want same
+-- t0194 --
+in "HTTPS://d.com/?q=1&r=2\\http://e.co/%7C~~\u00a0_`~~#'"
+raw Bare "http://e.co/%7C~~"
+want same
+-- t0195 --
+in "(1<@1>```https://x.io/a_bhttp://x.io/a_b```[<@1>*http://c.net/(z))"
+raw Bare "http://c.net/(z)"
+want same
+-- t0196 --
+in "https://c.net/(z)a\n||"
+raw Bare "https://c.net/(z)a"
+want same
+-- t0197 --
+in "HTTPS://f.com/x.https://x.io/a_b__'http://f.com/x.[[\\"
+raw Bare "https://x.io/a_b__'http://f.com/x.[[\\"
+want same
+-- t0198 --
+in ")](<**["
+-- t0199 --
+in "```1https://c.net/(z)_https://x.io/a_b("
+raw Bare "https://c.net/(z)_https://x.io/a_b("
+want same
+-- t0200 --
+in "_\u00a0http://g.com/\u00e9\u200bHTTPS://f.com/x.<:a:1>](`_"
+raw Bare "http://g.com/\u00e9\u200bHTTPS://f.com/x"
+want same
+-- t0201 --
+in "https://e.co/%7C<:a:1>)https://g.com/\u00e9_"
+raw Bare "https://e.co/%7C"
+raw Bare "https://g.com/\u00e9_"
+want same
+-- t0202 --
+in ">https://x.io/a_b*\u200bHTTPS://x.io/a_bhttp://g.com/\u00e9<'> ~~"
+raw Bare "https://x.io/a_b*\u200bHTTPS://x.io/a_bhttp://g.com/\u00e9"
+want same
+-- t0203 --
+in "[https://x.io/a_b~~https://e.co/%7C_](https://a.com](<HTTPS://f.com/x.**https://d.com/?q=1&r=2"
+raw Bare "https://x.io/a_b~~https://e.co/%7C_](https://a.com]("
+raw Bare "https://d.com/?q=1&r=2"
+want same
+-- t0204 --
+in "||\"*http://g.com/\u00e9`http://a.com \u200b<http://f.com/x.||a"
+raw Bare "http://g.com/\u00e9`http://a.com" spoiler
+raw Bare "http://f.com/x" spoiler
+want same
+-- t0205 --
+in "HTTPS://a.com)https://c.net/(z)||HTTPS://a.com_"
+raw Bare "https://c.net/(z)||HTTPS://a.com_"
+want same
+-- t0206 --
+in "(]http://d.com/?q=1&r=2`\"<t:1:R>"
+raw Bare "http://d.com/?q=1&r=2`"
+want same
+-- t0207 --
+in "1<\nhttps://c.net/(z)"
+raw Bare "https://c.net/(z)"
+want same
+-- t0208 --
+in "https://f.com/x.https://e.co/%7C](<**\">"
+raw Bare "https://f.com/x.https://e.co/%7C]("
+want same
+-- t0209 --
+in "\u00e9>https://f.com/x.<"
+raw Bare "https://f.com/x"
+want same
+-- t0210 --
+in "\nHTTPS://x.io/a_b"
+-- t0211 --
+in "<HTTPS://f.com/x."
+-- t0212 --
+in "<:a:1>**HTTPS://c.net/(z)http://c.net/(z)\\[](<https://b.org/p"
+raw Bare "http://c.net/(z)\\[]("
+raw Bare "https://b.org/p"
+want same
+-- t0213 --
+in "https://e.co/%7C]https://f.com/x.__"
+raw Bare "https://e.co/%7C]https://f.com/x.__"
+want same
+-- t0214 --
+in "*https://x.io/a_b_ HTTPS://b.org/p)](```https://c.net/(z)<"
+raw Bare "https://x.io/a_b_"
+raw Bare "https://c.net/(z)"
+want same
+-- t0215 --
+in " ("
+-- t0216 --
+in ")HTTPS://g.com/\u00e9`><:a:1>HTTPS://f.com/x.HTTPS://d.com/?q=1&r=2`"
+-- t0217 --
+in "(\n( http://x.io/a_bhttps://a.com("
+raw Bare "http://x.io/a_bhttps://a.com("
+want same
+-- t0218 --
+in "ahttps://c.net/(z)](-[_-\n>](<https://e.co/%7C](<"
+raw Bare "https://c.net/(z)](-[_-"
+raw Bare "https://e.co/%7C]("
+want same
+-- t0219 --
+in "\"\u00a0#https://d.com/?q=1&r=2'http://c.net/(z) # "
+raw Bare "https://d.com/?q=1&r=2'http://c.net/(z)"
+want same
+-- t0220 --
+in " (https://e.co/%7C "
+raw Bare "https://e.co/%7C"
+want same
+-- t0221 --
+in "https://f.com/x.**https://d.com/?q=1&r=2||](<https://d.com/?q=1&r=2]||https://c.net/(z)#`'"
+raw Bare "https://f.com/x.**https://d.com/?q=1&r=2||]("
+raw Bare "https://d.com/?q=1&r=2]||https://c.net/(z)#`"
+want same
+-- t0222 --
+in "https://a.comhttps://f.com/x.https://x.io/a_b 1\u200b``````"
+raw Bare "https://a.comhttps://f.com/x.https://x.io/a_b"
+want same
+-- t0223 --
+in "\u00e9https://c.net/(z)`**]("
+raw Bare "https://c.net/(z)`**]("
+want same
+-- t0224 --
+in "\n'*"
+-- t0225 --
+in "](||1]]()'"
+-- t0226 --
+in "<:a:1>*>)\""
+-- t0227 --
+in "HTTPS://a.com]https://d.com/?q=1&r=2```https://x.io/a_b](<\u200bhttps://g.com/\u00e9<"
+raw Bare "https://d.com/?q=1&r=2```https://x.io/a_b]("
+raw Bare "https://g.com/\u00e9"
+want same
+-- t0228 --
+in "\"http://g.com/\u00e9__https://c.net/(z)<https://c.net/(z)'"
+raw Bare "http://g.com/\u00e9__https://c.net/(z)"
+raw Bare "https://c.net/(z)"
+want same
+-- t0229 --
+in "<@1>](\"http://g.com/\u00e9HTTPS://c.net/(z)\">]"
+raw Bare "http://g.com/\u00e9HTTPS://c.net/(z)\">"
+want same
+-- t0230 --
+in "\n-(word"
+-- t0231 --
+in "https://c.net/(z)**<@1>__~~HTTPS://f.com/x.__"
+raw Bare "https://c.net/(z)**"
+want same
+-- t0232 --
+in "http://e.co/%7C*](<:a:1>~~https://f.com/x.\\https://g.com/\u00e9https://c.net/(z)~~"
+raw Bare "http://e.co/%7C*]("
+raw Bare "https://f.com/x.\\https://g.com/\u00e9https://c.net/(z)"
+want same
+-- t0233 --
+in "https://x.io/a_bhttps://b.org/p~~'"
+raw Bare "https://x.io/a_bhttps://b.org/p~~"
+want same
+-- t0234 --
+in "\u00e9https://a.com[>"
+raw Bare "https://a.com[>"
+want same
+-- t0235 --
+in "HTTPS://f.com/x.**"
+-- t0236 --
+in "HTTPS://x.io/a_b\u200b>\"http://b.org/p\\http://f.com/x."
+raw Bare "http://b.org/p\\http://f.com/x"
+want same
+-- t0237 --
+in "wordhttps://b.org/pHTTPS://f.com/x.(<http://x.io/a_b'HTTPS://x.io/a_b`\u200bHTTPS://f.com/x.__*\u200b"
+raw Bare "https://b.org/pHTTPS://f.com/x.("
+raw Bare "http://x.io/a_b'HTTPS://x.io/a_b`\u200bHTTPS://f.com/x.__*\u200b"
+want same
+-- t0238 --
+in "https://c.net/(z)http://a.com"
+raw Bare "https://c.net/(z)http://a.com"
+want same
+-- t0239 --
+in " ](<**__(http://f.com/x.'http://g.com/\u00e9```\u00a0~~#"
+raw Bare "http://f.com/x.'http://g.com/\u00e9```"
+want same
+-- t0240 --
+in "*'HTTPS://e.co/%7C\"___>||"
+-- t0241 --
+in "_~~HTTPS://f.com/x.(http://c.net/(z)http://f.com/x.*https://b.org/p'\u00e9("
+raw Bare "http://c.net/(z)http://f.com/x.*https://b.org/p'\u00e9("
+want same
+-- t0242 --
+in "\u200b```\u00e9<:a:1>[ ]http://x.io/a_bHTTPS://c.net/(z)```"
+-- t0243 --
+in "\u200b* #"
+-- t0244 --
+in "```http://f.com/x.<@1>http://g.com/\u00e9__word<t:1:R>\n#"
+raw Bare "http://f.com/x"
+raw Bare "http://g.com/\u00e9__word"
+want same
+-- t0245 --
+in "||\u00a0"
+-- t0246 --
+in "[[http://x.io/a_b\\`https://b.org/phttps://g.com/\u00e9[```http://d.com/?q=1&r=2"
+raw Bare "http://x.io/a_b\\`https://b.org/phttps://g.com/\u00e9[```http://d.com/?q=1&r=2"
+want same
+-- t0247 --
+in "ahttp://g.com/\u00e9http://c.net/(z)__http://b.org/p"
+raw Bare "http://g.com/\u00e9http://c.net/(z)__http://b.org/p"
+want same
+-- t0248 --
+in "-'HTTPS://g.com/\u00e9]>]("
+-- t0249 --
+in "<t:1:R>||*<:a:1>"
+-- t0250 --
+in "https://e.co/%7C] HTTPS://a.com||"
+raw Bare "https://e.co/%7C"
+want same
+-- t0251 --
+in "http://c.net/(z)``` https://g.com/\u00e9~~<t:1:R>-'"
+raw Bare "http://c.net/(z)```"
+raw Bare "https://g.com/\u00e9~~"
+want same
+-- t0252 --
+in "\"#```<t:1:R>__'<word\u200b"
+-- t0253 --
+in "'https://d.com/?q=1&r=2___\\\n"
+raw Bare "https://d.com/?q=1&r=2___\\"
+want same
+-- t0254 --
+in ">https://b.org/p'https://g.com/\u00e9<https://x.io/a_b**~~"
+raw Bare "https://b.org/p'https://g.com/\u00e9"
+raw Bare "https://x.io/a_b**~~"
+want same
+-- t0255 --
+in "https://b.org/p**)](https://e.co/%7C~~\u00e9```](<"
+raw Bare "https://b.org/p**)](https://e.co/%7C~~\u00e9```]("
+want same
+-- t0256 --
+in ">\n_https://c.net/(z)https://b.org/p\\#```https://x.io/a_b<-"
+raw Bare "https://c.net/(z)https://b.org/p\\#```https://x.io/a_b"
+want same
+-- t0257 --
+in "https://a.com\"||\u00e9"
+raw Bare "https://a.com\"||\u00e9"
+want same
+-- t0258 --
+in "HTTPS://f.com/x.\u200b\u200b](<`"
+-- t0259 --
+in "**\"[1**<https://a.comhttps://f.com/x.\u00e9http://f.com/x.'"
+raw Bare "https://a.comhttps://f.com/x.\u00e9http://f.com/x"
+want same
+-- t0260 --
+in "HTTPS://f.com/x.https://d.com/?q=1&r=2```||HTTPS://x.io/a_b_\u00e9 \u00e9"
+raw Bare "https://d.com/?q=1&r=2```||HTTPS://x.io/a_b_\u00e9"
+want same
+-- t0261 --
+in "http://e.co/%7C\"http://c.net/(z)<\\https://d.com/?q=1&r=2**"
+raw Bare "http://e.co/%7C\"http://c.net/(z)"
+raw Bare "https://d.com/?q=1&r=2**"
+want same
+-- t0262 --
+in "(HTTPS://b.org/p\\"
+-- t0263 --
+in "HTTPS://x.io/a_b\u00e9'\""
+-- t0264 --
+in "http://c.net/(z)<](<t:1:R>1word-_]\u200b"
+raw Bare "http://c.net/(z)"
+want same
+-- t0265 --
+in "__](<`"
+-- t0266 --
+in "<#](<https://g.com/\u00e9)1"
+raw Bare "https://g.com/\u00e9)1"
+want same
+-- t0267 --
+in "\u00a0https://f.com/x.\"http://e.co/%7C https://e.co/%7Chttps://x.io/a_b-https://d.com/?q=1&r=2]<"
+raw Bare "https://f.com/x.\"http://e.co/%7C"
+raw Bare "https://e.co/%7Chttps://x.io/a_b-https://d.com/?q=1&r=2"
+want same
+-- t0268 --
+in "HTTPS://a.com```<@1>]https://x.io/a_b*( <t:1:R>_HTTPS://x.io/a_b"
+raw Bare "https://x.io/a_b*("
+want same
+-- t0269 --
+in "1)]("
+-- t0270 --
+in "*```\u00a0<https://b.org/p"
+raw Bare "https://b.org/p"
+want same
+-- t0271 --
+in "(\\"
+-- t0272 --
+in ">~~\"HTTPS://e.co/%7Chttps://g.com/\u00e9http://c.net/(z)__`http://d.com/?q=1&r=2http://x.io/a_b["
+raw Bare "https://g.com/\u00e9http://c.net/(z)__`http://d.com/?q=1&r=2http://x.io/a_b["
+want same
+-- t0273 --
+in "HTTPS://c.net/(z))>[https://d.com/?q=1&r=2"
+raw Bare "https://d.com/?q=1&r=2"
+want same
+-- t0274 --
+in "]#\\__HTTPS://e.co/%7C"
+-- t0275 --
+in " HTTPS://x.io/a_b`https://c.net/(z)[(https://c.net/(z))"
+raw Bare "https://c.net/(z)[(https://c.net/(z))"
+want same
+-- t0276 --
+in "<t:1:R>https://g.com/\u00e9*<:a:1>"
+raw Bare "https://g.com/\u00e9*"
+want same
+-- t0277 --
+in "\u00a0 ](https://x.io/a_b'~~\\"
+raw Bare "https://x.io/a_b'~~\\"
+want same
+-- t0278 --
+in "https://a.com\"\\https://e.co/%7C a-https://b.org/p~~||````"
+raw Bare "https://a.com\"\\https://e.co/%7C"
+raw Bare "https://b.org/p~~||````"
+want same
+-- t0279 --
+in "])"
+-- t0280 --
+in "**```https://b.org/p\""
+raw Bare "https://b.org/p"
+want same
+-- t0281 --
+in "[\\https://g.com/\u00e9<t:1:R>"
+raw Bare "https://g.com/\u00e9"
+want same
+-- t0282 --
+in ")https://d.com/?q=1&r=2```"
+raw Bare "https://d.com/?q=1&r=2```"
+want same
+-- t0283 --
+in "https://f.com/x.* \\](https://d.com/?q=1&r=2\nhttp://d.com/?q=1&r=2HTTPS://e.co/%7C>**"
+raw Bare "https://f.com/x.*"
+raw Bare "https://d.com/?q=1&r=2"
+raw Bare "http://d.com/?q=1&r=2HTTPS://e.co/%7C>**"
+want same
+-- t0284 --
+in "https://c.net/(z)__https://d.com/?q=1&r=2]>https://c.net/(z)]http://x.io/a_b`ahttps://f.com/x.HTTPS://c.net/(z)*"
+raw Bare "https://c.net/(z)__https://d.com/?q=1&r=2]>https://c.net/(z)]http://x.io/a_b`ahttps://f.com/x.HTTPS://c.net/(z)*"
+want same
+-- t0285 --
+in "https://a.com[\\"
+raw Bare "https://a.com[\\"
+want same
+-- t0286 --
+in "word>https://e.co/%7C](<\"https://c.net/(z)https://a.com<https://e.co/%7Chttps://x.io/a_b](<HTTPS://d.com/?q=1&r=2```"
+raw Bare "https://e.co/%7C]("
+raw Bare "https://c.net/(z)https://a.com"
+raw Bare "https://e.co/%7Chttps://x.io/a_b]("
+want same
+-- t0287 --
+in "http://f.com/x.||http://e.co/%7C]https://c.net/(z)_("
+raw Bare "http://f.com/x.||http://e.co/%7C]https://c.net/(z)_("
+want same
+-- t0288 --
+in "HTTPS://d.com/?q=1&r=2-**\u00a0http://x.io/a_b"
+raw Bare "http://x.io/a_b"
+want same
+-- t0289 --
+in "`http://g.com/\u00e9<@1>aHTTPS://f.com/x.*\n "
+raw Bare "http://g.com/\u00e9"
+want same
+-- t0290 --
+in "(https://f.com/x.https://g.com/\u00e9[<]("
+raw Bare "https://f.com/x.https://g.com/\u00e9["
+want same
+-- t0291 --
+in "](<http://g.com/\u00e9"
+raw Bare "http://g.com/\u00e9"
+want same
+-- t0292 --
+in " ()https://d.com/?q=1&r=2"
+raw Bare "https://d.com/?q=1&r=2"
+want same
+-- t0293 --
+in ">HTTPS://a.com"
+-- t0294 --
+in "https://e.co/%7C*\u00a0\u200b\u00a0\\ahttps://g.com/\u00e9**"
+raw Bare "https://e.co/%7C*"
+raw Bare "https://g.com/\u00e9**"
+want same
+-- t0295 --
+in "http://f.com/x.*ahttps://x.io/a_b**HTTPS://f.com/x.[||''"
+raw Bare "http://f.com/x.*ahttps://x.io/a_b**HTTPS://f.com/x.[||"
+want same
+-- t0296 --
+in "https://d.com/?q=1&r=2\"\\')"
+raw Bare "https://d.com/?q=1&r=2\"\\"
+want same
+-- t0297 --
+in "[https://g.com/\u00e9HTTPS://c.net/(z)< http://g.com/\u00e9]HTTPS://x.io/a_b* >"
+raw Bare "https://g.com/\u00e9HTTPS://c.net/(z)"
+raw Bare "http://g.com/\u00e9]HTTPS://x.io/a_b*"
+want same
+-- t0298 --
+in "http://x.io/a_b__http://x.io/a_b__` ```http://c.net/(z)\"https://x.io/a_b<"
+raw Bare "http://x.io/a_b__http://x.io/a_b__`"
+raw Bare "http://c.net/(z)\"https://x.io/a_b"
+want same
+-- t0299 --
+in "__<:a:1>```ahttps://x.io/a_b```"
+-- t0300 --
+in "\"<@1>https://x.io/a_b**[||HTTPS://f.com/x.~~[]"
+raw Bare "https://x.io/a_b**[||HTTPS://f.com/x.~~["
+want same
+-- t0301 --
+in "\"_\u200bhttps://a.com"
+raw Bare "https://a.com"
+want same
+-- t0302 --
+in "\u00e9https://g.com/\u00e9~~]word"
+raw Bare "https://g.com/\u00e9~~]word"
+want same
+-- t0303 --
+in "https://c.net/(z))https://d.com/?q=1&r=2_*'https://g.com/\u00e9-\u200b'word"
+raw Bare "https://c.net/(z))https://d.com/?q=1&r=2_*'https://g.com/\u00e9-\u200b'word"
+want same
+-- t0304 --
+in ")](\"**#](<"
+-- t0305 --
+in "](#~~<t:1:R>http://a.com])*](\\https://d.com/?q=1&r=2"
+raw Bare "http://a.com])*](\\https://d.com/?q=1&r=2"
+want same
+-- t0306 --
+in "](<http://d.com/?q=1&r=2[(\u200b"
+raw Bare "http://d.com/?q=1&r=2[(\u200b"
+want same
+-- t0307 --
+in "__```1__"
+-- t0308 --
+in "```http://f.com/x.[(HTTPS://e.co/%7CHTTPS://e.co/%7C\u00e9"
+raw Bare "http://f.com/x.[(HTTPS://e.co/%7CHTTPS://e.co/%7C\u00e9"
+want same
+-- t0309 --
+in "1\n__http://f.com/x.]('"
+raw Bare "http://f.com/x.]("
+want same
+-- t0310 --
+in "https://c.net/(z)__https://c.net/(z)__https://a.comHTTPS://c.net/(z)HTTPS://g.com/\u00e9"
+raw Bare "https://c.net/(z)__https://c.net/(z)__https://a.comHTTPS://c.net/(z)HTTPS://g.com/\u00e9"
+want same
+-- t0311 --
+in "1https://e.co/%7C**"
+raw Bare "https://e.co/%7C**"
+want same
+-- t0312 --
+in "\\http://c.net/(z)_]<t:1:R>\""
+raw Bare "http://c.net/(z)_"
+want same
+-- t0313 --
+in "<:a:1>[<( <@1>```>"
+-- t0314 --
+in "\u200b\u00e9a```\"<t:1:R>"
+-- t0315 --
+in "\"```<:a:1>"
+-- t0316 --
+in "#https://c.net/(z)***HTTPS://g.com/\u00e9("
+raw Bare "https://c.net/(z)***HTTPS://g.com/\u00e9("
+want same
+-- t0317 --
+in "[\u200b~~]http://x.io/a_b__#)_>"
+raw Bare "http://x.io/a_b__#)_>"
+want same
+-- t0318 --
+in "HTTPS://b.org/p_https://x.io/a_b\\<wordHTTPS://f.com/x.https://e.co/%7C"
+raw Bare "https://x.io/a_b\\"
+raw Bare "https://e.co/%7C"
+want same
+-- t0319 --
+in "<@1>||<:a:1>https://g.com/\u00e9```http://x.io/a_b||"
+raw Bare "https://g.com/\u00e9```http://x.io/a_b" spoiler
+want same
+-- t0320 --
+in "-\u00a0*](http://c.net/(z)\\__http://c.net/(z)https://c.net/(z))"
+raw Bare "http://c.net/(z)\\__http://c.net/(z)https://c.net/(z)"
+want same
+-- t0321 --
+in ")\n"
+-- t0322 --
+in "\u200b](1[[\n#"
+-- t0323 --
+in "<:a:1>](-https://f.com/x.http://c.net/(z)https://g.com/\u00e9](<https://e.co/%7C1https://e.co/%7C`](<"
+raw Bare "https://f.com/x.http://c.net/(z)https://g.com/\u00e9]("
+raw Bare "https://e.co/%7C1https://e.co/%7C`]("
+want same
+-- t0324 --
+in "https://x.io/a_b\\__\u200b***"
+raw Bare "https://x.io/a_b\\__\u200b***"
+want same
+-- t0325 --
+in "||https://b.org/p[\u00a0-"
+raw Bare "https://b.org/p["
+want same
+-- t0326 --
+in "**`\n~~http://g.com/\u00e9](https://g.com/\u00e9>http://a.comHTTPS://e.co/%7C__HTTPS://f.com/x."
+raw Bare "http://g.com/\u00e9](https://g.com/\u00e9>http://a.comHTTPS://e.co/%7C__HTTPS://f.com/x"
+want same
+-- t0327 --
+in "1'https://g.com/\u00e9<:a:1><<"
+raw Bare "https://g.com/\u00e9"
+want same
+-- t0328 --
+in "#https://x.io/a_b)||https://c.net/(z)http://c.net/(z)"
+raw Bare "https://x.io/a_b)||https://c.net/(z)http://c.net/(z"
+want same
+-- t0329 --
+in "](__\\HTTPS://x.io/a_b("
+-- t0330 --
+in "a__*[(https://c.net/(z)"
+raw Bare "https://c.net/(z)"
+want same
+-- t0331 --
+in "<t:1:R>>HTTPS://d.com/?q=1&r=2\u00a0\u00e9```(HTTPS://a.com)`"
+-- t0332 --
+in "\u00a0[https://x.io/a_bwordHTTPS://a.com<@1>HTTPS://d.com/?q=1&r=2_"
+raw Bare "https://x.io/a_bwordHTTPS://a.com"
+want same
+-- t0333 --
+in ")1#`"
+-- t0334 --
+in "'](http://f.com/x.)https://g.com/\u00e9<<http://c.net/(z)](||~~*"
+raw Bare "http://f.com/x.)https://g.com/\u00e9"
+raw Bare "http://c.net/(z)](||~~*"
+want same
+-- t0335 --
+in "\u00e9><t:1:R>HTTPS://d.com/?q=1&r=2"
+-- t0336 --
+in "1HTTPS://f.com/x.`||"
+-- t0337 --
+in "]<@1>HTTPS://b.org/p\u00e9)"
+-- t0338 --
+in "||*\"~~#]\"["
+-- t0339 --
+in "**<t:1:R>\\"
+-- t0340 --
+in "`https://f.com/x.("
+raw Bare "https://f.com/x.("
+want same
+-- t0341 --
+in "https://c.net/(z)](\u00a0https://g.com/\u00e9https://c.net/(z)>"
+raw Bare "https://c.net/(z)]("
+raw Bare "https://g.com/\u00e9https://c.net/(z)>"
+want same
+-- t0342 --
+in "\n`\u200b1http://x.io/a_b\nhttps://a.com(#"
+raw Bare "http://x.io/a_b"
+raw Bare "https://a.com(#"
+want same
+-- t0343 --
+in "](HTTPS://b.org/p'https://a.com"
+raw Bare "https://a.com"
+want same
+-- t0344 --
+in "\"-https://g.com/\u00e9(\\\\_||"
+raw Bare "https://g.com/\u00e9(\\\\_||"
+want same
+-- t0345 --
+in "wordwordhttps://f.com/x.word"
+raw Bare "https://f.com/x.word"
+want same
+-- t0346 --
+in "' ()](<[\"`]-"
+-- t0347 --
+in "\u00e9http://d.com/?q=1&r=2<||https://x.io/a_b||(http://a.com`HTTPS://c.net/(z)\\"
+raw Bare "http://d.com/?q=1&r=2"
+raw Bare "https://x.io/a_b" spoiler
+raw Bare "http://a.com`HTTPS://c.net/(z)\\"
+want same
+-- t0348 --
+in "**```__\u00a0https://c.net/(z)||-\n<"
+raw Bare "https://c.net/(z)||-"
+want same
+-- t0349 --
+in "https://e.co/%7Cword)#**<t:1:R>"
+raw Bare "https://e.co/%7Cword)#**"
+want same
+-- t0350 --
+in "```\n_HTTPS://d.com/?q=1&r=2"
+-- t0351 --
+in "HTTPS://c.net/(z)'`https://x.io/a_b'[`< <@1>"
+-- t0352 --
+in "HTTPS://c.net/(z)https://b.org/p[-HTTPS://d.com/?q=1&r=2)https://f.com/x._a](http://f.com/x.<"
+raw Bare "https://b.org/p[-HTTPS://d.com/?q=1&r=2)https://f.com/x._a](http://f.com/x"
+want same
+-- t0353 --
+in "'https://a.com'https://c.net/(z)\\https://b.org/p"
+raw Bare "https://a.com'https://c.net/(z)\\https://b.org/p"
+want same
+-- t0354 --
+in "\u00a0http://e.co/%7C[wordhttps://e.co/%7C>"
+raw Bare "http://e.co/%7C[wordhttps://e.co/%7C>"
+want same
+-- t0355 --
+in "HTTPS://a.com<t:1:R>\u200bhttps://x.io/a_b~~ "
+raw Bare "https://x.io/a_b~~"
+want same
+-- t0356 --
+in "http://d.com/?q=1&r=2)\\<@1><@1>~~)http://g.com/\u00e9><t:1:R>http://x.io/a_b"
+raw Bare "http://d.com/?q=1&r=2)\\"
+raw Bare "http://g.com/\u00e9>"
+raw Bare "http://x.io/a_b"
+want same
+-- t0357 --
+in "http://e.co/%7C\u200b<:a:1>https://d.com/?q=1&r=2__"
+raw Bare "http://e.co/%7C\u200b"
+raw Bare "https://d.com/?q=1&r=2__"
+want same
+-- t0358 --
+in "\n\u200bhttp://a.com](<\\https://a.com][HTTPS://d.com/?q=1&r=2](<||__"
+raw Bare "http://a.com]("
+raw Bare "https://a.com][HTTPS://d.com/?q=1&r=2]("
+want same
+-- t0359 --
+in "https://g.com/\u00e9](1https://x.io/a_b HTTPS://b.org/p```__https://e.co/%7C"
+raw Bare "https://g.com/\u00e9](1https://x.io/a_b"
+raw Bare "https://e.co/%7C"
+want same
+-- t0360 --
+in "```>\u00e9http://b.org/p\u00a0\u200b*"
+raw Bare "http://b.org/p"
+want same
+-- t0361 --
+in "<:a:1> \"https://b.org/p_'__http://x.io/a_b[>\u00a0"
+raw Bare "https://b.org/p_'__http://x.io/a_b[>"
+want same
+-- t0362 --
+in "```(https://f.com/x.[](<HTTPS://a.comHTTPS://g.com/\u00e9https://x.io/a_b*https://x.io/a_bHTTPS://f.com/x.__http://e.co/%7C"
+raw Bare "https://f.com/x.[]("
+raw Bare "https://x.io/a_b*https://x.io/a_bHTTPS://f.com/x.__http://e.co/%7C"
+want same
+-- t0363 --
+in "```**https://c.net/(z)*https://g.com/\u00e9*-HTTPS://e.co/%7C||"
+raw Bare "https://c.net/(z)"
+raw Bare "https://g.com/\u00e9*-HTTPS://e.co/%7C||"
+want same
+-- t0364 --
+in "\"]\"](HTTPS://a.com<`http://e.co/%7C)\u00a0<@1>"
+-- t0365 --
+in "https://x.io/a_b*#"
+raw Bare "https://x.io/a_b*#"
+want same
+-- t0366 --
+in "\n~~"
+-- t0367 --
+in "HTTPS://a.com ](<']("
+-- t0368 --
+in "https://g.com/\u00e9`https://f.com/x.](https://f.com/x.\\HTTPS://e.co/%7Chttps://e.co/%7C__](<"
+raw Bare "https://g.com/\u00e9`https://f.com/x.](https://f.com/x.\\HTTPS://e.co/%7Chttps://e.co/%7C__]("
+want same
+-- t0369 --
+in ">https://d.com/?q=1&r=2)<:a:1>HTTPS://d.com/?q=1&r=2https://b.org/p"
+raw Bare "https://d.com/?q=1&r=2"
+raw Bare "https://b.org/p"
+want same
+-- t0370 --
+in "```http://b.org/p https://b.org/p"
+raw Bare "http://b.org/p"
+raw Bare "https://b.org/p"
+want same
+-- t0371 --
+in "HTTPS://f.com/x.'__<:a:1>`("
+-- t0372 --
+in "||->https://b.org/p)\u200b)http://d.com/?q=1&r=2["
+raw Bare "https://b.org/p)\u200b)http://d.com/?q=1&r=2["
+want same
+-- t0373 --
+in "http://b.org/p```"
+raw Bare "http://b.org/p```"
+want same
+-- t0374 --
+in "(```1 >https://d.com/?q=1&r=2'`*)"
+-- t0375 --
+in "http://x.io/a_b_https://g.com/\u00e9https://g.com/\u00e9(](<https://b.org/p](<https://f.com/x.*_"
+raw Bare "http://x.io/a_b_https://g.com/\u00e9https://g.com/\u00e9(]("
+raw Bare "https://b.org/p]("
+raw Bare "https://f.com/x.*_"
+want same
+-- t0376 --
+in "_http://f.com/x.]http://a.com\n("
+raw Bare "http://f.com/x.]http://a.com"
+want same
+-- t0377 --
+in "\u00a0https://g.com/\u00e9>https://d.com/?q=1&r=2<("
+raw Bare "https://g.com/\u00e9>https://d.com/?q=1&r=2"
+want same
+-- t0378 --
+in "http://f.com/x.#\u00e9[\\]"
+raw Bare "http://f.com/x.#\u00e9[\\"
+want same
+-- t0379 --
+in "\\~~<"
+-- t0380 --
+in "\u00a0<:a:1>HTTPS://a.com`"
+-- t0381 --
+in "http://c.net/(z)\u200b~~https://g.com/\u00e9["
+raw Bare "http://c.net/(z)\u200b~~https://g.com/\u00e9["
+want same
+-- t0382 --
+in "**]\n>https://c.net/(z)"
+raw Bare "https://c.net/(z)"
+want same
+-- t0383 --
+in "]HTTPS://e.co/%7C*HTTPS://b.org/p<:a:1>)"
+-- t0384 --
+in "#https://x.io/a_b](word\u00e9](<]('(\u200b"
+raw Bare "https://x.io/a_b](word\u00e9]("
+want same
+-- t0385 --
+in "word>"
+-- t0386 --
+in "1http://a.com]HTTPS://e.co/%7C*\"<:a:1><:a:1>https://x.io/a_b \u00a0"
+raw Bare "http://a.com]HTTPS://e.co/%7C*"
+raw Bare "https://x.io/a_b"
+want same
+-- t0387 --
+in "HTTPS://e.co/%7Chttps://c.net/(z)http://g.com/\u00e9"
+raw Bare "https://c.net/(z)http://g.com/\u00e9"
+want same
+-- t0388 --
+in "<t:1:R> https://a.com\nhttps://f.com/x.\\https://g.com/\u00e9a<https://a.com**"
+raw Bare "https://a.com"
+raw Bare "https://f.com/x.\\https://g.com/\u00e9a"
+raw Bare "https://a.com**"
+want same
+-- t0389 --
+in "<`https://a.com\u200b`\u00e9("
+-- t0390 --
+in "\\1_\u00e9`"
+-- t0391 --
+in "#<http://b.org/p~~](__\\__>HTTPS://f.com/x."
+raw Suppressed "http://b.org/p~~](__\\__"
+want same
+-- t0392 --
+in "http://x.io/a_b```__](<**_"
+raw Bare "http://x.io/a_b```__]("
+want same
+-- t0393 --
+in "\u200bhttps://g.com/\u00e9\""
+raw Bare "https://g.com/\u00e9"
+want same
+-- t0394 --
+in "*aHTTPS://b.org/p"
+-- t0395 --
+in "HTTPS://b.org/p````||"
+-- t0396 --
+in " https://e.co/%7C`http://a.com_<:a:1>(http://g.com/\u00e9(-[__"
+raw Bare "https://e.co/%7C`http://a.com_"
+raw Bare "http://g.com/\u00e9(-[__"
+want same
+-- t0397 --
+in "https://f.com/x.'((https://d.com/?q=1&r=2https://b.org/p(http://g.com/\u00e9**http://a.comhttps://e.co/%7C~~a"
+raw Bare "https://f.com/x.'((https://d.com/?q=1&r=2https://b.org/p(http://g.com/\u00e9**http://a.comhttps://e.co/%7C~~a"
+want same
+-- t0398 --
+in "http://a.comhttps://g.com/\u00e9>\u00e9"
+raw Bare "http://a.comhttps://g.com/\u00e9>\u00e9"
+want same
+-- t0399 --
+in "https://c.net/(z)|| ](https://f.com/x.<"
+raw Bare "https://c.net/(z)||"
+raw Bare "https://f.com/x"
+want same
+-- t0400 --
+in "[`http://e.co/%7CHTTPS://c.net/(z)||http://e.co/%7C><:a:1>https://b.org/p"
+raw Bare "http://e.co/%7CHTTPS://c.net/(z)||http://e.co/%7C>"
+raw Bare "https://b.org/p"
+want same
+-- t0401 --
+in "1[https://x.io/a_b**HTTPS://a.com`ahttp://f.com/x.`"
+raw Bare "https://x.io/a_b**HTTPS://a.com`ahttp://f.com/x.`"
+want same
+-- t0402 --
+in "http://x.io/a_b `<t:1:R>](<:a:1>~~"
+raw Bare "http://x.io/a_b"
+want same
+-- t0403 --
+in "#HTTPS://f.com/x.*https://a.com\"https://c.net/(z)HTTPS://d.com/?q=1&r=2[<:a:1>"
+raw Bare "https://a.com\"https://c.net/(z)HTTPS://d.com/?q=1&r=2["
+want same
+-- t0404 --
+in ")](https://d.com/?q=1&r=21]( \"]\\\u200b"
+raw Bare "https://d.com/?q=1&r=21]("
+want same
+-- t0405 --
+in "**HTTPS://e.co/%7CHTTPS://x.io/a_bwordhttps://c.net/(z)"
+raw Bare "https://c.net/(z)"
+want same
+-- t0406 --
+in "https://d.com/?q=1&r=2https://f.com/x.)\u200b("
+raw Bare "https://d.com/?q=1&r=2https://f.com/x.)\u200b("
+want same
+-- t0407 --
+in "<@1>~~https://f.com/x.~~>https://x.io/a_b<#<##"
+raw Bare "https://f.com/x"
+raw Bare "https://x.io/a_b"
+want same
+-- t0408 --
+in "**\u200b\n<"
+-- t0409 --
+in "https://b.org/phttp://a.com]_<HTTPS://a.com](<__"
+raw Bare "https://b.org/phttp://a.com]_"
+want same
+-- t0410 --
+in "||]_http://d.com/?q=1&r=2||_\\\u00a0"
+raw Bare "http://d.com/?q=1&r=2" spoiler
+want same
+-- t0411 --
+in "\"http://b.org/p <@1>http://d.com/?q=1&r=2<t:1:R> ||"
+raw Bare "http://b.org/p"
+raw Bare "http://d.com/?q=1&r=2"
+want same
+-- t0412 --
+in "<*\\ ( "
+-- t0413 --
+in "<@1>](||<https://x.io/a_b_<:a:1>(https://e.co/%7C<"
+raw Suppressed "https://x.io/a_b_<:a:1"
+raw Bare "https://e.co/%7C"
+want same
+-- t0414 --
+in "https://f.com/x.HTTPS://f.com/x.)HTTPS://c.net/(z)[http://d.com/?q=1&r=2~~"
+raw Bare "https://f.com/x.HTTPS://f.com/x.)HTTPS://c.net/(z)[http://d.com/?q=1&r=2~~"
+want same
+-- t0415 --
+in "#HTTPS://e.co/%7C\u200b<:a:1>http://c.net/(z)(<**"
+raw Bare "http://c.net/(z)("
+want same
+-- t0416 --
+in "<@1>](-<:a:1>`https://d.com/?q=1&r=2**#"
+raw Bare "https://d.com/?q=1&r=2**#"
+want same
+-- t0417 --
+in "_http://g.com/\u00e9||```HTTPS://f.com/x.>HTTPS://a.com"
+raw Bare "http://g.com/\u00e9||```HTTPS://f.com/x.>HTTPS://a.com"
+want same
+-- t0418 --
+in "```(<:a:1>http://c.net/(z)])https://x.io/a_b"
+raw Bare "http://c.net/(z)])https://x.io/a_b"
+want same
+-- t0419 --
+in "word]https://d.com/?q=1&r=2HTTPS://x.io/a_b||https://e.co/%7C__<t:1:R>```"
+raw Bare "https://d.com/?q=1&r=2HTTPS://x.io/a_b||https://e.co/%7C__"
+want same
+-- t0420 --
+in " <@1>HTTPS://f.com/x.```'"
+-- t0421 --
+in "](<<:a:1><@1>\u200b_https://f.com/x.https://b.org/pHTTPS://b.org/p**HTTPS://g.com/\u00e9"
+raw Bare "https://f.com/x.https://b.org/pHTTPS://b.org/p**HTTPS://g.com/\u00e9"
+want same
+-- t0422 --
+in "##HTTPS://e.co/%7C"
+-- t0423 --
+in ">https://e.co/%7C\\```http://x.io/a_b~~http://a.com||```http://g.com/\u00e9](<"
+raw Bare "https://e.co/%7C\\```http://x.io/a_b~~http://a.com||```http://g.com/\u00e9]("
+want same
+-- t0424 --
+in "https://d.com/?q=1&r=2)]a"
+raw Bare "https://d.com/?q=1&r=2)]a"
+want same
+-- t0425 --
+in "https://c.net/(z)](\u00a0#"
+raw Bare "https://c.net/(z)]("
+want same
+-- t0426 --
+in "#\n||HTTPS://c.net/(z)https://e.co/%7C](<HTTPS://c.net/(z)"
+raw Bare "https://e.co/%7C]("
+want same
+-- t0427 --
+in "~~(-*"
+-- t0428 --
+in "](<)~~](<https://e.co/%7C"
+raw Bare "https://e.co/%7C"
+want same
+-- t0429 --
+in "`https://b.org/p<t:1:R>><:a:1>**\"1"
+raw Bare "https://b.org/p"
+want same
+-- t0430 --
+in "1~~<)https://a.com]("
+raw Bare "https://a.com]("
+want same
+-- t0431 --
+in "https://b.org/p](><:a:1>_https://a.comhttps://f.com/x.](<https://b.org/phttps://a.com\\<:a:1>"
+raw Bare "https://b.org/p](>"
+raw Bare "https://a.comhttps://f.com/x.]("
+raw Suppressed "https://b.org/phttps://a.com\\<:a:1"
+want same
+-- t0432 --
+in "*](HTTPS://x.io/a_b*http://a.com"
+raw Bare "http://a.com"
+want same
+-- t0433 --
+in "**"
+-- t0434 --
+in "HTTPS://g.com/\u00e9  HTTPS://d.com/?q=1&r=2(HTTPS://x.io/a_b"
+-- t0435 --
+in "wordhttps://x.io/a_b__HTTPS://b.org/p__`[>]https://c.net/(z)https://d.com/?q=1&r=2"
+raw Bare "https://x.io/a_b__HTTPS://b.org/p__`[>]https://c.net/(z)https://d.com/?q=1&r=2"
+want same
+-- t0436 --
+in " )https://c.net/(z)<:a:1>https://c.net/(z)word<||]("
+raw Bare "https://c.net/(z)"
+raw Bare "https://c.net/(z)word"
+want same
+-- t0437 --
+in "**\u00e9](<https://b.org/p]||"
+raw Bare "https://b.org/p]||"
+want same
+-- t0438 --
+in "\"#\"https://x.io/a_b'](<http://a.com#"
+raw Bare "https://x.io/a_b']("
+raw Bare "http://a.com#"
+want same
+-- t0439 --
+in "*\u00e9https://c.net/(z)__> HTTPS://g.com/\u00e9http://g.com/\u00e9'#<t:1:R>\""
+raw Bare "https://c.net/(z)__>"
+raw Bare "http://g.com/\u00e9'#"
+want same
+-- t0440 --
+in "aHTTPS://a.com||https://d.com/?q=1&r=2aHTTPS://f.com/x.**<]http://d.com/?q=1&r=2"
+raw Bare "https://d.com/?q=1&r=2aHTTPS://f.com/x.**"
+raw Bare "http://d.com/?q=1&r=2"
+want same
+-- t0441 --
+in "http://g.com/\u00e9\\HTTPS://f.com/x.wordHTTPS://g.com/\u00e9](<HTTPS://c.net/(z)]"
+raw Bare "http://g.com/\u00e9\\HTTPS://f.com/x.wordHTTPS://g.com/\u00e9]("
+want same
+-- t0442 --
+in "*<:a:1><@1>](<`<:a:1>*1\"https://f.com/x."
+raw Bare "https://f.com/x"
+want same
+-- t0443 --
+in "http://c.net/(z)<@1>http://x.io/a_b<]-```~~<t:1:R>['"
+raw Bare "http://c.net/(z)"
+raw Bare "http://x.io/a_b"
+want same
+-- t0444 --
+in "\\||<t:1:R>"
+-- t0445 --
+in "](<https://e.co/%7C\u200b>HTTPS://b.org/p*\u00e9HTTPS://x.io/a_b><@1>word"
+raw Suppressed "https://e.co/%7C\u200b"
+want same
+-- t0446 --
+in "\u200b`word||"
+-- t0447 --
+in "https://d.com/?q=1&r=2-https://d.com/?q=1&r=2https://f.com/x.```https://f.com/x.```https://x.io/a_b<"
+raw Bare "https://d.com/?q=1&r=2-https://d.com/?q=1&r=2https://f.com/x.```https://f.com/x.```https://x.io/a_b"
+want same
+-- t0448 --
+in "__[https://g.com/\u00e9http://a.com__https://g.com/\u00e9HTTPS://d.com/?q=1&r=2[\"https://b.org/p*"
+raw Bare "https://g.com/\u00e9http://a.com"
+raw Bare "https://g.com/\u00e9HTTPS://d.com/?q=1&r=2[\"https://b.org/p*"
+want same
+-- t0449 --
+in "||<\\https://c.net/(z)\""
+raw Bare "https://c.net/(z)"
+want same
+-- t0450 --
+in "[\u00a0http://f.com/x.ahttp://a.com>\u00e9](-\n"
+raw Bare "http://f.com/x.ahttp://a.com>\u00e9](-"
+want same
+-- t0451 --
+in "_https://g.com/\u00e9_)"
+raw Bare "https://g.com/\u00e9"
+want same
+-- t0452 --
+in "https://c.net/(z)https://f.com/x.||](<HTTPS://f.com/x.\\HTTPS://b.org/p\\HTTPS://e.co/%7C[~~<t:1:R>]"
+raw Bare "https://c.net/(z)https://f.com/x.||]("
+want same
+-- t0453 --
+in "](<__ ~~https://b.org/p"
+raw Bare "https://b.org/p"
+want same
+-- t0454 --
+in "\\<https://b.org/p`https://d.com/?q=1&r=2"
+raw Bare "https://b.org/p`https://d.com/?q=1&r=2"
+want same
+-- t0455 --
+in "__ http://e.co/%7C[||](__"
+raw Bare "http://e.co/%7C[||]("
+want same
+-- t0456 --
+in "\u00a0`\n<https://b.org/p\n\u00e9](||]("
+raw Bare "https://b.org/p"
+want same
+-- t0457 --
+in "https://d.com/?q=1&r=2 *"
+raw Bare "https://d.com/?q=1&r=2"
+want same
+-- t0458 --
+in "http://x.io/a_b||||`\u200b___>https://f.com/x.'https://b.org/p`"
+raw Bare "http://x.io/a_b||||`\u200b___>https://f.com/x.'https://b.org/p`"
+want same
+-- t0459 --
+in "\u00e9~~"
+-- t0460 --
+in "https://a.comhttp://b.org/p[ ((HTTPS://a.comHTTPS://g.com/\u00e9]("
+raw Bare "https://a.comhttp://b.org/p["
+want same
+-- t0461 --
+in ">HTTPS://b.org/p\\https://c.net/(z)HTTPS://a.comhttps://g.com/\u00e9[http://c.net/(z)"
+raw Bare "https://c.net/(z)HTTPS://a.comhttps://g.com/\u00e9[http://c.net/(z)"
+want same
+-- t0462 --
+in "<t:1:R>ahttp://x.io/a_b#"
+raw Bare "http://x.io/a_b#"
+want same
+-- t0463 --
+in "))HTTPS://e.co/%7C<HTTPS://x.io/a_b(](HTTPS://d.com/?q=1&r=2"
+-- t0464 --
+in "\u00e9>\nhttps://c.net/(z)**https://f.com/x."
+raw Bare "https://c.net/(z)**https://f.com/x"
+want same
+-- t0465 --
+in "https://g.com/\u00e9- wordhttp://x.io/a_b]<t:1:R>"
+raw Bare "https://g.com/\u00e9-"
+raw Bare "http://x.io/a_b"
+want same
+-- t0466 --
+in "1https://d.com/?q=1&r=2[\n ~~)https://b.org/p[\u00e9"
+raw Bare "https://d.com/?q=1&r=2["
+raw Bare "https://b.org/p[\u00e9"
+want same
+-- t0467 --
+in "* https://f.com/x.([_1`#http://a.com~~"
+raw Bare "https://f.com/x.([_1`#http://a.com~~"
+want same
+-- t0468 --
+in "http://b.org/p<t:1:R>\"~~\u200bhttps://c.net/(z)__https://b.org/p<:a:1>_"
+raw Bare "http://b.org/p"
+raw Bare "https://c.net/(z)__https://b.org/p"
+want same
+-- t0469 --
+in "https://c.net/(z)`https://x.io/a_b]~~<-\u200bhttp://e.co/%7C"
+raw Bare "https://c.net/(z)`https://x.io/a_b]~~"
+raw Bare "http://e.co/%7C"
+want same
+-- t0470 --
+in "****)http://g.com/\u00e9_\"\">("
+raw Bare "http://g.com/\u00e9_\"\">("
+want same
+-- t0471 --
+in "<t:1:R>HTTPS://c.net/(z)\n'<@1><@1>"
+-- t0472 --
+in "**word<t:1:R>'https://g.com/\u00e9](HTTPS://f.com/x.>1"
+raw Bare "https://g.com/\u00e9](HTTPS://f.com/x.>1"
+want same
+-- t0473 --
+in "*https://f.com/x.\\**```"
+raw Bare "https://f.com/x.\\*"
+want same
+-- t0474 --
+in "http://g.com/\u00e9-"
+raw Bare "http://g.com/\u00e9-"
+want same
+-- t0475 --
+in "https://e.co/%7C~~http://b.org/pHTTPS://a.com `"
+raw Bare "https://e.co/%7C~~http://b.org/pHTTPS://a.com"
+want same
+-- t0476 --
+in "\u00a0https://d.com/?q=1&r=2(-HTTPS://a.comword"
+raw Bare "https://d.com/?q=1&r=2(-HTTPS://a.comword"
+want same
+-- t0477 --
+in ")\n>["
+-- t0478 --
+in "||#a)http://d.com/?q=1&r=2https://g.com/\u00e9https://g.com/\u00e9word"
+raw Bare "http://d.com/?q=1&r=2https://g.com/\u00e9https://g.com/\u00e9word"
+want same
+-- t0479 --
+in "https://g.com/\u00e9##]("
+raw Bare "https://g.com/\u00e9##]("
+want same
+-- t0480 --
+in "[https://c.net/(z) <:a:1>(<>https://d.com/?q=1&r=2`]"
+raw Bare "https://c.net/(z)"
+raw Bare "https://d.com/?q=1&r=2`"
+want same
+-- t0481 --
+in "http://c.net/(z)|| http://x.io/a_b"
+raw Bare "http://c.net/(z)||"
+raw Bare "http://x.io/a_b"
+want same
+-- t0482 --
+in "wordhttp://c.net/(z)-||https://e.co/%7C**]("
+raw Bare "http://c.net/(z)-||https://e.co/%7C**]("
+want same
+-- t0483 --
+in "https://a.com~~\"https://x.io/a_bhttp://a.com"
+raw Bare "https://a.com~~\"https://x.io/a_bhttp://a.com"
+want same
+-- t0484 --
+in "__ https://x.io/a_b"
+raw Bare "https://x.io/a_b"
+want same
+-- t0485 --
+in "http://d.com/?q=1&r=2```-\u200b)_https://d.com/?q=1&r=2\"HTTPS://f.com/x.`"
+raw Bare "http://d.com/?q=1&r=2```-\u200b)_https://d.com/?q=1&r=2\"HTTPS://f.com/x.`"
+want same
+-- t0486 --
+in "-]https://c.net/(z)**<t:1:R>`https://x.io/a_bhttps://c.net/(z)word"
+raw Bare "https://c.net/(z)**"
+raw Bare "https://x.io/a_bhttps://c.net/(z)word"
+want same
+-- t0487 --
+in "https://e.co/%7C<<:a:1>#ahttp://a.com](<>https://a.comhttps://d.com/?q=1&r=2 "
+raw Bare "https://e.co/%7C"
+raw Bare "http://a.com]("
+raw Bare "https://a.comhttps://d.com/?q=1&r=2"
+want same
+-- t0488 --
+in "__https://c.net/(z)`HTTPS://x.io/a_b\">"
+raw Bare "https://c.net/(z)`HTTPS://x.io/a_b\">"
+want same
+-- t0489 --
+in "\" https://g.com/\u00e9**https://e.co/%7C]>"
+raw Bare "https://g.com/\u00e9**https://e.co/%7C]>"
+want same
+-- t0490 --
+in "http://d.com/?q=1&r=2https://e.co/%7C]()||~~#https://g.com/\u00e9HTTPS://d.com/?q=1&r=2]]"
+raw Bare "http://d.com/?q=1&r=2https://e.co/%7C]()||~~#https://g.com/\u00e9HTTPS://d.com/?q=1&r=2"
+want same
+-- t0491 --
+in "https://b.org/p<"
+raw Bare "https://b.org/p"
+want same
+-- t0492 --
+in "\u00e9>#aHTTPS://c.net/(z)`\u200b"
+-- t0493 --
+in "```\\\u00e9HTTPS://f.com/x.](<\\\u200b<t:1:R>"
+-- t0494 --
+in "~~\u00e9<https://a.comhttp://d.com/?q=1&r=2*https://e.co/%7Cword"
+raw Bare "https://a.comhttp://d.com/?q=1&r=2*https://e.co/%7Cword"
+want same
+-- t0495 --
+in "https://f.com/x.>**\\"
+raw Bare "https://f.com/x.>**\\"
+want same
+-- t0496 --
+in "\n'wordhttp://c.net/(z)#](<[ ("
+raw Bare "http://c.net/(z)#]("
+want same
+-- t0497 --
+in "```<:a:1><t:1:R>](< HTTPS://c.net/(z)~~\u00e9`http://x.io/a_b`"
+raw Bare "http://x.io/a_b`"
+want same
+-- t0498 --
+in "\u00e9("
+-- t0499 --
+in "<@1>'https://f.com/x.`__<:a:1>\u00e9\u200b"
+raw Bare "https://f.com/x.`__"
+want same
+-- t0500 --
+in "-\" <HTTPS://d.com/?q=1&r=2https://x.io/a_b"
+raw Bare "https://x.io/a_b"
+want same
+-- t0501 --
+in ")~~"
+-- t0502 --
+in "\u00a0<:a:1>_\""
+-- t0503 --
+in "http://x.io/a_b'https://e.co/%7C||HTTPS://a.com-https://g.com/\u00e9_https://e.co/%7C](<```1"
+raw Bare "http://x.io/a_b'https://e.co/%7C||HTTPS://a.com-https://g.com/\u00e9_https://e.co/%7C]("
+want same
+-- t0504 --
+in "||[)( "
+-- t0505 --
+in "https://b.org/p`HTTPS://b.org/p[](<](<>-https://c.net/(z)"
+raw Bare "https://b.org/p`HTTPS://b.org/p[]("
+raw Bare "https://c.net/(z)"
+want same
+-- t0506 --
+in "http://d.com/?q=1&r=2\"1*]()"
+raw Bare "http://d.com/?q=1&r=2\"1*]()"
+want same
+-- t0507 --
+in "https://g.com/\u00e9]https://b.org/p)](<__```("
+raw Bare "https://g.com/\u00e9]https://b.org/p)]("
+want same
+-- t0508 --
+in ">||\u00a0wordhttps://e.co/%7C~~>a"
+raw Bare "https://e.co/%7C~~>a"
+want same
+-- t0509 --
+in "https://g.com/\u00e9(HTTPS://c.net/(z)https://f.com/x.~~[https://a.com```~~"
+raw Bare "https://g.com/\u00e9(HTTPS://c.net/(z)https://f.com/x.~~[https://a.com```~~"
+want same
+-- t0510 --
+in "**word(__(\n "
+-- t0511 --
+in "\u200b<t:1:R>"
+-- t0512 --
+in " HTTPS://f.com/x.\"<```"
+-- t0513 --
+in "a1https://e.co/%7C__`>"
+raw Bare "https://e.co/%7C__`>"
+want same
+-- t0514 --
+in "ahttps://e.co/%7C_"
+raw Bare "https://e.co/%7C_"
+want same
+-- t0515 --
+in "<http://a.comhttps://c.net/(z)_\\](<http://b.org/p"
+raw Bare "http://a.comhttps://c.net/(z)_\\]("
+raw Bare "http://b.org/p"
+want same
+-- t0516 --
+in " <*"
+-- t0517 --
+in "'http://c.net/(z)https://d.com/?q=1&r=2\u00e9||"
+raw Bare "http://c.net/(z)https://d.com/?q=1&r=2\u00e9||"
+want same
+-- t0518 --
+in "](<HTTPS://d.com/?q=1&r=2\u200b')http://a.com](#"
+raw Bare "http://a.com](#"
+want same
+-- t0519 --
+in "*http://e.co/%7C>](<\"<)"
+raw Bare "http://e.co/%7C>]("
+want same
+-- t0520 --
+in "\nHTTPS://d.com/?q=1&r=2"
+-- t0521 --
+in "]word```https://c.net/(z)~~HTTPS://b.org/p||https://x.io/a_b'>https://e.co/%7C]"
+raw Bare "https://c.net/(z)~~HTTPS://b.org/p||https://x.io/a_b'>https://e.co/%7C"
+want same
+-- t0522 --
+in "<:a:1>https://a.com<@1>https://x.io/a_bHTTPS://a.comHTTPS://x.io/a_b )>"
+raw Bare "https://a.com"
+raw Bare "https://x.io/a_bHTTPS://a.comHTTPS://x.io/a_b"
+want same
+-- t0523 --
+in "'https://x.io/a_b*<t:1:R>#http://f.com/x.<-\""
+raw Bare "https://x.io/a_b*"
+raw Bare "http://f.com/x"
+want same
+-- t0524 --
+in "https://x.io/a_bhttp://c.net/(z)<<@1>HTTPS://x.io/a_b1https://f.com/x.*||\u00a0"
+raw Bare "https://x.io/a_bhttp://c.net/(z)"
+raw Bare "https://f.com/x.*||"
+want same
+-- t0525 --
+in "word||```http://d.com/?q=1&r=2"
+raw Bare "http://d.com/?q=1&r=2"
+want same
+-- t0526 --
+in " \""
+-- t0527 --
+in ")(*\u00e9HTTPS://x.io/a_b](<`"
+-- t0528 --
+in "1HTTPS://f.com/x.](word"
+-- t0529 --
+in "wordhttps://d.com/?q=1&r=2_\n'#"
+raw Bare "https://d.com/?q=1&r=2_"
+want same
+-- t0530 --
+in "__```https://f.com/x.*<@1>-**"
+raw Bare "https://f.com/x.*"
+want same
+-- t0531 --
+in " __https://d.com/?q=1&r=2<](<t:1:R>https://x.io/a_b```http://a.com<t:1:R>"
+raw Bare "https://d.com/?q=1&r=2"
+raw Bare "https://x.io/a_b```http://a.com"
+want same
+-- t0532 --
+in ">]("
+-- t0533 --
+in "http://b.org/p)https://x.io/a_b>*`"
+raw Bare "http://b.org/p)https://x.io/a_b>*`"
+want same
+-- t0534 --
+in "\\ "
+-- t0535 --
+in "\u00e9```__\u00a0<t:1:R>"
+-- t0536 --
+in "__HTTPS://f.com/x.```https://e.co/%7C\"-"
+raw Bare "https://e.co/%7C\"-"
+want same
+-- t0537 --
+in "~~https://b.org/p[https://x.io/a_b>1 "
+raw Bare "https://b.org/p[https://x.io/a_b>1"
+want same
+-- t0538 --
+in "http://c.net/(z)__#https://a.com||'-__https://e.co/%7C__"
+raw Bare "http://c.net/(z)__#https://a.com||'-__https://e.co/%7C__"
+want same
+-- t0539 --
+in "**1]( "
+-- t0540 --
+in "***`https://x.io/a_b<@1>\"https://b.org/p<t:1:R>https://e.co/%7C)a"
+raw Bare "https://x.io/a_b"
+raw Bare "https://b.org/p"
+raw Bare "https://e.co/%7C)a"
+want same
+-- t0541 --
+in "](https://c.net/(z))]<@1>word<:a:1><"
+raw Bare "https://c.net/(z)"
+want same
+-- t0542 --
+in "\\*https://a.com](<__<t:1:R>\\https://c.net/(z)```"
+raw Bare "https://a.com]("
+raw Bare "https://c.net/(z)```"
+want same
+-- t0543 --
+in ")__HTTPS://f.com/x.](https://d.com/?q=1&r=2~~https://f.com/x.<"
+raw Bare "https://d.com/?q=1&r=2~~https://f.com/x"
+want same
+-- t0544 --
+in "(_\"http://x.io/a_b](<**"
+raw Bare "http://x.io/a_b]("
+want same
+-- t0545 --
+in "<@1>'HTTPS://x.io/a_b<HTTPS://e.co/%7Chttp://f.com/x.](http://b.org/p#"
+raw Bare "http://f.com/x.](http://b.org/p#"
+want same
+-- t0546 --
+in "https://b.org/p**(\u00a0<:a:1>https://g.com/\u00e9)HTTPS://e.co/%7C\\"
+raw Bare "https://b.org/p**("
+raw Bare "https://g.com/\u00e9)HTTPS://e.co/%7C\\"
+want same
+-- t0547 --
+in "https://f.com/x.[https://a.com)` ](HTTPS://b.org/p"
+raw Bare "https://f.com/x.[https://a.com)`"
+want same
+-- t0548 --
+in "https://x.io/a_b\u200bhttps://d.com/?q=1&r=2https://a.com```http://d.com/?q=1&r=2https://b.org/p]](<"
+raw Bare "https://x.io/a_b\u200bhttps://d.com/?q=1&r=2https://a.com```http://d.com/?q=1&r=2https://b.org/p]]("
+want same
+-- t0549 --
+in "(`#**"
+-- t0550 --
+in "'http://g.com/\u00e9~~a><~~><](<:a:1>"
+raw Bare "http://g.com/\u00e9~~a>"
+want same
+-- t0551 --
+in "HTTPS://e.co/%7C(\u00a0<@1>\\<t:1:R><:a:1>http://b.org/pHTTPS://a.com"
+raw Bare "http://b.org/pHTTPS://a.com"
+want same
+-- t0552 --
+in "https://e.co/%7CHTTPS://d.com/?q=1&r=2\"https://d.com/?q=1&r=2"
+raw Bare "https://e.co/%7CHTTPS://d.com/?q=1&r=2\"https://d.com/?q=1&r=2"
+want same
+-- t0553 --
+in "**https://d.com/?q=1&r=2<"
+raw Bare "https://d.com/?q=1&r=2"
+want same
+-- t0554 --
+in "'HTTPS://a.com__["
+-- t0555 --
+in "https://x.io/a_b\"~~"
+raw Bare "https://x.io/a_b\"~~"
+want same
+-- t0556 --
+in "```__https://a.com\"https://f.com/x.#>https://d.com/?q=1&r=2HTTPS://f.com/x.\u00a0"
+raw Bare "https://a.com\"https://f.com/x.#>https://d.com/?q=1&r=2HTTPS://f.com/x"
+want same
+-- t0557 --
+in "'\u200b](<t:1:R>word](~~"
+-- t0558 --
+in "HTTPS://f.com/x.__\u200b) http://f.com/x.)"
+raw Bare "http://f.com/x"
+want same
+-- t0559 --
+in "word____https://x.io/a_b>http://a.com<:a:1>https://a.com```"
+raw Bare "https://x.io/a_b>http://a.com"
+raw Bare "https://a.com```"
+want same
+-- t0560 --
+in "HTTPS://a.com\\a<@1>"
+-- t0561 --
+in "'](<**https://b.org/pHTTPS://g.com/\u00e9*HTTPS://c.net/(z)](_"
+raw Bare "https://b.org/pHTTPS://g.com/\u00e9"
+want same
+-- t0562 --
+in "[https://e.co/%7C]("
+raw Bare "https://e.co/%7C]("
+want same
+-- t0563 --
+in "](http://e.co/%7CHTTPS://g.com/\u00e9"
+raw Bare "http://e.co/%7CHTTPS://g.com/\u00e9"
+want same
+-- t0564 --
+in "#]<@1>"
+-- t0565 --
+in "HTTPS://x.io/a_bhttps://b.org/p-https://f.com/x."
+raw Bare "https://b.org/p-https://f.com/x"
+want same
+-- t0566 --
+in "`||]("
+-- t0567 --
+in ">1*"
+-- t0568 --
+in "<t:1:R>>"
+-- t0569 --
+in "HTTPS://a.com\\__https://g.com/\u00e9"
+raw Bare "https://g.com/\u00e9"
+want same
+-- t0570 --
+in "https://a.com**https://b.org/p(a"
+raw Bare "https://a.com**https://b.org/p(a"
+want same
+-- t0571 --
+in "\n**https://c.net/(z)'(HTTPS://c.net/(z)#"
+raw Bare "https://c.net/(z)'(HTTPS://c.net/(z)#"
+want same
+-- t0572 --
+in "`https://d.com/?q=1&r=2***```"
+raw Bare "https://d.com/?q=1&r=2***```"
+want same
+-- t0573 --
+in "-\u200bHTTPS://g.com/\u00e9]'"
+-- t0574 --
+in "<_"
+-- t0575 --
+in "http://e.co/%7C](<https://b.org/p||word"
+raw Bare "http://e.co/%7C]("
+raw Bare "https://b.org/p||word"
+want same
+-- t0576 --
+in "https://c.net/(z)__https://e.co/%7C'HTTPS://b.org/p( https://a.com`"
+raw Bare "https://c.net/(z)__https://e.co/%7C'HTTPS://b.org/p("
+raw Bare "https://a.com`"
+want same
+-- t0577 --
+in "https://x.io/a_b||~~ `1(__\u00e9http://f.com/x.~~"
+raw Bare "https://x.io/a_b||~~"
+raw Bare "http://f.com/x.~~"
+want same
+-- t0578 --
+in "**http://g.com/\u00e9](<**<_#>`\nhttps://g.com/\u00e9"
+raw Bare "http://g.com/\u00e9]("
+raw Bare "https://g.com/\u00e9"
+want same
+-- t0579 --
+in "**1~~```)HTTPS://b.org/p(<](<"
+-- t0580 --
+in "\u200b_<@1>"
+-- t0581 --
+in ">https://g.com/\u00e9<:a:1>https://f.com/x.\"#\u00e9http://d.com/?q=1&r=2HTTPS://g.com/\u00e9)"
+raw Bare "https://g.com/\u00e9"
+raw Bare "https://f.com/x.\"#\u00e9http://d.com/?q=1&r=2HTTPS://g.com/\u00e9"
+want same
+-- t0582 --
+in "<@1>HTTPS://f.com/x.](<\"<@1>**HTTPS://g.com/\u00e9HTTPS://e.co/%7C`HTTPS://g.com/\u00e9[http://x.io/a_b"
+raw Bare "http://x.io/a_b"
+want same
+-- t0583 --
+in "_||<)HTTPS://a.comhttps://f.com/x.]<@1>_`\\"
+-- t0584 --
+in "http://g.com/\u00e9[http://d.com/?q=1&r=2*\"`https://a.com```\u200b(HTTPS://e.co/%7C```"
+raw Bare "http://g.com/\u00e9[http://d.com/?q=1&r=2*\"`https://a.com```\u200b(HTTPS://e.co/%7C```"
+want same
+-- t0585 --
+in "`]("
+-- t0586 --
+in " **<[https://b.org/p)>HTTPS://b.org/p](http://x.io/a_b`"
+raw Bare "http://x.io/a_b`"
+want same
+-- t0587 --
+in "aHTTPS://e.co/%7C''[https://x.io/a_b\u200bHTTPS://d.com/?q=1&r=2||]("
+raw Bare "https://x.io/a_b\u200bHTTPS://d.com/?q=1&r=2||]("
+want same
+-- t0588 --
+in "#https://b.org/p"
+raw Bare "https://b.org/p"
+want same
+-- t0589 --
+in "HTTPS://f.com/x.  "
+-- t0590 --
+in "1(word\"https://f.com/x._"
+raw Bare "https://f.com/x._"
+want same
+-- t0591 --
+in ")||__word( https://x.io/a_b_"
+raw Bare "https://x.io/a_b_"
+want same
+-- t0592 --
+in "||~~))"
+-- t0593 --
+in ">http://b.org/p]<:a:1>\"_"
+raw Bare "http://b.org/p"
+want same
+-- t0594 --
+in ">HTTPS://d.com/?q=1&r=2\u00e9https://d.com/?q=1&r=2[HTTPS://f.com/x.https://b.org/p))"
+raw Bare "https://d.com/?q=1&r=2[HTTPS://f.com/x.https://b.org/p"
+want same
+-- t0595 --
+in "http://g.com/\u00e9word1<:a:1><:a:1>](wordHTTPS://c.net/(z)https://g.com/\u00e9\u200b"
+raw Bare "http://g.com/\u00e9word1"
+raw Bare "https://g.com/\u00e9\u200b"
+want same
+-- t0596 --
+in "https://g.com/\u00e9https://c.net/(z)"
+raw Bare "https://g.com/\u00e9https://c.net/(z)"
+want same
+-- t0597 --
+in "~~](<](```>"
+-- t0598 --
+in "<:a:1>[HTTPS://c.net/(z)#__>HTTPS://g.com/\u00e9__']("
+-- t0599 --
+in "\u200b>](<( _"
+-- t0600 --
+in "<@1><t:1:R> "
+-- t0601 --
+in "\u00e9](``` `\u200b**\"<]("
+-- t0602 --
+in "http://d.com/?q=1&r=2*\"word**__"
+raw Bare "http://d.com/?q=1&r=2*\"word**__"
+want same
+-- t0603 --
+in "<@1>'__http://x.io/a_b\u200b](<\""
+raw Bare "http://x.io/a_b\u200b]("
+want same
+-- t0604 --
+in "https://d.com/?q=1&r=2\\https://b.org/pa"
+raw Bare "https://d.com/?q=1&r=2\\https://b.org/pa"
+want same
+-- t0605 --
+in "HTTPS://g.com/\u00e9__||https://a.com```"
+raw Bare "https://a.com```"
+want same
+-- t0606 --
+in "<'"
+-- t0607 --
+in "*<@1>1"
+-- t0608 --
+in "(<:a:1>http://b.org/p<:a:1>](https://g.com/\u00e9~~\""
+raw Bare "http://b.org/p"
+raw Bare "https://g.com/\u00e9~~"
+want same
+-- t0609 --
+in "http://f.com/x.)"
+raw Bare "http://f.com/x"
+want same
+-- t0610 --
+in "~~_"
+-- t0611 --
+in "_https://g.com/\u00e9https://x.io/a_b\"\"http://f.com/x."
+raw Bare "https://g.com/\u00e9https://x.io/a_b\"\"http://f.com/x"
+want same
+-- t0612 --
+in "1](<```<t:1:R>"
+-- t0613 --
+in "<@1>https://g.com/\u00e9\">><:a:1>](##]"
+raw Bare "https://g.com/\u00e9\">>"
+want same
+-- t0614 --
+in "https://x.io/a_b< a HTTPS://c.net/(z)*word]('"
+raw Bare "https://x.io/a_b"
+want same
+-- t0615 --
+in "HTTPS://c.net/(z)https://x.io/a_bhttp://x.io/a_b ]HTTPS://c.net/(z)](<__\u200b\u200bHTTPS://c.net/(z)"
+raw Bare "https://x.io/a_bhttp://x.io/a_b"
+want same
+-- t0616 --
+in "||~~`\u00a0-]("
+-- t0617 --
+in "https://b.org/pword**]]"
+raw Bare "https://b.org/pword**"
+want same
+-- t0618 --
+in "https://a.com**https://f.com/x.http://d.com/?q=1&r=2)http://x.io/a_b```'[a`"
+raw Bare "https://a.com**https://f.com/x.http://d.com/?q=1&r=2)http://x.io/a_b```'[a`"
+want same
+-- t0619 --
+in "https://x.io/a_b](<\u00e9http://b.org/p\"\\"
+raw Bare "https://x.io/a_b]("
+raw Bare "http://b.org/p\"\\"
+want same
+-- t0620 --
+in "](<http://g.com/\u00e9(<@1>'**HTTPS://g.com/\u00e9"
+raw Suppressed "http://g.com/\u00e9(<@1"
+want same
+-- t0621 --
+in "<t:1:R> HTTPS://b.org/p>https://b.org/p~~\"\""
+raw Bare "https://b.org/p~~"
+want same
+-- t0622 --
+in "\u200b`"
+-- t0623 --
+in "||](<http://d.com/?q=1&r=2~~||\u00a0\u00a0\u200b<||"
+raw Bare "http://d.com/?q=1&r=2~~" spoiler
+want same
+-- t0624 --
+in "a<:a:1>\u00a0<@1><t:1:R>-#"
+-- t0625 --
+in "__[~~(word]]||"
+-- t0626 --
+in "[word\u00a0)~~`['"
+-- t0627 --
+in "**https://a.com(_<@1>HTTPS://e.co/%7Chttp://a.com**\u200b"
+raw Bare "https://a.com(_"
+raw Bare "http://a.com"
+want same
+-- t0628 --
+in "HTTPS://a.com<:a:1>http://x.io/a_b](<"
+raw Bare "http://x.io/a_b]("
+want same
+-- t0629 --
+in "> \n#>]](<(http://a.com**"
+raw Bare "http://a.com**"
+want same
+-- t0630 --
+in "wordHTTPS://c.net/(z)"
+-- t0631 --
+in "https://g.com/\u00e9`HTTPS://f.com/x.HTTPS://x.io/a_b**https://g.com/\u00e9'https://b.org/p"
+raw Bare "https://g.com/\u00e9`HTTPS://f.com/x.HTTPS://x.io/a_b**https://g.com/\u00e9'https://b.org/p"
+want same
+-- t0632 --
+in "](~~#\\https://g.com/\u00e9>```~~HTTPS://e.co/%7C__"
+raw Bare "https://g.com/\u00e9>```"
+want same
+-- t0633 --
+in "HTTPS://g.com/\u00e9[https://a.com\"<t:1:R><t:1:R>http://b.org/p||~~1http://g.com/\u00e9'"
+raw Bare "https://a.com"
+raw Bare "http://b.org/p||~~1http://g.com/\u00e9"
+want same
+-- t0634 --
+in "https://b.org/phttps://d.com/?q=1&r=2](<1~~http://f.com/x.\u00a0http://b.org/p'```https://f.com/x."
+raw Bare "https://b.org/phttps://d.com/?q=1&r=2]("
+raw Bare "http://f.com/x"
+raw Bare "http://b.org/p'```https://f.com/x"
+want same
+-- t0635 --
+in "(\"https://f.com/x.HTTPS://f.com/x.<](]\""
+raw Bare "https://f.com/x.HTTPS://f.com/x"
+want same
+-- t0636 --
+in "\\__"
+-- t0637 --
+in "https://b.org/phttps://x.io/a_b ]"
+raw Bare "https://b.org/phttps://x.io/a_b"
+want same
+-- t0638 --
+in "[https://e.co/%7C#https://x.io/a_b<t:1:R>HTTPS://f.com/x.https://x.io/a_b*"
+raw Bare "https://e.co/%7C#https://x.io/a_b"
+raw Bare "https://x.io/a_b*"
+want same
+-- t0639 --
+in ")<**"
+-- t0640 --
+in "<:a:1><>(HTTPS://c.net/(z)__>'http://x.io/a_b"
+raw Bare "http://x.io/a_b"
+want same
+-- t0641 --
+in " ](<\u200bHTTPS://e.co/%7C```'](~~"
+-- t0642 --
+in "[http://x.io/a_bHTTPS://f.com/x.] \u00a0a||"
+raw Bare "http://x.io/a_bHTTPS://f.com/x"
+want same
+-- t0643 --
+in "*https://d.com/?q=1&r=2>https://c.net/(z)http://d.com/?q=1&r=2https://f.com/x.https://e.co/%7C__(http://g.com/\u00e9"
+raw Bare "https://d.com/?q=1&r=2>https://c.net/(z)http://d.com/?q=1&r=2https://f.com/x.https://e.co/%7C__(http://g.com/\u00e9"
+want same
+-- t0644 --
+in "HTTPS://f.com/x.-\u200bhttps://x.io/a_bhttp://a.com\\http://f.com/x.word~~http://x.io/a_b"
+raw Bare "https://x.io/a_bhttp://a.com\\http://f.com/x.word~~http://x.io/a_b"
+want same
+-- t0645 --
+in "https://d.com/?q=1&r=2_)<@1>a]https://d.com/?q=1&r=2'>"
+raw Bare "https://d.com/?q=1&r=2_"
+raw Bare "https://d.com/?q=1&r=2'>"
+want same
+-- t0646 --
+in " __)||https://e.co/%7C"
+raw Bare "https://e.co/%7C"
+want same
+-- t0647 --
+in "\"~~\u00e9(http://c.net/(z)"
+raw Bare "http://c.net/(z)"
+want same
+-- t0648 --
+in "http://x.io/a_b\\http://g.com/\u00e9https://c.net/(z)<http://g.com/\u00e9__*`>https://g.com/\u00e9"
+raw Bare "http://x.io/a_b\\http://g.com/\u00e9https://c.net/(z)"
+raw Suppressed "http://g.com/\u00e9__*`"
+raw Bare "https://g.com/\u00e9"
+want same
+-- t0649 --
+in "https://e.co/%7C><:a:1> HTTPS://e.co/%7C~~http://g.com/\u00e9"
+raw Bare "https://e.co/%7C>"
+raw Bare "http://g.com/\u00e9"
+want same
+-- t0650 --
+in "`http://d.com/?q=1&r=2<word"
+raw Bare "http://d.com/?q=1&r=2"
+want same
+-- t0651 --
+in "[ **"
+-- t0652 --
+in "~~ -<http://a.com\u00a0#https://f.com/x.*"
+raw Bare "http://a.com"
+raw Bare "https://f.com/x.*"
+want same
+-- t0653 --
+in "~~https://a.com https://d.com/?q=1&r=2\\https://a.com"
+raw Bare "https://a.com"
+raw Bare "https://d.com/?q=1&r=2\\https://a.com"
+want same
+-- t0654 --
+in "https://e.co/%7C'](<http://a.com\"HTTPS://f.com/x.<\u200b<:a:1>)\\http://a.com](<"
+raw Bare "https://e.co/%7C']("
+raw Suppressed "http://a.com\"HTTPS://f.com/x.<\u200b<:a:1"
+raw Bare "http://a.com]("
+want same
+-- t0655 --
+in ">\u200bHTTPS://g.com/\u00e9](__<:a:1><t:1:R>https://x.io/a_b**https://a.com```"
+raw Bare "https://x.io/a_b**https://a.com```"
+want same
+-- t0656 --
+in "http://d.com/?q=1&r=2*]](<\"#HTTPS://a.com||"
+raw Bare "http://d.com/?q=1&r=2*]]("
+want same
+-- t0657 --
+in "HTTPS://d.com/?q=1&r=2https://g.com/\u00e9"
+raw Bare "https://g.com/\u00e9"
+want same
+-- t0658 --
+in "(  \\HTTPS://a.com#HTTPS://g.com/\u00e9[_`https://x.io/a_b"
+raw Bare "https://x.io/a_b"
+want same
+-- t0659 --
+in "' ~~"
+-- t0660 --
+in "<](_http://e.co/%7CHTTPS://d.com/?q=1&r=2"
+raw Bare "http://e.co/%7CHTTPS://d.com/?q=1&r=2"
+want same
+-- t0661 --
+in "\u00a0](<```https://c.net/(z)"
+raw Bare "https://c.net/(z)"
+want same
+-- t0662 --
+in "\\(||http://x.io/a_b#'http://x.io/a_b"
+raw Bare "http://x.io/a_b#'http://x.io/a_b"
+want same
+-- t0663 --
+in "HTTPS://g.com/\u00e9https://g.com/\u00e9```"
+raw Bare "https://g.com/\u00e9```"
+want same
+-- t0664 --
+in "[\"[``` \n"
+-- t0665 --
+in "http://b.org/p\"`["
+raw Bare "http://b.org/p\"`["
+want same
+-- t0666 --
+in "\"HTTPS://c.net/(z)[1````word||"
+-- t0667 --
+in "<:a:1>````http://c.net/(z)https://d.com/?q=1&r=2"
+raw Bare "http://c.net/(z)https://d.com/?q=1&r=2"
+want same
+-- t0668 --
+in "\"*wordwordhttps://f.com/x.-"
+raw Bare "https://f.com/x.-"
+want same
+-- t0669 --
+in "HTTPS://a.com['||\u200bHTTPS://c.net/(z)\\<http://x.io/a_b~~https://x.io/a_b"
+raw Bare "http://x.io/a_b~~https://x.io/a_b"
+want same
+-- t0670 --
+in "~~\u200bwordhttps://c.net/(z)"
+raw Bare "https://c.net/(z)"
+want same
+-- t0671 --
+in "_]("
+-- t0672 --
+in "\\\u200bHTTPS://a.com(https://a.com https://b.org/p(~~https://b.org/p ]"
+raw Bare "https://a.com"
+raw Bare "https://b.org/p(~~https://b.org/p"
+want same
+-- t0673 --
+in "https://f.com/x.https://x.io/a_b\u00e9 ([http://c.net/(z)```"
+raw Bare "https://f.com/x.https://x.io/a_b\u00e9"
+raw Bare "http://c.net/(z)```"
+want same
+-- t0674 --
+in " https://d.com/?q=1&r=2https://e.co/%7Chttps://e.co/%7CHTTPS://e.co/%7C__"
+raw Bare "https://d.com/?q=1&r=2https://e.co/%7Chttps://e.co/%7CHTTPS://e.co/%7C__"
+want same
+-- t0675 --
+in ">\u200bhttps://f.com/x. \u00e9"
+raw Bare "https://f.com/x"
+want same
+-- t0676 --
+in "](https://e.co/%7C><#||"
+raw Bare "https://e.co/%7C>"
+want same
+-- t0677 --
+in ">\u00e9~~["
+-- t0678 --
+in "<@1>`"
+-- t0679 --
+in " 'https://x.io/a_b"
+raw Bare "https://x.io/a_b"
+want same
+-- t0680 --
+in "https://c.net/(z)```HTTPS://e.co/%7C\\```<@1>"
+raw Bare "https://c.net/(z)```HTTPS://e.co/%7C\\```"
+want same
+-- t0681 --
+in "https://g.com/\u00e9||https://d.com/?q=1&r=2)\\"
+raw Bare "https://g.com/\u00e9||https://d.com/?q=1&r=2)\\"
+want same
+-- t0682 --
+in "'_"
+-- t0683 --
+in "<t:1:R>http://a.com`a\"https://a.com\"https://f.com/x.]"
+raw Bare "http://a.com`a\"https://a.com\"https://f.com/x"
+want same
+-- t0684 --
+in "~~**a[||[https://f.com/x.`HTTPS://c.net/(z)~~#https://b.org/p"
+raw Bare "https://f.com/x.`HTTPS://c.net/(z)"
+raw Bare "https://b.org/p"
+want same
+-- t0685 --
+in "`__https://b.org/p>'` https://x.io/a_b"
+raw Bare "https://x.io/a_b"
+want same
+-- t0686 --
+in " <https://c.net/(z)__http://b.org/p_"
+raw Bare "https://c.net/(z)__http://b.org/p_"
+want same
+-- t0687 --
+in "1http://f.com/x.https://b.org/p HTTPS://e.co/%7C\\*-``'"
+raw Bare "http://f.com/x.https://b.org/p"
+want same
+-- t0688 --
+in "https://f.com/x.'*<HTTPS://g.com/\u00e9```-HTTPS://x.io/a_b<:a:1>"
+raw Bare "https://f.com/x.'*"
+want same
+-- t0689 --
+in "https://b.org/pHTTPS://e.co/%7C||][http://b.org/p_<t:1:R>HTTPS://c.net/(z)http://e.co/%7C\n>"
+raw Bare "https://b.org/pHTTPS://e.co/%7C||][http://b.org/p_"
+raw Bare "http://e.co/%7C"
+want same
+-- t0690 --
+in "```a<@1>"
+-- t0691 --
+in "<:a:1><t:1:R>https://x.io/a_ba<wordhttps://b.org/pHTTPS://a.comhttps://b.org/p"
+raw Bare "https://x.io/a_ba"
+raw Bare "https://b.org/pHTTPS://a.comhttps://b.org/p"
+want same
+-- t0692 --
+in "\n  <t:1:R>HTTPS://f.com/x.](<http://b.org/p)\nhttp://b.org/p||_"
+raw Bare "http://b.org/p"
+raw Bare "http://b.org/p||_"
+want same
+-- t0693 --
+in "1<@1>__HTTPS://x.io/a_b](<"
+-- t0694 --
+in "](<https://x.io/a_bhttps://b.org/p\u200bHTTPS://c.net/(z)https://c.net/(z)```https://a.comhttp://e.co/%7C"
+raw Bare "https://x.io/a_bhttps://b.org/p\u200bHTTPS://c.net/(z)https://c.net/(z)```https://a.comhttp://e.co/%7C"
+want same
+-- t0695 --
+in "https://c.net/(z)]http://g.com/\u00e9](<**http://a.com\"__"
+raw Bare "https://c.net/(z)]http://g.com/\u00e9]("
+raw Bare "http://a.com\"__"
+want same
+-- t0696 --
+in "*https://g.com/\u00e9__https://d.com/?q=1&r=2\\](http://d.com/?q=1&r=2__#https://d.com/?q=1&r=2```](```"
+raw Bare "https://g.com/\u00e9__https://d.com/?q=1&r=2\\](http://d.com/?q=1&r=2__#https://d.com/?q=1&r=2```](```"
+want same
+-- t0697 --
+in "-**\u00e9**\n>))https://c.net/(z)\\"
+raw Bare "https://c.net/(z)\\"
+want same
+-- t0698 --
+in "~~http://c.net/(z)~~"
+raw Bare "http://c.net/(z)"
+want same
+-- t0699 --
+in " -https://b.org/p`"
+raw Bare "https://b.org/p`"
+want same
+-- t0700 --
+in "`HTTPS://c.net/(z)` HTTPS://x.io/a_bhttp://e.co/%7C**"
+raw Bare "http://e.co/%7C**"
+want same
+-- t0701 --
+in "<'https://d.com/?q=1&r=2(]"
+raw Bare "https://d.com/?q=1&r=2("
+want same
+-- t0702 --
+in "a_"
+-- t0703 --
+in "http://b.org/p*#http://g.com/\u00e9HTTPS://g.com/\u00e9_https://a.com\\-word"
+raw Bare "http://b.org/p*#http://g.com/\u00e9HTTPS://g.com/\u00e9_https://a.com\\-word"
+want same
+-- t0704 --
+in "https://e.co/%7C||\u200ba\"\\https://a.com(#"
+raw Bare "https://e.co/%7C||\u200ba\"\\https://a.com(#"
+want same
+-- t0705 --
+in "\"#https://e.co/%7C```'HTTPS://d.com/?q=1&r=2HTTPS://f.com/x.https://f.com/x."
+raw Bare "https://e.co/%7C```'HTTPS://d.com/?q=1&r=2HTTPS://f.com/x.https://f.com/x"
+want same
+-- t0706 --
+in "http://f.com/x.||https://d.com/?q=1&r=2"
+raw Bare "http://f.com/x.||https://d.com/?q=1&r=2"
+want same
+-- t0707 --
+in "https://g.com/\u00e9>HTTPS://a.com> HTTPS://b.org/p\u00e9"
+raw Bare "https://g.com/\u00e9>HTTPS://a.com>"
+want same
+-- t0708 --
+in "https://d.com/?q=1&r=2https://e.co/%7C`"
+raw Bare "https://d.com/?q=1&r=2https://e.co/%7C`"
+want same
+-- t0709 --
+in "\"<@1>1~~`https://a.com[]**HTTPS://f.com/x.http://g.com/\u00e9"
+raw Bare "https://a.com[]**HTTPS://f.com/x.http://g.com/\u00e9"
+want same
+-- t0710 --
+in "_\nHTTPS://b.org/p\u00a0(HTTPS://f.com/x.~~"
+-- t0711 --
+in "ahttps://b.org/p```#\u00a0https://b.org/p~~"
+raw Bare "https://b.org/p```#"
+raw Bare "https://b.org/p~~"
+want same
+-- t0712 --
+in "HTTPS://e.co/%7C<@1>>](https://b.org/p<"
+raw Bare "https://b.org/p"
+want same
+-- t0713 --
+in "__HTTPS://d.com/?q=1&r=2>"
+-- t0714 --
+in "http://x.io/a_bHTTPS://e.co/%7C>"
+raw Bare "http://x.io/a_bHTTPS://e.co/%7C>"
+want same
+-- t0715 --
+in "https://c.net/(z)https://g.com/\u00e9`"
+raw Bare "https://c.net/(z)https://g.com/\u00e9`"
+want same
+-- t0716 --
+in "1a*_http://c.net/(z)ahttps://d.com/?q=1&r=2'>\\"
+raw Bare "http://c.net/(z)ahttps://d.com/?q=1&r=2'>\\"
+want same
+-- t0717 --
+in "HTTPS://d.com/?q=1&r=2\" https://x.io/a_b||[<]]("
+raw Bare "https://x.io/a_b||["
+want same
+-- t0718 --
+in "HTTPS://e.co/%7C]<https://g.com/\u00e9\"](_>\u00e9\""
+raw Suppressed "https://g.com/\u00e9\"](_"
+want same
+-- t0719 --
+in "HTTPS://e.co/%7C ||"
+-- t0720 --
+in "http://g.com/\u00e9~~*```"
+raw Bare "http://g.com/\u00e9~~*```"
+want same
+-- t0721 --
+in "<t:1:R>https://g.com/\u00e9](<__a"
+raw Bare "https://g.com/\u00e9]("
+want same
+-- t0722 --
+in "a<@1>"
+-- t0723 --
+in " <:a:1>1 \\\"https://g.com/\u00e9https://b.org/p"
+raw Bare "https://g.com/\u00e9https://b.org/p"
+want same
+-- t0724 --
+in "HTTPS://a.com](<*```_"
+-- t0725 --
+in "\u00a0\u00e9"
+-- t0726 --
+in "<:a:1>HTTPS://x.io/a_b\u00e9HTTPS://c.net/(z)ahttps://d.com/?q=1&r=2"
+raw Bare "https://d.com/?q=1&r=2"
+want same
+-- t0727 --
+in "https://d.com/?q=1&r=2https://b.org/p]https://b.org/p<\\https://d.com/?q=1&r=2\"\u00e9~~**https://d.com/?q=1&r=2'#"
+raw Bare "https://d.com/?q=1&r=2https://b.org/p]https://b.org/p"
+raw Bare "https://d.com/?q=1&r=2\"\u00e9~~**https://d.com/?q=1&r=2'#"
+want same
+-- t0728 --
+in "https://b.org/p1 https://c.net/(z)"
+raw Bare "https://b.org/p1"
+raw Bare "https://c.net/(z)"
+want same
+-- t0729 --
+in "http://a.comhttp://a.com*HTTPS://g.com/\u00e9<```_https://a.comhttps://c.net/(z)`"
+raw Bare "http://a.comhttp://a.com*HTTPS://g.com/\u00e9"
+want same
+-- t0730 --
+in "HTTPS://e.co/%7Chttps://b.org/p\u00e9\\HTTPS://a.com||\u200b'||"
+raw Bare "https://b.org/p\u00e9\\HTTPS://a.com||\u200b'||"
+want same
+-- t0731 --
+in "](<\u00a0http://a.com**http://a.com"
+raw Bare "http://a.com**http://a.com"
+want same
+-- t0732 --
+in "))http://g.com/\u00e9*https://d.com/?q=1&r=2<](https://g.com/\u00e9]https://f.com/x.a"
+raw Bare "http://g.com/\u00e9*https://d.com/?q=1&r=2"
+raw Bare "https://g.com/\u00e9]https://f.com/x.a"
+want same
+-- t0733 --
+in "_ '\"**http://a.comhttp://b.org/p](<"
+raw Bare "http://a.comhttp://b.org/p]("
+want same
+-- t0734 --
+in "]~~\"]("
+-- t0735 --
+in "<t:1:R>-HTTPS://b.org/p__https://d.com/?q=1&r=2]\n"
+raw Bare "https://d.com/?q=1&r=2"
+want same
+-- t0736 --
+in "~~\"||https://g.com/\u00e9]"
+raw Bare "https://g.com/\u00e9"
+want same
+-- t0737 --
+in "-\""
+-- t0738 --
+in "_https://d.com/?q=1&r=2**(\\https://f.com/x.<"
+raw Bare "https://d.com/?q=1&r=2**(\\https://f.com/x"
+want same
+-- t0739 --
+in "__https://c.net/(z))](1http://b.org/p[https://b.org/p'http://x.io/a_b||https://c.net/(z)_"
+raw Bare "https://c.net/(z))](1http://b.org/p[https://b.org/p'http://x.io/a_b||https://c.net/(z)_"
+want same
+-- t0740 --
+in "http://b.org/pawordhttps://b.org/p\u200b)https://e.co/%7C>http://b.org/p\\<https://x.io/a_b"
+raw Bare "http://b.org/pawordhttps://b.org/p\u200b)https://e.co/%7C>http://b.org/p\\"
+raw Bare "https://x.io/a_b"
+want same
+-- t0741 --
+in "http://a.com](\nhttps://f.com/x.\u00a0"
+raw Bare "http://a.com]("
+raw Bare "https://f.com/x"
+want same
+-- t0742 --
+in "\\\nhttps://b.org/p```]HTTPS://d.com/?q=1&r=2*\\]<https://c.net/(z)"
+raw Bare "https://b.org/p```]HTTPS://d.com/?q=1&r=2*\\"
+raw Bare "https://c.net/(z)"
+want same
+-- t0743 --
+in "https://b.org/p`\"\u00e9https://g.com/\u00e9)_<@1>]<@1><"
+raw Bare "https://b.org/p`\"\u00e9https://g.com/\u00e9)_"
+want same
+-- t0744 --
+in "HTTPS://d.com/?q=1&r=2\"http://f.com/x.https://f.com/x."
+raw Bare "http://f.com/x.https://f.com/x"
+want same
+-- t0745 --
+in ">```><@1>\u200b"
+-- t0746 --
+in " __*__https://e.co/%7C- "
+raw Bare "https://e.co/%7C-"
+want same
+-- t0747 --
+in "```https://b.org/p"
+raw Bare "https://b.org/p"
+want same
+-- t0748 --
+in " **"
+-- t0749 --
+in "<:a:1>https://a.com**http://b.org/p-**"
+raw Bare "https://a.com**http://b.org/p-**"
+want same
+-- t0750 --
+in "<t:1:R> "
+-- t0751 --
+in "https://f.com/x.#\u200b](<https://b.org/p-https://f.com/x.]https://d.com/?q=1&r=2"
+raw Bare "https://f.com/x.#\u200b]("
+raw Bare "https://b.org/p-https://f.com/x.]https://d.com/?q=1&r=2"
+want same
+-- t0752 --
+in "a~~ http://f.com/x.[__https://c.net/(z)||"
+raw Bare "http://f.com/x.[__https://c.net/(z)||"
+want same
+-- t0753 --
+in "||<t:1:R>http://e.co/%7C\u00a0HTTPS://c.net/(z)___word"
+raw Bare "http://e.co/%7C"
+want same
+-- t0754 --
+in " word1"
+-- t0755 --
+in " 1\u200bhttps://g.com/\u00e9http://c.net/(z)]<t:1:R> "
+raw Bare "https://g.com/\u00e9http://c.net/(z)"
+want same
+-- t0756 --
+in "`https://c.net/(z)>#\\["
+raw Bare "https://c.net/(z)>#\\["
+want same
+-- t0757 --
+in "<@1>__ http://d.com/?q=1&r=2*["
+raw Bare "http://d.com/?q=1&r=2*["
+want same
+-- t0758 --
+in "worda<t:1:R>*__HTTPS://e.co/%7C*"
+-- t0759 --
+in "\\1"
+-- t0760 --
+in "__https://g.com/\u00e9 *https://g.com/\u00e9#__]("
+raw Bare "https://g.com/\u00e9"
+raw Bare "https://g.com/\u00e9#"
+want same
+-- t0761 --
+in "-HTTPS://d.com/?q=1&r=2](```["
+-- t0762 --
+in "\u00a0HTTPS://g.com/\u00e9*#\u200b__"
+-- t0763 --
+in "https://b.org/p#http://a.comhttps://d.com/?q=1&r=2https://x.io/a_b)]](<"
+raw Bare "https://b.org/p#http://a.comhttps://d.com/?q=1&r=2https://x.io/a_b)]]("
+want same
+-- t0764 --
+in "<:a:1>\u00a0"
+-- t0765 --
+in "http://f.com/x.>\\"
+raw Bare "http://f.com/x.>\\"
+want same
+-- t0766 --
+in "\n<__\u200bHTTPS://a.com](<'HTTPS://e.co/%7C'"
+-- t0767 --
+in "(_HTTPS://e.co/%7C-HTTPS://a.com"
+-- t0768 --
+in "'**HTTPS://x.io/a_b`]("
+-- t0769 --
+in "\\HTTPS://g.com/\u00e9 https://b.org/phttp://c.net/(z)__"
+raw Bare "https://b.org/phttp://c.net/(z)__"
+want same
+-- t0770 --
+in "https://c.net/(z)'\n1https://a.com]\u00a0"
+raw Bare "https://c.net/(z)"
+raw Bare "https://a.com"
+want same
+-- t0771 --
+in "~~`<@1>"
+-- t0772 --
+in "[\\<HTTPS://d.com/?q=1&r=2)>http://a.comhttp://g.com/\u00e9"
+raw Bare "http://a.comhttp://g.com/\u00e9"
+want same
+-- t0773 --
+in "http://x.io/a_b*"
+raw Bare "http://x.io/a_b*"
+want same
+-- t0774 --
+in "http://b.org/p](<:a:1>"
+raw Bare "http://b.org/p]("
+want same
+-- t0775 --
+in "https://c.net/(z)*)http://x.io/a_bhttps://d.com/?q=1&r=2\"**https://e.co/%7C]"
+raw Bare "https://c.net/(z)*)http://x.io/a_bhttps://d.com/?q=1&r=2\"**https://e.co/%7C"
+want same
+-- t0776 --
+in "__http://a.com*https://d.com/?q=1&r=2__]''"
+raw Bare "http://a.com*https://d.com/?q=1&r=2"
+want same
+-- t0777 --
+in "'HTTPS://d.com/?q=1&r=2~~]https://g.com/\u00e9HTTPS://a.comhttps://b.org/pHTTPS://f.com/x.'```](<"
+raw Bare "https://g.com/\u00e9HTTPS://a.comhttps://b.org/pHTTPS://f.com/x.'```]("
+want same
+-- t0778 --
+in "](||__\\`<:a:1>"
+-- t0779 --
+in "https://e.co/%7C*'1__HTTPS://f.com/x.*'http://e.co/%7C**HTTPS://e.co/%7C__"
+raw Bare "https://e.co/%7C*'1__HTTPS://f.com/x.*'http://e.co/%7C**HTTPS://e.co/%7C__"
+want same
+-- t0780 --
+in "http://b.org/p)https://b.org/pHTTPS://a.com"
+raw Bare "http://b.org/p)https://b.org/pHTTPS://a.com"
+want same
+-- t0781 --
+in "http://e.co/%7C)\\__)"
+raw Bare "http://e.co/%7C)\\__"
+want same
+-- t0782 --
+in "__||`](\"_~~HTTPS://c.net/(z))http://e.co/%7C**"
+raw Bare "http://e.co/%7C**"
+want same
+-- t0783 --
+in "-\n1aHTTPS://d.com/?q=1&r=2()-"
+-- t0784 --
+in "](<http://g.com/\u00e9#*```"
+raw Bare "http://g.com/\u00e9#*```"
+want same
+-- t0785 --
+in "https://f.com/x.http://a.com\\\u00e9<[https://x.io/a_bHTTPS://f.com/x._>_"
+raw Bare "https://f.com/x.http://a.com\\\u00e9"
+want same
+-- t0786 --
+in "||```'HTTPS://b.org/p||<t:1:R>__\u00a01"
+-- t0787 --
+in "\n>-http://d.com/?q=1&r=2https://f.com/x."
+raw Bare "http://d.com/?q=1&r=2https://f.com/x"
+want same
+-- t0788 --
+in "_<t:1:R>\u200bHTTPS://c.net/(z)_https://f.com/x.)https://e.co/%7C||"
+raw Bare "https://f.com/x.)https://e.co/%7C||"
+want same
+-- t0789 --
+in "https://g.com/\u00e9http://b.org/p_]<@1>ahttp://f.com/x.>"
+raw Bare "https://g.com/\u00e9http://b.org/p_"
+raw Bare "http://f.com/x.>"
+want same
+-- t0790 --
+in "http://b.org/phttps://a.com**(https://e.co/%7C**"
+raw Bare "http://b.org/phttps://a.com**(https://e.co/%7C**"
+want same
+-- t0791 --
+in "<:a:1>*~~\u200b<:a:1>_https://g.com/\u00e9HTTPS://a.com"
+raw Bare "https://g.com/\u00e9HTTPS://a.com"
+want same
+-- t0792 --
+in "1HTTPS://e.co/%7C'](*"
+-- t0793 --
+in "*https://d.com/?q=1&r=2http://d.com/?q=1&r=2)\\_<:a:1>word"
+raw Bare "https://d.com/?q=1&r=2http://d.com/?q=1&r=2)\\_"
+want same
+-- t0794 --
+in "ahttp://b.org/p~~__HTTPS://b.org/p "
+raw Bare "http://b.org/p~~__HTTPS://b.org/p"
+want same
+-- t0795 --
+in "](\u00e9__[ "
+-- t0796 --
+in "```<@1>"
+-- t0797 --
+in "a>https://e.co/%7Chttps://d.com/?q=1&r=2(](<https://g.com/\u00e9\n<"
+raw Bare "https://e.co/%7Chttps://d.com/?q=1&r=2(]("
+raw Bare "https://g.com/\u00e9"
+want same
+-- t0798 --
+in " -]_"
+-- t0799 --
+in "HTTPS://d.com/?q=1&r=2\" "
+-- t0800 --
+in "_http://b.org/p||**](https://b.org/phttps://e.co/%7C[*"
+raw Bare "http://b.org/p||**](https://b.org/phttps://e.co/%7C[*"
+want same
+-- t0801 --
+in "https://e.co/%7C__http://d.com/?q=1&r=2```\"HTTPS://x.io/a_b\\`||```"
+raw Bare "https://e.co/%7C__http://d.com/?q=1&r=2```\"HTTPS://x.io/a_b\\`||```"
+want same
+-- t0802 --
+in "<@1>HTTPS://e.co/%7C___http://d.com/?q=1&r=2"
+raw Bare "http://d.com/?q=1&r=2"
+want same
+-- t0803 --
+in "https://f.com/x.HTTPS://b.org/p__<t:1:R>word"
+raw Bare "https://f.com/x.HTTPS://b.org/p__"
+want same
+-- t0804 --
+in "\n`<<:a:1>http://f.com/x.https://a.com\"_"
+raw Bare "http://f.com/x.https://a.com\"_"
+want same
+-- t0805 --
+in "https://c.net/(z)_http://g.com/\u00e9http://e.co/%7C)http://d.com/?q=1&r=2\u200b"
+raw Bare "https://c.net/(z)_http://g.com/\u00e9http://e.co/%7C)http://d.com/?q=1&r=2\u200b"
+want same
+-- t0806 --
+in "http://c.net/(z)<@1>"
+raw Bare "http://c.net/(z)"
+want same
+-- t0807 --
+in "https://g.com/\u00e9(](<'http://b.org/pHTTPS://b.org/p\"HTTPS://g.com/\u00e9_\u200b"
+raw Bare "https://g.com/\u00e9(]("
+raw Bare "http://b.org/pHTTPS://b.org/p\"HTTPS://g.com/\u00e9_\u200b"
+want same
+-- t0808 --
+in "http://b.org/p](<\u200bhttps://e.co/%7C](<](a\\"
+raw Bare "http://b.org/p]("
+raw Bare "https://e.co/%7C]("
+want same
+-- t0809 --
+in "(~~https://f.com/x.)_https://x.io/a_b\u00a0_||"
+raw Bare "https://f.com/x.)_https://x.io/a_b"
+want same
+-- t0810 --
+in "http://a.com````\"HTTPS://c.net/(z)"
+raw Bare "http://a.com````\"HTTPS://c.net/(z)"
+want same
+-- t0811 --
+in "https://e.co/%7Chttp://b.org/p"
+raw Bare "https://e.co/%7Chttp://b.org/p"
+want same
+-- t0812 --
+in "a__-](https://d.com/?q=1&r=2*__<t:1:R>"
+raw Bare "https://d.com/?q=1&r=2*"
+want same
+-- t0813 --
+in "HTTPS://c.net/(z)[https://a.com#\u00e9https://x.io/a_bhttp://x.io/a_bHTTPS://f.com/x."
+raw Bare "https://a.com#\u00e9https://x.io/a_bhttp://x.io/a_bHTTPS://f.com/x"
+want same
+-- t0814 --
+in "https://c.net/(z)] \n<:a:1>*word"
+raw Bare "https://c.net/(z)"
+want same
+-- t0815 --
+in "](HTTPS://a.com]http://d.com/?q=1&r=2)_"
+raw Bare "http://d.com/?q=1&r=2)_"
+want same
+-- t0816 --
+in "'http://e.co/%7C<:a:1>https://f.com/x.\n"
+raw Bare "http://e.co/%7C"
+raw Bare "https://f.com/x"
+want same
+-- t0817 --
+in "~~](<<https://b.org/p[http://e.co/%7C"
+raw Bare "https://b.org/p[http://e.co/%7C"
+want same
+-- t0818 --
+in " __HTTPS://b.org/pwordhttps://c.net/(z)<:a:1>_https://c.net/(z)("
+raw Bare "https://c.net/(z)"
+raw Bare "https://c.net/(z)("
+want same
+-- t0819 --
+in "\u200b[*\\https://a.com1https://b.org/p'\n"
+raw Bare "https://a.com1https://b.org/p"
+want same
+-- t0820 --
+in "~~\u00e9](ahttps://b.org/phttps://c.net/(z)\n)\u200b "
+raw Bare "https://b.org/phttps://c.net/(z)"
+want same
+-- t0821 --
+in "'||"
+-- t0822 --
+in "]\u00e9https://f.com/x.(http://g.com/\u00e9"
+raw Bare "https://f.com/x.(http://g.com/\u00e9"
+want same
+-- t0823 --
+in "1||http://d.com/?q=1&r=2*](http://g.com/\u00e9"
+raw Bare "http://d.com/?q=1&r=2*](http://g.com/\u00e9"
+want same
+-- t0824 --
+in "` "
+-- t0825 --
+in "https://a.com\"https://a.com~~]`https://b.org/p\u200b\u00a0HTTPS://g.com/\u00e9`"
+raw Bare "https://a.com\"https://a.com~~]`https://b.org/p\u200b"
+want same
+-- t0826 --
+in "http://c.net/(z)<"
+raw Bare "http://c.net/(z)"
+want same
+-- t0827 --
+in "https://b.org/p__||#http://g.com/\u00e9__\\"
+raw Bare "https://b.org/p__||#http://g.com/\u00e9__\\"
+want same
+-- t0828 --
+in "[`http://c.net/(z)_<t:1:R>#"
+raw Bare "http://c.net/(z)_"
+want same
+-- t0829 --
+in "https://d.com/?q=1&r=2__1```HTTPS://c.net/(z)~~"
+raw Bare "https://d.com/?q=1&r=2__1```HTTPS://c.net/(z)~~"
+want same
+-- t0830 --
+in "\n<\u00a0HTTPS://c.net/(z)"
+-- t0831 --
+in "`wordhttp://d.com/?q=1&r=2||http://a.com<http://b.org/p>)"
+raw Bare "http://d.com/?q=1&r=2||http://a.com"
+raw Suppressed "http://b.org/p"
+want same
+-- t0832 --
+in "HTTPS://c.net/(z) _HTTPS://x.io/a_b](HTTPS://c.net/(z)*```http://a.com["
+raw Bare "http://a.com["
+want same
+-- t0833 --
+in "#http://g.com/\u00e9>https://x.io/a_b```<<:a:1>https://b.org/p*http://c.net/(z)~~#"
+raw Bare "http://g.com/\u00e9>https://x.io/a_b```"
+raw Bare "https://b.org/p*http://c.net/(z)~~#"
+want same
+-- t0834 --
+in " HTTPS://x.io/a_b||http://c.net/(z)]"
+raw Bare "http://c.net/(z)"
+want same
+-- t0835 --
+in "*https://a.com]http://c.net/(z)<@1>"
+raw Bare "https://a.com]http://c.net/(z)"
+want same
+-- t0836 --
+in "\"<\u200b<:a:1>http://x.io/a_b```__'*"
+raw Bare "http://x.io/a_b```__'*"
+want same
+-- t0837 --
+in "<t:1:R>]**https://f.com/x.https://c.net/(z)](HTTPS://f.com/x.http://b.org/p\"https://f.com/x. https://d.com/?q=1&r=2"
+raw Bare "https://f.com/x.https://c.net/(z)](HTTPS://f.com/x.http://b.org/p\"https://f.com/x"
+raw Bare "https://d.com/?q=1&r=2"
+want same
+-- t0838 --
+in "`~~"
+-- t0839 --
+in "\\#HTTPS://d.com/?q=1&r=2\\)\\\"_http://c.net/(z)||"
+raw Bare "http://c.net/(z)||"
+want same
+-- t0840 --
+in "http://f.com/x.](<\n]("
+raw Bare "http://f.com/x.]("
+want same
+-- t0841 --
+in "https://c.net/(z)```'](-****HTTPS://c.net/(z)("
+raw Bare "https://c.net/(z)```'](-****HTTPS://c.net/(z)("
+want same
+-- t0842 --
+in "HTTPS://c.net/(z)\\"
+-- t0843 --
+in "```\u00e9\u00e9"
+-- t0844 --
+in "**<t:1:R>"
+-- t0845 --
+in "<||https://d.com/?q=1&r=2 http://f.com/x.'](http://f.com/x.*<:a:1>"
+raw Bare "https://d.com/?q=1&r=2"
+raw Bare "http://f.com/x.'](http://f.com/x.*"
+want same
+-- t0846 --
+in "HTTPS://g.com/\u00e9||\"\\](<"
+-- t0847 --
+in "https://a.comHTTPS://x.io/a_b]https://a.com<`*```<@1>https://g.com/\u00e9"
+raw Bare "https://a.comHTTPS://x.io/a_b]https://a.com"
+raw Bare "https://g.com/\u00e9"
+want same
+-- t0848 --
+in "wordhttps://g.com/\u00e9HTTPS://x.io/a_b"
+raw Bare "https://g.com/\u00e9HTTPS://x.io/a_b"
+want same
+-- t0849 --
+in "'http://d.com/?q=1&r=2*"
+raw Bare "http://d.com/?q=1&r=2*"
+want same
+-- t0850 --
+in "http://f.com/x.\\*#-[__ http://d.com/?q=1&r=2"
+raw Bare "http://f.com/x.\\*#-[__"
+raw Bare "http://d.com/?q=1&r=2"
+want same
+-- t0851 --
+in "*https://e.co/%7C](<HTTPS://a.com#ahttps://x.io/a_b'"
+raw Bare "https://e.co/%7C]("
+raw Bare "https://x.io/a_b"
+want same
+-- t0852 --
+in "https://f.com/x.http://f.com/x.`](<*https://b.org/p><@1>HTTPS://b.org/p__'"
+raw Bare "https://f.com/x.http://f.com/x.`]("
+want same
+-- t0853 --
+in "\u00a0https://d.com/?q=1&r=2 \nhttps://f.com/x.\"wordhttps://f.com/x.[HTTPS://c.net/(z)"
+raw Bare "https://d.com/?q=1&r=2"
+raw Bare "https://f.com/x.\"wordhttps://f.com/x.[HTTPS://c.net/(z)"
+want same
+-- t0854 --
+in "'https://d.com/?q=1&r=2```))'](<<\n||"
+raw Bare "https://d.com/?q=1&r=2```))']("
+want same
+-- t0855 --
+in "http://c.net/(z)\u00e9`<:a:1>https://x.io/a_b"
+raw Bare "http://c.net/(z)\u00e9`"
+raw Bare "https://x.io/a_b"
+want same
+-- t0856 --
+in "]\""
+-- t0857 --
+in "**\u00e9\u00a0\"<](<\u200bhttps://b.org/p__\""
+raw Bare "https://b.org/p__"
+want same
+-- t0858 --
+in "http://d.com/?q=1&r=2]\u200b \u200b\u00e9http://b.org/p"
+raw Bare "http://d.com/?q=1&r=2]\u200b"
+raw Bare "http://b.org/p"
+want same
+-- t0859 --
+in "```https://b.org/p__"
+raw Bare "https://b.org/p__"
+want same
+-- t0860 --
+in "\\< 1'____"
+-- t0861 --
+in "\u00e9[HTTPS://e.co/%7C1"
+-- t0862 --
+in "HTTPS://f.com/x.#__http://x.io/a_b**https://a.com**\n"
+raw Bare "http://x.io/a_b**https://a.com**"
+want same
+-- t0863 --
+in "~~\""
+-- t0864 --
+in "](<http://f.com/x.`\n_http://d.com/?q=1&r=2*````\n`"
+raw Bare "http://f.com/x.`"
+raw Bare "http://d.com/?q=1&r=2*````"
+want same
+-- t0865 --
+in "HTTPS://c.net/(z) "
+-- t0866 --
+in "http://e.co/%7C```\n(https://f.com/x.http://e.co/%7C__"
+raw Bare "http://e.co/%7C```"
+raw Bare "https://f.com/x.http://e.co/%7C__"
+want same
+-- t0867 --
+in "```'\\"
+-- t0868 --
+in "*http://g.com/\u00e9\u00e9word https://a.com(HTTPS://a.com](https://g.com/\u00e9*https://b.org/p"
+raw Bare "http://g.com/\u00e9\u00e9word"
+raw Bare "https://a.com(HTTPS://a.com](https://g.com/\u00e9"
+raw Bare "https://b.org/p"
+want same
+-- t0869 --
+in "1 <t:1:R>*\n\n||https://f.com/x.]("
+raw Bare "https://f.com/x.]("
+want same
+-- t0870 --
+in " \u00a0**("
+-- t0871 --
+in "\"-#http://d.com/?q=1&r=2__\""
+raw Bare "http://d.com/?q=1&r=2__"
+want same
+-- t0872 --
+in ")`\u00e91ahttps://d.com/?q=1&r=2https://e.co/%7Cword-"
+raw Bare "https://d.com/?q=1&r=2https://e.co/%7Cword-"
+want same
+-- t0873 --
+in " http://f.com/x.)"
+raw Bare "http://f.com/x"
+want same
+-- t0874 --
+in "https://x.io/a_b'['<t:1:R>HTTPS://b.org/p("
+raw Bare "https://x.io/a_b'["
+want same
+-- t0875 --
+in "https://g.com/\u00e9https://c.net/(z)]](HTTPS://f.com/x.[HTTPS://c.net/(z)](<\\"
+raw Bare "https://g.com/\u00e9https://c.net/(z)]](HTTPS://f.com/x.[HTTPS://c.net/(z)]("
+want same
+-- t0876 --
+in "a\"HTTPS://e.co/%7C_"
+-- t0877 --
+in "<@1>(HTTPS://c.net/(z)(HTTPS://f.com/x.\"*http://d.com/?q=1&r=2~~\u00a0\u00a0"
+raw Bare "http://d.com/?q=1&r=2~~"
+want same
+-- t0878 --
+in "\n__https://c.net/(z)>'[```"
+raw Bare "https://c.net/(z)>'[```"
+want same
+-- t0879 --
+in " )"
+-- t0880 --
+in "(https://x.io/a_b\\\\HTTPS://d.com/?q=1&r=2-\u200b"
+raw Bare "https://x.io/a_b\\\\HTTPS://d.com/?q=1&r=2-\u200b"
+want same
+-- t0881 --
+in "*(**\\https://d.com/?q=1&r=2>>\u00a0\u200b"
+raw Bare "https://d.com/?q=1&r=2>>"
+want same
+-- t0882 --
+in "http://a.comhttps://e.co/%7C*http://d.com/?q=1&r=2\\http://b.org/p'_](**HTTPS://a.com]"
+raw Bare "http://a.comhttps://e.co/%7C*http://d.com/?q=1&r=2\\http://b.org/p'_](**HTTPS://a.com"
+want same
+-- t0883 --
+in "](]])<word"
+-- t0884 --
+in "`](*_]||<:a:1>"
+-- t0885 --
+in "HTTPS://a.com||HTTPS://x.io/a_b\" https://g.com/\u00e9\\](<*"
+raw Bare "https://g.com/\u00e9\\]("
+want same
+-- t0886 --
+in "HTTPS://x.io/a_b__\"https://e.co/%7C````\\https://b.org/p``` ||"
+raw Bare "https://e.co/%7C````\\https://b.org/p```"
+want same
+-- t0887 --
+in "http://g.com/\u00e9\"https://b.org/phttp://a.comhttp://g.com/\u00e9'word```>a<@1>https://d.com/?q=1&r=2"
+raw Bare "http://g.com/\u00e9\"https://b.org/phttp://a.comhttp://g.com/\u00e9'word```>a"
+raw Bare "https://d.com/?q=1&r=2"
+want same
+-- t0888 --
+in "1\n__```"
+-- t0889 --
+in "\u200bhttps://e.co/%7C`https://e.co/%7C https://e.co/%7C>https://b.org/p]"
+raw Bare "https://e.co/%7C`https://e.co/%7C"
+raw Bare "https://e.co/%7C>https://b.org/p"
+want same
+-- t0890 --
+in "-__**"
+-- t0891 --
+in "<'https://f.com/x.||a"
+raw Bare "https://f.com/x.||a"
+want same
+-- t0892 --
+in "__-```-||```https://g.com/\u00e9word"
+raw Bare "https://g.com/\u00e9word"
+want same
+-- t0893 --
+in "__https://x.io/a_b_'"
+raw Bare "https://x.io/a_b_"
+want same
+-- t0894 --
+in "<:a:1>||https://d.com/?q=1&r=2**|| "
+raw Bare "https://d.com/?q=1&r=2**" spoiler
+want same
+-- t0895 --
+in "HTTPS://d.com/?q=1&r=2'1http://b.org/p||HTTPS://g.com/\u00e9[<"
+raw Bare "http://b.org/p||HTTPS://g.com/\u00e9["
+want same
+-- t0896 --
+in " ](<"
+-- t0897 --
+in "https://c.net/(z)HTTPS://g.com/\u00e9*"
+raw Bare "https://c.net/(z)HTTPS://g.com/\u00e9*"
+want same
+-- t0898 --
+in "http://d.com/?q=1&r=2https://g.com/\u00e9\u200b *](https://c.net/(z)\u00e9https://e.co/%7C"
+raw Bare "http://d.com/?q=1&r=2https://g.com/\u00e9\u200b"
+raw Bare "https://c.net/(z)\u00e9https://e.co/%7C"
+want same
+-- t0899 --
+in " <@1>http://x.io/a_b"
+raw Bare "http://x.io/a_b"
+want same
+-- t0900 --
+in "http://e.co/%7C'http://f.com/x.https://d.com/?q=1&r=2**"
+raw Bare "http://e.co/%7C'http://f.com/x.https://d.com/?q=1&r=2**"
+want same
+-- t0901 --
+in "HTTPS://a.com __#<t:1:R>#https://d.com/?q=1&r=2~~"
+raw Bare "https://d.com/?q=1&r=2~~"
+want same
+-- t0902 --
+in "https://b.org/p||HTTPS://x.io/a_b]*__"
+raw Bare "https://b.org/p||HTTPS://x.io/a_b]*__"
+want same
+-- t0903 --
+in "__<@1>https://g.com/\u00e9]\u200b**\u200b"
+raw Bare "https://g.com/\u00e9]\u200b**\u200b"
+want same
+-- t0904 --
+in "](HTTPS://c.net/(z)]~~\nhttps://x.io/a_b\nhttps://c.net/(z)_>_"
+raw Bare "https://x.io/a_b"
+raw Bare "https://c.net/(z)_>_"
+want same
+-- t0905 --
+in "https://x.io/a_b](](<#https://b.org/p*https://a.com~~**]("
+raw Bare "https://x.io/a_b](]("
+raw Bare "https://b.org/p*https://a.com~~**]("
+want same
+-- t0906 --
+in "<t:1:R>__(```https://a.com```HTTPS://d.com/?q=1&r=2)HTTPS://f.com/x.<:a:1>"
+-- t0907 --
+in "|| https://b.org/p__https://f.com/x.```\u00a0```HTTPS://x.io/a_bhttps://f.com/x.https://e.co/%7C__"
+raw Bare "https://b.org/p__https://f.com/x.```"
+raw Bare "https://f.com/x.https://e.co/%7C__"
+want same
+-- t0908 --
+in "*word]HTTPS://f.com/x.]](](<)\\"
+-- t0909 --
+in "]>\u200b<:a:1>]>https://e.co/%7C~~**"
+raw Bare "https://e.co/%7C~~**"
+want same
+-- t0910 --
+in "**#https://x.io/a_b(http://f.com/x.||HTTPS://e.co/%7C`"
+raw Bare "https://x.io/a_b(http://f.com/x.||HTTPS://e.co/%7C`"
+want same
+-- t0911 --
+in "](#"
+-- t0912 --
+in "\\~~https://a.com**1\"<__]("
+raw Bare "https://a.com**1"
+want same
+-- t0913 --
+in "\"HTTPS://d.com/?q=1&r=21https://g.com/\u00e9\u00a0HTTPS://d.com/?q=1&r=2\" "
+raw Bare "https://g.com/\u00e9"
+want same
+-- t0914 --
+in "'\u200b]\u200b"
+-- t0915 --
+in "||](<\u00a0]`]https://e.co/%7C||http://c.net/(z)~~1"
+raw Bare "https://e.co/%7C" spoiler
+raw Bare "http://c.net/(z)~~1"
+want same
+-- t0916 --
+in "`<t:1:R>https://a.com"
+raw Bare "https://a.com"
+want same
+-- t0917 --
+in "https://d.com/?q=1&r=2*https://g.com/\u00e9https://c.net/(z)](http://e.co/%7C`\u00e9](https://g.com/\u00e9"
+raw Bare "https://d.com/?q=1&r=2*https://g.com/\u00e9https://c.net/(z)](http://e.co/%7C`\u00e9](https://g.com/\u00e9"
+want same
+-- t0918 --
+in "](<'](__https://c.net/(z)~~http://g.com/\u00e9 #"
+raw Bare "https://c.net/(z)~~http://g.com/\u00e9"
+want same
+-- t0919 --
+in "~~word-\\<t:1:R>HTTPS://f.com/x.~~-"
+-- t0920 --
+in "[)[[<:a:1>-\u00e9](https://c.net/(z)**1"
+raw Masked "https://c.net/(z" label="<:a:1>-\u00e9"
+want same
+-- t0921 --
+in ">](<https://c.net/(z)HTTPS://x.io/a_b["
+raw Bare "https://c.net/(z)HTTPS://x.io/a_b["
+want same
+-- t0922 --
+in " ]**https://b.org/p```https://g.com/\u00e9_HTTPS://f.com/x.("
+raw Bare "https://b.org/p```https://g.com/\u00e9_HTTPS://f.com/x.("
+want same
+-- t0923 --
+in "https://g.com/\u00e9_<@1>"
+raw Bare "https://g.com/\u00e9_"
+want same
+-- t0924 --
+in "http://g.com/\u00e9word>http://f.com/x.\\](\\<[`"
+raw Bare "http://g.com/\u00e9word>http://f.com/x.\\](\\"
+want same
+-- t0925 --
+in "_http://x.io/a_b||https://b.org/phttp://f.com/x.\\**HTTPS://d.com/?q=1&r=2```a**"
+raw Bare "http://x.io/a_b||https://b.org/phttp://f.com/x.\\**HTTPS://d.com/?q=1&r=2```a**"
+want same
+-- t0926 --
+in "https://c.net/(z)~~ ```\\https://b.org/p'HTTPS://a.com**'["
+raw Bare "https://c.net/(z)~~"
+raw Bare "https://b.org/p'HTTPS://a.com**'["
+want same
+-- t0927 --
+in "\"\u200b"
+-- t0928 --
+in "](<http://f.com/x.https://c.net/(z))http://c.net/(z)'~~https://g.com/\u00e9](<*>http://g.com/\u00e9http://c.net/(z)"
+raw Suppressed "http://f.com/x.https://c.net/(z))http://c.net/(z)'~~https://g.com/\u00e9](<*"
+raw Bare "http://g.com/\u00e9http://c.net/(z)"
+want same
+-- t0929 --
+in "#https://x.io/a_b(||"
+raw Bare "https://x.io/a_b(||"
+want same
+-- t0930 --
+in "(http://f.com/x.<t:1:R>"
+raw Bare "http://f.com/x"
+want same
+-- t0931 --
+in "<t:1:R>_\n](https://f.com/x.<https://b.org/p' >`\u200b"
+raw Bare "https://f.com/x"
+raw Bare "https://b.org/p"
+want same
+-- t0932 --
+in "**https://b.org/p https://x.io/a_b"
+raw Bare "https://b.org/p"
+raw Bare "https://x.io/a_b"
+want same
+-- t0933 --
+in "https://x.io/a_b>||\u200b\u00a0"
+raw Bare "https://x.io/a_b>||\u200b"
+want same
+-- t0934 --
+in "*https://a.com\\http://e.co/%7C"
+raw Bare "https://a.com\\http://e.co/%7C"
+want same
+-- t0935 --
+in "http://b.org/p**<t:1:R>**1\u200bhttps://a.com\\)`"
+raw Bare "http://b.org/p**"
+raw Bare "https://a.com\\)`"
+want same
+-- t0936 --
+in "||<@1>"
+-- t0937 --
+in "](<t:1:R>***\u00e9`http://f.com/x.<t:1:R><https://b.org/p||"
+raw Bare "http://f.com/x"
+raw Bare "https://b.org/p||"
+want same
+-- t0938 --
+in "___https://f.com/x.wordhttps://a.comword\u00a0`\"<"
+raw Bare "https://f.com/x.wordhttps://a.comword"
+want same
+-- t0939 --
+in "<:a:1>\\HTTPS://c.net/(z)```https://g.com/\u00e9https://f.com/x.HTTPS://x.io/a_b"
+raw Bare "https://g.com/\u00e9https://f.com/x.HTTPS://x.io/a_b"
+want same
+-- t0940 --
+in "https://f.com/x.](<http://g.com/\u00e9||"
+raw Bare "https://f.com/x.]("
+raw Bare "http://g.com/\u00e9||"
+want same
+-- t0941 --
+in ">https://c.net/(z)](<\u00e9https://e.co/%7C(https://f.com/x."
+raw Bare "https://c.net/(z)]("
+raw Bare "https://e.co/%7C(https://f.com/x"
+want same
+-- t0942 --
+in " http://c.net/(z)\nHTTPS://f.com/x.)http://f.com/x."
+raw Bare "http://c.net/(z)"
+raw Bare "http://f.com/x"
+want same
+-- t0943 --
+in "[https://b.org/phttps://g.com/\u00e9HTTPS://c.net/(z)__`"
+raw Bare "https://b.org/phttps://g.com/\u00e9HTTPS://c.net/(z)__`"
+want same
+-- t0944 --
+in "word```<t:1:R>https://d.com/?q=1&r=2HTTPS://f.com/x."
+raw Bare "https://d.com/?q=1&r=2HTTPS://f.com/x"
+want same
+-- t0945 --
+in "```\u00e9https://f.com/x.HTTPS://d.com/?q=1&r=2](HTTPS://x.io/a_b[]"
+raw Bare "https://f.com/x.HTTPS://d.com/?q=1&r=2](HTTPS://x.io/a_b["
+want same
+-- t0946 --
+in "\u00e9\u00a0https://x.io/a_b"
+raw Bare "https://x.io/a_b"
+want same
+-- t0947 --
+in "[__`**__[\""
+-- t0948 --
+in "HTTPS://a.comhttps://f.com/x.**<@1>_https://d.com/?q=1&r=2"
+raw Bare "https://f.com/x.**"
+raw Bare "https://d.com/?q=1&r=2"
+want same
+-- t0949 --
+in ")_*"
+-- t0950 --
+in "https://f.com/x.)\u00a0("
+raw Bare "https://f.com/x"
+want same
+-- t0951 --
+in "](https://a.com>\u00a0HTTPS://a.com"
+raw Bare "https://a.com>"
+want same
+-- t0952 --
+in "HTTPS://e.co/%7C\\**`<t:1:R>"
+-- t0953 --
+in "https://b.org/p\n[HTTPS://e.co/%7CHTTPS://x.io/a_b*"
+raw Bare "https://b.org/p"
+want same
+-- t0954 --
+in "](<)<\n"
+-- t0955 --
+in "(HTTPS://b.org/p\\<t:1:R>< \u00a0https://g.com/\u00e9HTTPS://g.com/\u00e9(<"
+raw Bare "https://g.com/\u00e9HTTPS://g.com/\u00e9("
+want same
+-- t0956 --
+in "**_\\ "
+-- t0957 --
+in "`<t:1:R>__http://f.com/x.https://f.com/x.\n"
+raw Bare "http://f.com/x.https://f.com/x"
+want same
+-- t0958 --
+in "]<t:1:R>-\n\u00a0https://c.net/(z)(HTTPS://d.com/?q=1&r=2<#"
+raw Bare "https://c.net/(z)(HTTPS://d.com/?q=1&r=2"
+want same
+-- t0959 --
+in "\u00e9(https://a.com]("
+raw Bare "https://a.com]("
+want same
+-- t0960 --
+in "](< **<@1>HTTPS://c.net/(z)\u00e9"
+-- t0961 --
+in "https://f.com/x.https://a.com>*"
+raw Bare "https://f.com/x.https://a.com>*"
+want same
+-- t0962 --
+in "](<)__' word~~"
+-- t0963 --
+in "http://g.com/\u00e9](\u200b|| http://c.net/(z)`](\\"
+raw Bare "http://g.com/\u00e9](\u200b||"
+raw Bare "http://c.net/(z)`](\\"
+want same
+-- t0964 --
+in "http://a.comhttp://c.net/(z)https://a.com<]("
+raw Bare "http://a.comhttp://c.net/(z)https://a.com"
+want same
+-- t0965 --
+in ">~~https://a.com\"\u00a0"
+raw Bare "https://a.com"
+want same
+-- t0966 --
+in "https://g.com/\u00e9https://x.io/a_b]("
+raw Bare "https://g.com/\u00e9https://x.io/a_b]("
+want same
+-- t0967 --
+in "(http://c.net/(z)\\\" 1)"
+raw Bare "http://c.net/(z)\\"
+want same
+-- t0968 --
+in "_http://b.org/p"
+raw Bare "http://b.org/p"
+want same
+-- t0969 --
+in "\"'||]( "
+-- t0970 --
+in "](]("
+-- t0971 --
+in "]<:a:1><t:1:R>||https://e.co/%7C'><@1>```"
+raw Bare "https://e.co/%7C'>"
+want same
+-- t0972 --
+in "https://f.com/x.[\"||ahttps://g.com/\u00e9https://e.co/%7C)<_https://c.net/(z)**"
+raw Bare "https://f.com/x.[\"||ahttps://g.com/\u00e9https://e.co/%7C"
+raw Bare "https://c.net/(z)**"
+want same
+-- t0973 --
+in "https://a.com```"
+raw Bare "https://a.com```"
+want same
+-- t0974 --
+in "__<:a:1>][](HTTPS://e.co/%7C"
+-- t0975 --
+in "http://d.com/?q=1&r=2 ```a```__https://x.io/a_b\\#>"
+raw Bare "http://d.com/?q=1&r=2"
+raw Bare "https://x.io/a_b\\#>"
+want same
+-- t0976 --
+in "http://x.io/a_b`https://d.com/?q=1&r=2||<:a:1>\n'"
+raw Bare "http://x.io/a_b`https://d.com/?q=1&r=2||"
+want same
+-- t0977 --
+in "-https://g.com/\u00e9||]https://g.com/\u00e9`"
+raw Bare "https://g.com/\u00e9||]https://g.com/\u00e9`"
+want same
+-- t0978 --
+in "'\u00a0#HTTPS://g.com/\u00e9<t:1:R>||~~http://g.com/\u00e9~~https://f.com/x.https://f.com/x."
+raw Bare "http://g.com/\u00e9"
+raw Bare "https://f.com/x.https://f.com/x"
+want same
+-- t0979 --
+in "](https://e.co/%7Chttps://g.com/\u00e9**\u200b*_HTTPS://x.io/a_b](>http://d.com/?q=1&r=2"
+raw Bare "https://e.co/%7Chttps://g.com/\u00e9**\u200b*_HTTPS://x.io/a_b](>http://d.com/?q=1&r=2"
+want same
+-- t0980 --
+in "]https://a.com"
+raw Bare "https://a.com"
+want same
+-- t0981 --
+in "](< **https://x.io/a_b]<https://d.com/?q=1&r=2<http://g.com/\u00e9("
+raw Bare "https://x.io/a_b"
+raw Bare "https://d.com/?q=1&r=2"
+raw Bare "http://g.com/\u00e9("
+want same
+-- t0982 --
+in "||\\https://e.co/%7C"
+raw Bare "https://e.co/%7C"
+want same
+-- t0983 --
+in "https://a.com\\_`~~)https://a.com>https://d.com/?q=1&r=2"
+raw Bare "https://a.com\\_`~~)https://a.com>https://d.com/?q=1&r=2"
+want same
+-- t0984 --
+in "https://f.com/x.<t:1:R>https://d.com/?q=1&r=2<a"
+raw Bare "https://f.com/x"
+raw Bare "https://d.com/?q=1&r=2"
+want same
+-- t0985 --
+in "HTTPS://x.io/a_b __\u00a0https://c.net/(z)__http://x.io/a_bHTTPS://f.com/x.'~~ "
+raw Bare "https://c.net/(z)"
+raw Bare "http://x.io/a_bHTTPS://f.com/x.'~~"
+want same
+-- t0986 --
+in "*\nhttps://c.net/(z)"
+raw Bare "https://c.net/(z)"
+want same
+-- t0987 --
+in "https://x.io/a_b**https://a.comhttps://x.io/a_b```HTTPS://f.com/x._#"
+raw Bare "https://x.io/a_b**https://a.comhttps://x.io/a_b```HTTPS://f.com/x._#"
+want same
+-- t0988 --
+in "http://d.com/?q=1&r=2\n"
+raw Bare "http://d.com/?q=1&r=2"
+want same
+-- t0989 --
+in "<t:1:R>http://c.net/(z)](https://a.com"
+raw Bare "http://c.net/(z)](https://a.com"
+want same
+-- t0990 --
+in "||_||-http://x.io/a_bhttp://b.org/p# ("
+raw Bare "http://x.io/a_bhttp://b.org/p#"
+want same
+-- t0991 --
+in "http://g.com/\u00e9>](<~~http://x.io/a_b_[__"
+raw Bare "http://g.com/\u00e9>]("
+raw Bare "http://x.io/a_b_[__"
+want same
+-- t0992 --
+in "(-<```http://a.com"
+raw Bare "http://a.com"
+want same
+-- t0993 --
+in "https://d.com/?q=1&r=2\u00e9**https://c.net/(z)>HTTPS://d.com/?q=1&r=2](<HTTPS://c.net/(z)https://a.com"
+raw Bare "https://d.com/?q=1&r=2\u00e9**https://c.net/(z)>HTTPS://d.com/?q=1&r=2]("
+raw Bare "https://a.com"
+want same
+-- t0994 --
+in "```https://e.co/%7C''HTTPS://e.co/%7Chttps://a.comhttp://e.co/%7C\u00e9](<#"
+raw Bare "https://e.co/%7C''HTTPS://e.co/%7Chttps://a.comhttp://e.co/%7C\u00e9]("
+want same
+-- t0995 --
+in "\n***ahttps://f.com/x.**https://f.com/x.*a'"
+raw Bare "https://f.com/x"
+raw Bare "https://f.com/x"
+want same
+-- t0996 --
+in "\u00e91\u00a0"
+-- t0997 --
+in "https://e.co/%7Cword__\\a"
+raw Bare "https://e.co/%7Cword__\\a"
+want same
+-- t0998 --
+in "-\u00e9```HTTPS://x.io/a_b****1"
+-- t0999 --
+in "*<@1>a*"
+-- t1000 --
+in ")https://g.com/\u00e9[\\http://f.com/x.a**'__"
+raw Bare "https://g.com/\u00e9[\\http://f.com/x.a**'__"
+want same
+-- t1001 --
+in "<)https://f.com/x."
+raw Bare "https://f.com/x"
+want same
+-- t1002 --
+in " https://g.com/\u00e9http://b.org/pHTTPS://x.io/a_b)http://e.co/%7C**)"
+raw Bare "https://g.com/\u00e9http://b.org/pHTTPS://x.io/a_b)http://e.co/%7C**"
+want same
+-- t1003 --
+in "https://x.io/a_b\n](-HTTPS://x.io/a_b"
+raw Bare "https://x.io/a_b"
+want same
+-- t1004 --
+in "http://e.co/%7CHTTPS://b.org/p\u200b\u00e9<https://e.co/%7C](<https://c.net/(z)\"a"
+raw Bare "http://e.co/%7CHTTPS://b.org/p\u200b\u00e9"
+raw Bare "https://e.co/%7C]("
+raw Bare "https://c.net/(z)\"a"
+want same
+-- t1005 --
+in "HTTPS://d.com/?q=1&r=2`https://g.com/\u00e9\\`_"
+-- t1006 --
+in "__*)[>```"
+-- t1007 --
+in "```\u00e9_*](<||(\u00a0<:a:1>"
+-- t1008 --
+in "<@1>\u00e9~~http://e.co/%7C\\http://g.com/\u00e9**https://d.com/?q=1&r=2)<"
+raw Bare "http://e.co/%7C\\http://g.com/\u00e9**https://d.com/?q=1&r=2"
+want same
+-- t1009 --
+in "HTTPS://c.net/(z)\u00a0<)("
+-- t1010 --
+in "\n__<"
+-- t1011 --
+in "https://g.com/\u00e9]https://a.com||)\n```'_"
+raw Bare "https://g.com/\u00e9]https://a.com||"
+want same
+-- t1012 --
+in "https://f.com/x.https://x.io/a_bHTTPS://e.co/%7C<:a:1>*\"\u200ba"
+raw Bare "https://f.com/x.https://x.io/a_bHTTPS://e.co/%7C"
+want same
+-- t1013 --
+in "_https://x.io/a_b<@1>](](ahttp://x.io/a_b]\\"
+raw Bare "https://x.io/a_b"
+raw Bare "http://x.io/a_b]\\"
+want same
+-- t1014 --
+in "[||](<HTTPS://a.comhttp://c.net/(z)["
+-- t1015 --
+in "_ "
+-- t1016 --
+in "(<]("
+-- t1017 --
+in "  "
+-- t1018 --
+in "<@1>HTTPS://d.com/?q=1&r=2https://e.co/%7C[<:a:1>\u200b"
+raw Bare "https://e.co/%7C["
+want same
+-- t1019 --
+in "https://e.co/%7C](`\u00a0-aHTTPS://b.org/p'<*"
+raw Bare "https://e.co/%7C](`"
+want same
+-- t1020 --
+in "HTTPS://a.com**`HTTPS://x.io/a_bhttps://c.net/(z)https://g.com/\u00e9**"
+raw Bare "https://c.net/(z)https://g.com/\u00e9"
+want same
+-- t1021 --
+in ")~~<:a:1>\"https://e.co/%7C'https://x.io/a_b\u00e9**("
+raw Bare "https://e.co/%7C'https://x.io/a_b\u00e9**("
+want same
+-- t1022 --
+in "-\u00e9_"
+-- t1023 --
+in "1https://x.io/a_b(https://d.com/?q=1&r=2"
+raw Bare "https://x.io/a_b(https://d.com/?q=1&r=2"
+want same
+-- t1024 --
+in ")https://a.com||__"
+raw Bare "https://a.com||__"
+want same
+-- t1025 --
+in "http://x.io/a_b~~"
+raw Bare "http://x.io/a_b~~"
+want same
+-- t1026 --
+in "](<http://a.com]"
+raw Bare "http://a.com"
+want same
+-- t1027 --
+in "<@1>https://c.net/(z)\u00a0"
+raw Bare "https://c.net/(z)"
+want same
+-- t1028 --
+in "]http://g.com/\u00e9](<]`"
+raw Bare "http://g.com/\u00e9]("
+want same
+-- t1029 --
+in "(`||`https://x.io/a_b(HTTPS://d.com/?q=1&r=2]("
+raw Bare "https://x.io/a_b(HTTPS://d.com/?q=1&r=2]("
+want same
+-- t1030 --
+in "#```<http://a.com___<```\\"
+-- t1031 --
+in "```https://b.org/p[\""
+raw Bare "https://b.org/p["
+want same
+-- t1032 --
+in "http://e.co/%7C< __<:a:1>https://x.io/a_bhttps://g.com/\u00e9<)https://g.com/\u00e9"
+raw Bare "http://e.co/%7C"
+raw Bare "https://x.io/a_bhttps://g.com/\u00e9"
+raw Bare "https://g.com/\u00e9"
+want same
+-- t1033 --
+in "(HTTPS://e.co/%7C(https://e.co/%7Chttps://b.org/p"
+raw Bare "https://e.co/%7Chttps://b.org/p"
+want same
+-- t1034 --
+in "\u00a0\"HTTPS://a.com'](<\"](<**"
+-- t1035 --
+in "http://g.com/\u00e9](`https://g.com/\u00e9word"
+raw Bare "http://g.com/\u00e9](`https://g.com/\u00e9word"
+want same
+-- t1036 --
+in "HTTPS://c.net/(z)**HTTPS://e.co/%7Chttps://a.com<<t:1:R>\u00e9a_"
+raw Bare "https://a.com"
+want same
+-- t1037 --
+in "1http://b.org/p]( '<[](<HTTPS://x.io/a_b"
+raw Bare "http://b.org/p]("
+want same
+-- t1038 --
+in "~~<@1>](__https://e.co/%7C[_"
+raw Bare "https://e.co/%7C["
+want same
+-- t1039 --
+in "||>**||http://d.com/?q=1&r=2**http://f.com/x.>https://a.com||"
+raw Bare "http://d.com/?q=1&r=2**http://f.com/x.>https://a.com||"
+want same
+-- t1040 --
+in "<#||a__word\u200bhttp://d.com/?q=1&r=2"
+raw Bare "http://d.com/?q=1&r=2"
+want same
+-- t1041 --
+in "https://c.net/(z)a**-*"
+raw Bare "https://c.net/(z)a**-*"
+want same
+-- t1042 --
+in "http://d.com/?q=1&r=2HTTPS://c.net/(z)\"["
+raw Bare "http://d.com/?q=1&r=2HTTPS://c.net/(z)\"["
+want same
+-- t1043 --
+in "#**https://d.com/?q=1&r=2](http://e.co/%7C ]\u200b\\https://g.com/\u00e9~~"
+raw Bare "https://d.com/?q=1&r=2](http://e.co/%7C"
+raw Bare "https://g.com/\u00e9~~"
+want same
+-- t1044 --
+in "\u00e9[__\""
+-- t1045 --
+in ">https://a.com#(https://b.org/p>http://x.io/a_b__"
+raw Bare "https://a.com#(https://b.org/p>http://x.io/a_b__"
+want same
+-- t1046 --
+in "HTTPS://e.co/%7C\\\"__\\```<t:1:R>"
+-- t1047 --
+in ">https://d.com/?q=1&r=2"
+raw Bare "https://d.com/?q=1&r=2"
+want same
+-- t1048 --
+in "`\\https://g.com/\u00e9'__ https://f.com/x.](<"
+raw Bare "https://g.com/\u00e9'__"
+raw Bare "https://f.com/x.]("
+want same
+-- t1049 --
+in "]```https://c.net/(z)-\n["
+raw Bare "https://c.net/(z)-"
+want same
+-- t1050 --
+in "(HTTPS://c.net/(z)https://g.com/\u00e9```_"
+raw Bare "https://g.com/\u00e9```_"
+want same
+-- t1051 --
+in "HTTPS://g.com/\u00e9*`a#HTTPS://c.net/(z)"
+-- t1052 --
+in "<@1>a````"
+-- t1053 --
+in "http://a.comHTTPS://f.com/x.http://a.com'```-word```"
+raw Bare "http://a.comHTTPS://f.com/x.http://a.com'```-word```"
+want same
+-- t1054 --
+in "https://f.com/x.](<"
+raw Bare "https://f.com/x.]("
+want same
+-- t1055 --
+in "\n||(`HTTPS://c.net/(z)\\<("
+-- t1056 --
+in "\nhttps://a.com"
+raw Bare "https://a.com"
+want same
+-- t1057 --
+in "```](<#```\nhttp://f.com/x.>\n"
+raw Bare "http://f.com/x.>"
+want same
+-- t1058 --
+in "https://g.com/\u00e9`__https://d.com/?q=1&r=2\u00e9"
+raw Bare "https://g.com/\u00e9`__https://d.com/?q=1&r=2\u00e9"
+want same
+-- t1059 --
+in "\n||'https://c.net/(z)https://e.co/%7C```<t:1:R>"
+raw Bare "https://c.net/(z)https://e.co/%7C```"
+want same
+-- t1060 --
+in "~~https://f.com/x.`]"
+raw Bare "https://f.com/x.`"
+want same
+-- t1061 --
+in ">'```(`]``"
+-- t1062 --
+in ">\u00a0-__]https://g.com/\u00e9 >-"
+raw Bare "https://g.com/\u00e9"
+want same
+-- t1063 --
+in "||<t:1:R>wordhttps://b.org/p"
+raw Bare "https://b.org/p"
+want same
+-- t1064 --
+in "**>\"HTTPS://f.com/x.](\u200b][ ) "
+-- t1065 --
+in "HTTPS://x.io/a_b**)HTTPS://g.com/\u00e9"
+-- t1066 --
+in "[```http://b.org/p<#**"
+raw Bare "http://b.org/p"
+want same
+-- t1067 --
+in "\"https://f.com/x.*\nhttp://c.net/(z)<](<](](<"
+raw Bare "https://f.com/x.*"
+raw Bare "http://c.net/(z)"
+want same
+-- t1068 --
+in "\"<t:1:R>  -~~word"
+-- t1069 --
+in "```http://f.com/x.\u00e9\u200bhttp://d.com/?q=1&r=2~~(a"
+raw Bare "http://f.com/x.\u00e9\u200bhttp://d.com/?q=1&r=2~~(a"
+want same
+-- t1070 --
+in "_ [```]||https://a.com_>#"
+raw Bare "https://a.com"
+want same
+-- t1071 --
+in "]wordhttps://g.com/\u00e9](http://x.io/a_b\")"
+raw Bare "https://g.com/\u00e9](http://x.io/a_b\")"
+want same
+-- t1072 --
+in "https://a.com\n](<https://b.org/p__https://b.org/p\\\u00e9`"
+raw Bare "https://a.com"
+raw Bare "https://b.org/p__https://b.org/p\\\u00e9`"
+want same
+-- t1073 --
+in "\u00e9https://f.com/x.) https://d.com/?q=1&r=2\u00e9](~~"
+raw Bare "https://f.com/x"
+raw Bare "https://d.com/?q=1&r=2\u00e9](~~"
+want same
+-- t1074 --
+in "'https://b.org/p||>\u00a0https://e.co/%7C(ahttps://c.net/(z)"
+raw Bare "https://b.org/p||>"
+raw Bare "https://e.co/%7C(ahttps://c.net/(z)"
+want same
+-- t1075 --
+in "\\](<https://a.com`http://x.io/a_b**"
+raw Bare "https://a.com`http://x.io/a_b**"
+want same
+-- t1076 --
+in ")http://c.net/(z)#\u00a0https://f.com/x.[https://f.com/x."
+raw Bare "http://c.net/(z)#"
+raw Bare "https://f.com/x.[https://f.com/x"
+want same
+-- t1077 --
+in "\nhttp://x.io/a_bhttp://c.net/(z)~~"
+raw Bare "http://x.io/a_bhttp://c.net/(z)~~"
+want same
+-- t1078 --
+in "https://f.com/x.https://e.co/%7Chttps://a.com]https://c.net/(z)__("
+raw Bare "https://f.com/x.https://e.co/%7Chttps://a.com]https://c.net/(z)__("
+want same
+-- t1079 --
+in "HTTPS://d.com/?q=1&r=2>](<\u00e9<t:1:R>\\\n#"
+-- t1080 --
+in ">https://c.net/(z)https://x.io/a_b1\u00a0```<:a:1>HTTPS://a.com"
+raw Bare "https://c.net/(z)https://x.io/a_b1"
+want same
+-- t1081 --
+in "1https://d.com/?q=1&r=2(*-\\\u200bHTTPS://a.com\"**("
+raw Bare "https://d.com/?q=1&r=2(*-\\\u200bHTTPS://a.com\"**("
+want same
+-- t1082 --
+in ")__https://b.org/p \nhttps://a.com<@1>HTTPS://e.co/%7C_"
+raw Bare "https://b.org/p"
+raw Bare "https://a.com"
+want same
+-- t1083 --
+in "'<:a:1>**"
+-- t1084 --
+in "](<(https://c.net/(z)~~"
+raw Bare "https://c.net/(z)~~"
+want same
+-- t1085 --
+in "<:a:1>  ``````\u200bhttps://c.net/(z)-"
+raw Bare "https://c.net/(z)-"
+want same
+-- t1086 --
+in "_*\\  ~~\u200b1"
+-- t1087 --
+in "HTTPS://b.org/p\\HTTPS://a.com>"
+-- t1088 --
+in "\u00e9https://e.co/%7Ca__'\n -http://g.com/\u00e9](__"
+raw Bare "https://e.co/%7Ca__"
+raw Bare "http://g.com/\u00e9](__"
+want same
+-- t1089 --
+in "HTTPS://a.com~~[<:a:1>HTTPS://b.org/p\u00e9https://d.com/?q=1&r=2_)"
+raw Bare "https://d.com/?q=1&r=2_"
+want same
+-- t1090 --
+in "__https://f.com/x.)~~**\\"
+raw Bare "https://f.com/x.)~~**\\"
+want same
+-- t1091 --
+in "https://x.io/a_b\u00e9]\u200bhttps://c.net/(z) \u00e9"
+raw Bare "https://x.io/a_b\u00e9]\u200bhttps://c.net/(z)"
+want same
+-- t1092 --
+in "http://g.com/\u00e9`https://c.net/(z)`https://d.com/?q=1&r=2https://e.co/%7CHTTPS://a.com<)a**\"~~"
+raw Bare "http://g.com/\u00e9`https://c.net/(z)`https://d.com/?q=1&r=2https://e.co/%7CHTTPS://a.com"
+want same
+-- t1093 --
+in "]>https://c.net/(z)_]``` `\\"
+raw Bare "https://c.net/(z)_]```"
+want same
+-- t1094 --
+in "http://g.com/\u00e9#http://g.com/\u00e9(**\\HTTPS://c.net/(z)`\"\u00a0"
+raw Bare "http://g.com/\u00e9#http://g.com/\u00e9(**\\HTTPS://c.net/(z)`"
+want same
+-- t1095 --
+in "- ](<"
+-- t1096 --
+in "\"-aword](<]||http://d.com/?q=1&r=2HTTPS://b.org/p"
+raw Bare "http://d.com/?q=1&r=2HTTPS://b.org/p"
+want same
+-- t1097 --
+in "](<a)https://b.org/p\u00a0"
+raw Bare "https://b.org/p"
+want same
+-- t1098 --
+in "\u00a0```https://b.org/p](aword)>"
+raw Bare "https://b.org/p](aword)>"
+want same
+-- t1099 --
+in "<t:1:R>https://c.net/(z)["
+raw Bare "https://c.net/(z)["
+want same
+-- t1100 --
+in "<https://a.comhttp://x.io/a_b>```\u00e9https://g.com/\u00e9`]https://e.co/%7C"
+raw Suppressed "https://a.comhttp://x.io/a_b"
+raw Bare "https://e.co/%7C"
+want same
+-- t1101 --
+in "\n)||__"
+-- t1102 --
+in "||https://c.net/(z)~~<t:1:R>](```\""
+raw Bare "https://c.net/(z)~~"
+want same
+-- t1103 --
+in "http://f.com/x. __https://c.net/(z)https://e.co/%7C~~http://e.co/%7C||[HTTPS://c.net/(z)("
+raw Bare "http://f.com/x"
+raw Bare "https://c.net/(z)https://e.co/%7C~~http://e.co/%7C||[HTTPS://c.net/(z)("
+want same
+-- t1104 --
+in "https://b.org/p\"<:a:1>~~(\n-"
+raw Bare "https://b.org/p"
+want same
+-- t1105 --
+in "```](\n]( `1"
+-- t1106 --
+in "https://f.com/x.*https://e.co/%7C]"
+raw Bare "https://f.com/x.*https://e.co/%7C"
+want same
+-- t1107 --
+in "https://d.com/?q=1&r=2__https://a.com[#"
+raw Bare "https://d.com/?q=1&r=2__https://a.com[#"
+want same
+-- t1108 --
+in "-<@1>https://d.com/?q=1&r=2http://d.com/?q=1&r=2`https://b.org/p||<@1>``````https://a.com```"
+raw Bare "https://d.com/?q=1&r=2http://d.com/?q=1&r=2`https://b.org/p||"
+want same
+-- t1109 --
+in "<```||\"1"
+-- t1110 --
+in "]( http://b.org/p___\u00a0#__"
+raw Bare "http://b.org/p___"
+want same
+-- t1111 --
+in " <:a:1>\nhttps://d.com/?q=1&r=2](<\\"
+raw Bare "https://d.com/?q=1&r=2]("
+want same
+-- t1112 --
+in "\u200b)||'__ https://f.com/x.__https://c.net/(z)"
+raw Bare "https://f.com/x"
+raw Bare "https://c.net/(z)"
+want same
+-- t1113 --
+in "-#**```https://e.co/%7C''-"
+raw Bare "https://e.co/%7C''-"
+want same
+-- t1114 --
+in "`a__\"a](<\u200b)```"
+-- t1115 --
+in "\"]("
+-- t1116 --
+in "https://a.coma\n]https://d.com/?q=1&r=2"
+raw Bare "https://a.coma"
+raw Bare "https://d.com/?q=1&r=2"
+want same
+-- t1117 --
+in "'```"
+-- t1118 --
+in "HTTPS://b.org/pHTTPS://g.com/\u00e9HTTPS://g.com/\u00e9<t:1:R>](<https://c.net/(z)||"
+raw Bare "https://c.net/(z)||"
+want same
+-- t1119 --
+in "](<https://d.com/?q=1&r=2\\\nHTTPS://c.net/(z)<`https://c.net/(z)"
+raw Bare "https://d.com/?q=1&r=2\\"
+raw Bare "https://c.net/(z)"
+want same
+-- t1120 --
+in "-<t:1:R>\n"
+-- t1121 --
+in "http://d.com/?q=1&r=2\\https://x.io/a_b](https://d.com/?q=1&r=2>'"
+raw Bare "http://d.com/?q=1&r=2\\https://x.io/a_b](https://d.com/?q=1&r=2>"
+want same
+-- t1122 --
+in "\\ >\\http://e.co/%7C"
+raw Bare "http://e.co/%7C"
+want same
+-- t1123 --
+in "http://c.net/(z)https://e.co/%7C`HTTPS://b.org/p'https://e.co/%7C_>](]https://d.com/?q=1&r=2__https://c.net/(z)https://g.com/\u00e9"
+raw Bare "http://c.net/(z)https://e.co/%7C`HTTPS://b.org/p'https://e.co/%7C_>](]https://d.com/?q=1&r=2__https://c.net/(z)https://g.com/\u00e9"
+want same
+-- t1124 --
+in "<https://f.com/x.https://b.org/p"
+raw Bare "https://f.com/x.https://b.org/p"
+want same
+-- t1125 --
+in "HTTPS://b.org/p_http://g.com/\u00e9"
+raw Bare "http://g.com/\u00e9"
+want same
+-- t1126 --
+in "HTTPS://a.com>https://b.org/p<:a:1>>```https://x.io/a_b||(]<t:1:R>"
+raw Bare "https://b.org/p"
+raw Bare "https://x.io/a_b||("
+want same
+-- t1127 --
+in " https://f.com/x.__~~https://x.io/a_bhttps://d.com/?q=1&r=2*https://c.net/(z)"
+raw Bare "https://f.com/x.__~~https://x.io/a_bhttps://d.com/?q=1&r=2*https://c.net/(z)"
+want same
+-- t1128 --
+in "HTTPS://x.io/a_b](<https://d.com/?q=1&r=2\"](<<@1>HTTPS://d.com/?q=1&r=2[`"
+raw Suppressed "https://d.com/?q=1&r=2\"](<<@1"
+want same
+-- t1129 --
+in "\u00e9`https://x.io/a_bhttps://d.com/?q=1&r=2*ahttp://c.net/(z)"
+raw Bare "https://x.io/a_bhttps://d.com/?q=1&r=2*ahttp://c.net/(z)"
+want same
+-- t1130 --
+in "http://f.com/x.<http://b.org/p\""
+raw Bare "http://f.com/x"
+raw Bare "http://b.org/p"
+want same
+-- t1131 --
+in "~~)>(\\https://x.io/a_bHTTPS://c.net/(z))a<:a:1>"
+raw Bare "https://x.io/a_bHTTPS://c.net/(z))a"
+want same
+-- t1132 --
+in " <"
+-- t1133 --
+in "```ahttp://f.com/x.>"
+raw Bare "http://f.com/x.>"
+want same
+-- t1134 --
+in "HTTPS://a.com<:a:1>"
+-- t1135 --
+in "__<t:1:R>ahttps://f.com/x.\u200bhttp://g.com/\u00e9https://g.com/\u00e9HTTPS://a.com||"
+raw Bare "https://f.com/x.\u200bhttp://g.com/\u00e9https://g.com/\u00e9HTTPS://a.com||"
+want same
+-- t1136 --
+in "https://a.comhttps://e.co/%7C](HTTPS://g.com/\u00e9]("
+raw Bare "https://a.comhttps://e.co/%7C](HTTPS://g.com/\u00e9]("
+want same
+-- t1137 --
+in "http://d.com/?q=1&r=2*-http://f.com/x.word"
+raw Bare "http://d.com/?q=1&r=2*-http://f.com/x.word"
+want same
+-- t1138 --
+in "````<@1>a"
+-- t1139 --
+in "http://e.co/%7C#\nhttps://d.com/?q=1&r=2||<@1>"
+raw Bare "http://e.co/%7C#"
+raw Bare "https://d.com/?q=1&r=2||"
+want same
+-- t1140 --
+in "\\>a1https://f.com/x."
+raw Bare "https://f.com/x"
+want same
+-- t1141 --
+in "http://d.com/?q=1&r=2\"\n \n`~~"
+raw Bare "http://d.com/?q=1&r=2"
+want same
+-- t1142 --
+in ">||\u200bHTTPS://d.com/?q=1&r=2>\u200b`\u00e9"
+-- t1143 --
+in "http://b.org/p-"
+raw Bare "http://b.org/p-"
+want same
+-- t1144 --
+in "-\n]||-https://c.net/(z)HTTPS://b.org/p>"
+raw Bare "https://c.net/(z)HTTPS://b.org/p>"
+want same
+-- t1145 --
+in ") https://a.comhttp://e.co/%7Ca\u00a0HTTPS://x.io/a_b~~http://c.net/(z)'(https://f.com/x.]("
+raw Bare "https://a.comhttp://e.co/%7Ca"
+raw Bare "http://c.net/(z)'(https://f.com/x.]("
+want same
+-- t1146 --
+in "](<||HTTPS://g.com/\u00e9[http://b.org/p||](<"
+raw Bare "http://b.org/p" spoiler
+want same
+-- t1147 --
+in "](<http://c.net/(z)wordhttp://x.io/a_b*__http://g.com/\u00e9\n"
+raw Bare "http://c.net/(z)wordhttp://x.io/a_b*__http://g.com/\u00e9"
+want same
+-- t1148 --
+in ")a** <@1>https://f.com/x. "
+raw Bare "https://f.com/x"
+want same
+-- t1149 --
+in "```http://b.org/pa~~```']https://e.co/%7Chttps://a.com||<:a:1>"
+raw Bare "https://e.co/%7Chttps://a.com||"
+want same
+-- t1150 --
+in "<](wordhttps://b.org/p]https://x.io/a_b][<||a\u200b"
+raw Bare "https://b.org/p]https://x.io/a_b]["
+want same
+-- t1151 --
+in "http://f.com/x.1HTTPS://f.com/x.wordhttp://a.com]\\ ```http://f.com/x.\u00e9"
+raw Bare "http://f.com/x.1HTTPS://f.com/x.wordhttp://a.com]\\"
+raw Bare "http://f.com/x.\u00e9"
+want same
+-- t1152 --
+in "\n_wordHTTPS://a.com)"
+-- t1153 --
+in "\\https://f.com/x.\\ **<t:1:R>**`https://e.co/%7C>]https://f.com/x."
+raw Bare "https://f.com/x.\\"
+raw Bare "https://e.co/%7C>]https://f.com/x"
+want same
+-- t1154 --
+in "https://f.com/x.`https://b.org/p["
+raw Bare "https://f.com/x.`https://b.org/p["
+want same
+-- t1155 --
+in "HTTPS://a.com**](]HTTPS://e.co/%7C][>"
+-- t1156 --
+in "https://d.com/?q=1&r=2http://g.com/\u00e9\nhttps://b.org/p"
+raw Bare "https://d.com/?q=1&r=2http://g.com/\u00e9"
+raw Bare "https://b.org/p"
+want same
+-- t1157 --
+in "'\"#]("
+-- t1158 --
+in "word||]https://a.com[\u200b*'<:a:1>"
+raw Bare "https://a.com[\u200b*"
+want same
+-- t1159 --
+in "*\u00e9\u00e9"
+-- t1160 --
+in "*(`*https://b.org/p\nhttps://g.com/\u00e9\"[\u00a0"
+raw Bare "https://b.org/p"
+raw Bare "https://g.com/\u00e9\"["
+want same
+-- t1161 --
+in "~~-"
+-- t1162 --
+in "HTTPS://d.com/?q=1&r=2<:a:1>](**]https://c.net/(z)_||https://c.net/(z)\u200b"
+raw Bare "https://c.net/(z)_||https://c.net/(z)\u200b"
+want same
+-- t1163 --
+in "http://b.org/pHTTPS://f.com/x.\\\u00e9\"```HTTPS://e.co/%7C__"
+raw Bare "http://b.org/pHTTPS://f.com/x.\\\u00e9\"```HTTPS://e.co/%7C__"
+want same
+-- t1164 --
+in "```https://g.com/\u00e9>http://a.com)"
+raw Bare "https://g.com/\u00e9>http://a.com"
+want same
+-- t1165 --
+in " ~~https://b.org/p```"
+raw Bare "https://b.org/p```"
+want same
+-- t1166 --
+in "~~__)#>"
+-- t1167 --
+in "http://d.com/?q=1&r=2'http://f.com/x.https://b.org/pHTTPS://f.com/x."
+raw Bare "http://d.com/?q=1&r=2'http://f.com/x.https://b.org/pHTTPS://f.com/x"
+want same
+-- t1168 --
+in "\\\\<@1>_HTTPS://c.net/(z)\"HTTPS://f.com/x.~~https://g.com/\u00e9(https://b.org/p```"
+raw Bare "https://g.com/\u00e9(https://b.org/p```"
+want same
+-- t1169 --
+in "_https://b.org/p<word'1https://f.com/x.http://d.com/?q=1&r=2`*"
+raw Bare "https://b.org/p"
+raw Bare "https://f.com/x.http://d.com/?q=1&r=2`*"
+want same
+-- t1170 --
+in "~~1```*_HTTPS://a.com<t:1:R>"
+-- t1171 --
+in "http://x.io/a_b]("
+raw Bare "http://x.io/a_b]("
+want same
+-- t1172 --
+in "1\u200b1_https://f.com/x.https://a.com<\u00a0]("
+raw Bare "https://f.com/x.https://a.com"
+want same
+-- t1173 --
+in "**>_](<https://b.org/p>"
+raw Suppressed "https://b.org/p"
+want same
+-- t1174 --
+in "HTTPS://d.com/?q=1&r=2_https://e.co/%7C](~~http://a.com~~#||http://f.com/x.](\u00e9"
+raw Bare "https://e.co/%7C](~~http://a.com~~#||http://f.com/x.](\u00e9"
+want same
+-- t1175 --
+in "\n<t:1:R>HTTPS://c.net/(z)~~`] ||\\\u00a0"
+-- t1176 --
+in "(HTTPS://e.co/%7C||http://d.com/?q=1&r=2a*HTTPS://f.com/x.__"
+raw Bare "http://d.com/?q=1&r=2a*HTTPS://f.com/x.__"
+want same
+-- t1177 --
+in "~~** "
+-- t1178 --
+in "__a \u200b\\\u200b]()"
+-- t1179 --
+in "HTTPS://b.org/p]HTTPS://g.com/\u00e9>'https://f.com/x."
+raw Bare "https://f.com/x"
+want same
+-- t1180 --
+in "\u200b ](<\"[  (http://a.com"
+raw Bare "http://a.com"
+want same
+-- t1181 --
+in "http://e.co/%7Chttps://g.com/\u00e9__http://f.com/x.](<#\n"
+raw Bare "http://e.co/%7Chttps://g.com/\u00e9__http://f.com/x.]("
+want same
+-- t1182 --
+in "(~~https://d.com/?q=1&r=2~~"
+raw Bare "https://d.com/?q=1&r=2"
+want same
+-- t1183 --
+in "([https://a.com*http://x.io/a_b```-~~"
+raw Bare "https://a.com*http://x.io/a_b```-~~"
+want same
+-- t1184 --
+in " https://f.com/x.__word```   )https://x.io/a_b"
+raw Bare "https://f.com/x.__word```"
+raw Bare "https://x.io/a_b"
+want same
+-- t1185 --
+in "<@1>http://b.org/pHTTPS://c.net/(z)\\\u00a0`"
+raw Bare "http://b.org/pHTTPS://c.net/(z)\\"
+want same
+-- t1186 --
+in "1http://c.net/(z)||HTTPS://x.io/a_b*'"
+raw Bare "http://c.net/(z)||HTTPS://x.io/a_b*"
+want same
+-- t1187 --
+in "https://e.co/%7C~~<@1>*"
+raw Bare "https://e.co/%7C~~"
+want same
+-- t1188 --
+in "[http://c.net/(z)>https://f.com/x._"
+raw Bare "http://c.net/(z)>https://f.com/x._"
+want same
+-- t1189 --
+in "[__```"
+-- t1190 --
+in "**(```HTTPS://e.co/%7C```["
+-- t1191 --
+in "#\\http://e.co/%7Chttp://b.org/p||<@1> "
+raw Bare "http://e.co/%7Chttp://b.org/p||"
+want same
+-- t1192 --
+in "http://g.com/\u00e9a"
+raw Bare "http://g.com/\u00e9a"
+want same
+-- t1193 --
+in "HTTPS://b.org/p[>]`HTTPS://a.com"
+-- t1194 --
+in "](<](<https://c.net/(z)< ]"
+raw Bare "https://c.net/(z)"
+want same
+-- t1195 --
+in "\"__https://a.com`<@1>>"
+raw Bare "https://a.com`"
+want same
+-- t1196 --
+in "word[>"
+-- t1197 --
+in "(http://b.org/p("
+raw Bare "http://b.org/p("
+want same
+-- t1198 --
+in "`````````_(**[~~https://e.co/%7C"
+raw Bare "https://e.co/%7C"
+want same
+-- t1199 --
+in "HTTPS://a.com)"
+-- t1200 --
+in "https://g.com/\u00e9||](https://g.com/\u00e9"
+raw Bare "https://g.com/\u00e9||](https://g.com/\u00e9"
+want same
+-- t1201 --
+in "1https://e.co/%7C'https://b.org/p](<\u00a0\"`http://a.com**"
+raw Bare "https://e.co/%7C'https://b.org/p]("
+raw Bare "http://a.com**"
+want same
+-- t1202 --
+in "https://b.org/p[https://d.com/?q=1&r=2]https://a.comhttps://c.net/(z)*<"
+raw Bare "https://b.org/p[https://d.com/?q=1&r=2]https://a.comhttps://c.net/(z)*"
+want same
+-- t1203 --
+in "http://a.com```[\u00a0http://c.net/(z)\u200bHTTPS://f.com/x.<t:1:R>"
+raw Bare "http://a.com```["
+raw Bare "http://c.net/(z)\u200bHTTPS://f.com/x"
+want same
+-- t1204 --
+in "word ``````http://g.com/\u00e9]-](<"
+raw Bare "http://g.com/\u00e9]-]("
+want same
+-- t1205 --
+in "\u200b```__](]1<:a:1>1"
+-- t1206 --
+in "https://e.co/%7Cahttps://g.com/\u00e9||'https://a.com~~\u00a0a]("
+raw Bare "https://e.co/%7Cahttps://g.com/\u00e9||'https://a.com~~"
+want same
+-- t1207 --
+in "[word"
+-- t1208 --
+in "https://c.net/(z)`http://g.com/\u00e9](<\"https://g.com/\u00e9word](word"
+raw Bare "https://c.net/(z)`http://g.com/\u00e9]("
+raw Bare "https://g.com/\u00e9word](word"
+want same
+-- t1209 --
+in "```\" "
+-- t1210 --
+in "http://b.org/phttps://e.co/%7C)http://e.co/%7C**```]("
+raw Bare "http://b.org/phttps://e.co/%7C)http://e.co/%7C**```]("
+want same
+-- t1211 --
+in "(https://f.com/x.https://d.com/?q=1&r=2||"
+raw Bare "https://f.com/x.https://d.com/?q=1&r=2||"
+want same
+-- t1212 --
+in "HTTPS://d.com/?q=1&r=2<t:1:R>word*([)](]("
+-- t1213 --
+in "https://g.com/\u00e9https://g.com/\u00e9a"
+raw Bare "https://g.com/\u00e9https://g.com/\u00e9a"
+want same
+-- t1214 --
+in "<__HTTPS://c.net/(z)```\nhttps://g.com/\u00e9[](word"
+raw Bare "https://g.com/\u00e9[](word"
+want same
+-- t1215 --
+in "]~~"
+-- t1216 --
+in "https://b.org/phttps://e.co/%7C["
+raw Bare "https://b.org/phttps://e.co/%7C["
+want same
+-- t1217 --
+in "]](<http://a.com```[http://b.org/p](http://c.net/(z)__"
+raw Bare "http://a.com```[http://b.org/p](http://c.net/(z)__"
+want same
+-- t1218 --
+in "http://g.com/\u00e9<"
+raw Bare "http://g.com/\u00e9"
+want same
+-- t1219 --
+in "'http://c.net/(z)*'https://a.com"
+raw Bare "http://c.net/(z)*'https://a.com"
+want same
+-- t1220 --
+in "<@1>)[HTTPS://c.net/(z)__ )"
+-- t1221 --
+in "https://a.com\u00e9HTTPS://f.com/x.'__)https://f.com/x.```"
+raw Bare "https://a.com\u00e9HTTPS://f.com/x.'__)https://f.com/x.```"
+want same
+-- t1222 --
+in "<t:1:R>\n"
+-- t1223 --
+in "https://d.com/?q=1&r=2](<1[) https://a.com''\u00e9"
+raw Bare "https://d.com/?q=1&r=2]("
+raw Bare "https://a.com''\u00e9"
+want same
+-- t1224 --
+in "````>"
+-- t1225 --
+in "(<t:1:R><:a:1>https://d.com/?q=1&r=2"
+raw Bare "https://d.com/?q=1&r=2"
+want same
+-- t1226 --
+in "http://g.com/\u00e9\")https://g.com/\u00e9https://f.com/x.**\u00a01https://c.net/(z)(a"
+raw Bare "http://g.com/\u00e9\")https://g.com/\u00e9https://f.com/x.**"
+raw Bare "https://c.net/(z)(a"
+want same
+-- t1227 --
+in "](||http://a.com<\\"
+raw Bare "http://a.com"
+want same
+-- t1228 --
+in "http://c.net/(z)~~http://b.org/p]word```~~"
+raw Bare "http://c.net/(z)~~http://b.org/p]word```~~"
+want same
+-- t1229 --
+in "ahttps://a.com<:a:1>"
+raw Bare "https://a.com"
+want same
+-- t1230 --
+in "'HTTPS://d.com/?q=1&r=2<word("
+-- t1231 --
+in "https://x.io/a_b__>HTTPS://d.com/?q=1&r=2https://c.net/(z)'"
+raw Bare "https://x.io/a_b__>HTTPS://d.com/?q=1&r=2https://c.net/(z)"
+want same
+-- t1232 --
+in "HTTPS://b.org/phttps://x.io/a_b https://b.org/p||1*"
+raw Bare "https://x.io/a_b"
+raw Bare "https://b.org/p||1*"
+want same
+-- t1233 --
+in "https://f.com/x.__()ahttps://g.com/\u00e9)"
+raw Bare "https://f.com/x.__()ahttps://g.com/\u00e9"
+want same
+-- t1234 --
+in "](<]](**<:a:1>https://x.io/a_b"
+raw Bare "https://x.io/a_b"
+want same
+-- t1235 --
+in "https://x.io/a_b[||"
+raw Bare "https://x.io/a_b[||"
+want same
+-- t1236 --
+in "http://f.com/x.||)https://d.com/?q=1&r=2<:a:1>**<:a:1>_-"
+raw Bare "http://f.com/x.||)https://d.com/?q=1&r=2"
+want same
+-- t1237 --
+in " `*a>http://d.com/?q=1&r=2~~"
+raw Bare "http://d.com/?q=1&r=2~~"
+want same
+-- t1238 --
+in "'#_HTTPS://x.io/a_bwordhttps://b.org/phttps://f.com/x.[]"
+raw Bare "https://b.org/phttps://f.com/x.["
+want same
+-- t1239 --
+in "*word||\" #"
+-- t1240 --
+in "https://d.com/?q=1&r=2https://c.net/(z)\\"
+raw Bare "https://d.com/?q=1&r=2https://c.net/(z)\\"
+want same
+-- t1241 --
+in "HTTPS://d.com/?q=1&r=2__http://x.io/a_b](<```\"#><@1>"
+raw Bare "http://x.io/a_b]("
+want same
+-- t1242 --
+in "https://a.com_HTTPS://e.co/%7C```](>"
+raw Bare "https://a.com_HTTPS://e.co/%7C```](>"
+want same
+-- t1243 --
+in "\u200bHTTPS://d.com/?q=1&r=2HTTPS://c.net/(z)"
+-- t1244 --
+in "](\u200b1[```__"
+-- t1245 --
+in "https://g.com/\u00e9HTTPS://c.net/(z)**<t:1:R>aHTTPS://e.co/%7C*1https://c.net/(z)`a"
+raw Bare "https://g.com/\u00e9HTTPS://c.net/(z)**"
+raw Bare "https://c.net/(z)`a"
+want same
+-- t1246 --
+in "HTTPS://a.com]((HTTPS://b.org/p]('"
+-- t1247 --
+in ")https://g.com/\u00e9*http://d.com/?q=1&r=2~~||\\](<"
+raw Bare "https://g.com/\u00e9*http://d.com/?q=1&r=2~~||\\]("
+want same
+-- t1248 --
+in "https://x.io/a_b*https://e.co/%7C[**"
+raw Bare "https://x.io/a_b*https://e.co/%7C[**"
+want same
+-- t1249 --
+in "_https://f.com/x.>https://b.org/p']]<\u00a0word*](<"
+raw Bare "https://f.com/x.>https://b.org/p"
+want same
+-- t1250 --
+in "\"[http://a.com](<"
+raw Bare "http://a.com]("
+want same
+-- t1251 --
+in "[\u200b~~\u200b```\"http://g.com/\u00e9\u200b("
+raw Bare "http://g.com/\u00e9\u200b("
+want same
+-- t1252 --
+in "]https://b.org/phttps://a.com]_\" \u200ba"
+raw Bare "https://b.org/phttps://a.com]_"
+want same
+-- t1253 --
+in "http://g.com/\u00e91\"HTTPS://d.com/?q=1&r=2http://c.net/(z)*"
+raw Bare "http://g.com/\u00e91\"HTTPS://d.com/?q=1&r=2http://c.net/(z)*"
+want same
+-- t1254 --
+in "https://d.com/?q=1&r=2\\**https://c.net/(z)**\nHTTPS://f.com/x.`https://x.io/a_b"
+raw Bare "https://d.com/?q=1&r=2\\**https://c.net/(z)**"
+raw Bare "https://x.io/a_b"
+want same
+-- t1255 --
+in "`1HTTPS://f.com/x.<https://e.co/%7C\n<http://e.co/%7C"
+raw Bare "https://e.co/%7C"
+raw Bare "http://e.co/%7C"
+want same
+-- t1256 --
+in "<:a:1>https://a.com\"http://f.com/x.__<t:1:R>||HTTPS://x.io/a_b~~"
+raw Bare "https://a.com\"http://f.com/x.__"
+want same
+-- t1257 --
+in "<t:1:R>\"https://g.com/\u00e9`>](<_"
+raw Bare "https://g.com/\u00e9`>]("
+want same
+-- t1258 --
+in "https://x.io/a_b~~\\<#https://a.com("
+raw Bare "https://x.io/a_b~~\\"
+raw Bare "https://a.com("
+want same
+-- t1259 --
+in ")>https://d.com/?q=1&r=2(wordHTTPS://g.com/\u00e9HTTPS://c.net/(z)__"
+raw Bare "https://d.com/?q=1&r=2(wordHTTPS://g.com/\u00e9HTTPS://c.net/(z)__"
+want same
+-- t1260 --
+in "https://x.io/a_b](<**"
+raw Bare "https://x.io/a_b]("
+want same
+-- t1261 --
+in "\"_\u200bhttps://x.io/a_b"
+raw Bare "https://x.io/a_b"
+want same
+-- t1262 --
+in "](<_)](<(word||"
+-- t1263 --
+in "**\u200bword<http://e.co/%7C](<"
+raw Bare "http://e.co/%7C]("
+want same
+-- t1264 --
+in "](<https://c.net/(z)__"
+raw Bare "https://c.net/(z)__"
+want same
+-- t1265 --
+in "HTTPS://g.com/\u00e9 https://f.com/x.](HTTPS://c.net/(z)-"
+raw Bare "https://f.com/x.](HTTPS://c.net/(z)-"
+want same
+-- t1266 --
+in "](<||\\\u00e9word\u00a0`\u00a0#~~"
+-- t1267 --
+in "https://f.com/x.\"~~"
+raw Bare "https://f.com/x.\"~~"
+want same
+-- t1268 --
+in "[_<t:1:R>https://c.net/(z)"
+raw Bare "https://c.net/(z)"
+want same
+-- t1269 --
+in "https://x.io/a_b```\"https://g.com/\u00e9https://g.com/\u00e9https://g.com/\u00e9http://c.net/(z)\"<@1><t:1:R>\u00a0"
+raw Bare "https://x.io/a_b```\"https://g.com/\u00e9https://g.com/\u00e9https://g.com/\u00e9http://c.net/(z)"
+want same
+-- t1270 --
+in "http://b.org/p]HTTPS://e.co/%7Ca```~~"
+raw Bare "http://b.org/p]HTTPS://e.co/%7Ca```~~"
+want same
+-- t1271 --
+in "```___**-#\n#"
+-- t1272 --
+in "\u200bhttps://e.co/%7C||\nhttps://g.com/\u00e9)](<http://a.comhttp://b.org/p"
+raw Bare "https://e.co/%7C||"
+raw Bare "https://g.com/\u00e9)]("
+raw Bare "http://a.comhttp://b.org/p"
+want same
+-- t1273 --
+in "#\u00e9https://d.com/?q=1&r=2)_https://f.com/x.||["
+raw Bare "https://d.com/?q=1&r=2)_https://f.com/x.||["
+want same
+-- t1274 --
+in ")\""
+-- t1275 --
+in ")https://c.net/(z)a<t:1:R>~~](<\u200b"
+raw Bare "https://c.net/(z)a"
+want same
+-- t1276 --
+in "~~`*HTTPS://b.org/p\\~~ <:a:1>"
+-- t1277 --
+in "`https://g.com/\u00e9`"
+-- t1278 --
+in "https://x.io/a_b__-HTTPS://b.org/p<t:1:R>"
+raw Bare "https://x.io/a_b__-HTTPS://b.org/p"
+want same
+-- t1279 --
+in "~~_https://g.com/\u00e9"
+raw Bare "https://g.com/\u00e9"
+want same
+-- t1280 --
+in "'1https://c.net/(z)#) _HTTPS://d.com/?q=1&r=2~~<:a:1>"
+raw Bare "https://c.net/(z)#"
+want same
+-- t1281 --
+in "https://b.org/p1(http://x.io/a_b[_https://g.com/\u00e9http://d.com/?q=1&r=2~~```https://x.io/a_b**"
+raw Bare "https://b.org/p1(http://x.io/a_b[_https://g.com/\u00e9http://d.com/?q=1&r=2~~```https://x.io/a_b**"
+want same
+-- t1282 --
+in " >"
+-- t1283 --
+in "1>HTTPS://c.net/(z)https://a.comhttps://f.com/x.](<"
+raw Bare "https://a.comhttps://f.com/x.]("
+want same
+-- t1284 --
+in "http://c.net/(z)(\u200bhttp://e.co/%7C https://b.org/p"
+raw Bare "http://c.net/(z)(\u200bhttp://e.co/%7C"
+raw Bare "https://b.org/p"
+want same
+-- t1285 --
+in "http://c.net/(z)<t:1:R><t:1:R>http://c.net/(z)\\"
+raw Bare "http://c.net/(z)"
+raw Bare "http://c.net/(z)\\"
+want same
+-- t1286 --
+in "<```"
+-- t1287 --
+in "http://e.co/%7C <@1>"
+raw Bare "http://e.co/%7C"
+want same
+-- t1288 --
+in "#\"'HTTPS://d.com/?q=1&r=2*wordhttps://g.com/\u00e9http://e.co/%7Chttps://a.com__"
+raw Bare "https://g.com/\u00e9http://e.co/%7Chttps://a.com__"
+want same
+-- t1289 --
+in "http://f.com/x.~~http://b.org/p"
+raw Bare "http://f.com/x.~~http://b.org/p"
+want same
+-- t1290 --
+in ">' <\n(__]"
+-- t1291 --
+in "http://c.net/(z)](](<@1>https://g.com/\u00e9\" HTTPS://d.com/?q=1&r=2__**http://b.org/p>'"
+raw Bare "http://c.net/(z)](]("
+raw Bare "https://g.com/\u00e9"
+raw Bare "http://b.org/p>"
+want same
+-- t1292 --
+in "https://f.com/x.http://b.org/p\u200b\\\\https://a.comword"
+raw Bare "https://f.com/x.http://b.org/p\u200b\\\\https://a.comword"
+want same
+-- t1293 --
+in "><t:1:R>https://f.com/x.```<:a:1>~~"
+raw Bare "https://f.com/x.```"
+want same
+-- t1294 --
+in " (https://d.com/?q=1&r=2_```)https://a.com\\`("
+raw Bare "https://d.com/?q=1&r=2_```)https://a.com\\`("
+want same
+-- t1295 --
+in "[HTTPS://f.com/x.<:a:1>"
+-- t1296 --
+in "http://d.com/?q=1&r=2\n>https://f.com/x.__]("
+raw Bare "http://d.com/?q=1&r=2"
+raw Bare "https://f.com/x.__]("
+want same
+-- t1297 --
+in "*** ]HTTPS://e.co/%7CHTTPS://d.com/?q=1&r=2~~http://e.co/%7C**(<"
+raw Bare "http://e.co/%7C"
+want same
+-- t1298 --
+in "https://x.io/a_b_\u00e9\\ "
+raw Bare "https://x.io/a_b_\u00e9\\"
+want same
+-- t1299 --
+in "__#\n<`https://c.net/(z)](__```"
+raw Bare "https://c.net/(z)]("
+want same
+-- t1300 --
+in "`HTTPS://c.net/(z)<https://x.io/a_bHTTPS://c.net/(z)http://e.co/%7C<http://f.com/x.**~~http://x.io/a_b`https://g.com/\u00e9"
+raw Bare "https://g.com/\u00e9"
+want same
+-- t1301 --
+in "https://e.co/%7C~~\"\u200b"
+raw Bare "https://e.co/%7C~~\"\u200b"
+want same
+-- t1302 --
+in "ahttps://d.com/?q=1&r=2"
+raw Bare "https://d.com/?q=1&r=2"
+want same
+-- t1303 --
+in "****\u200bhttps://d.com/?q=1&r=2word``` https://d.com/?q=1&r=2"
+raw Bare "https://d.com/?q=1&r=2word```"
+raw Bare "https://d.com/?q=1&r=2"
+want same
+-- t1304 --
+in "~~~~**"
+-- t1305 --
+in ">```(](("
+-- t1306 --
+in "https://f.com/x.~~ "
+raw Bare "https://f.com/x.~~"
+want same
+-- t1307 --
+in "](<<@1><t:1:R>~~](https://b.org/p"
+raw Bare "https://b.org/p"
+want same
+-- t1308 --
+in "](a\u00a0>*HTTPS://b.org/p"
+-- t1309 --
+in "||](\u200b\\1word"
+-- t1310 --
+in "\u00e9)__"
+-- t1311 --
+in "#\"https://e.co/%7C*HTTPS://c.net/(z)"
+raw Bare "https://e.co/%7C*HTTPS://c.net/(z)"
+want same
+-- t1312 --
+in "<```https://g.com/\u00e9HTTPS://e.co/%7Chttps://x.io/a_b(https://b.org/p]HTTPS://g.com/\u00e9\"http://b.org/p"
+raw Bare "https://g.com/\u00e9HTTPS://e.co/%7Chttps://x.io/a_b(https://b.org/p]HTTPS://g.com/\u00e9\"http://b.org/p"
+want same
+-- t1313 --
+in "_(\\-_"
+-- t1314 --
+in "[HTTPS://b.org/p>(\u200bhttps://x.io/a_bhttps://d.com/?q=1&r=2~~1["
+raw Bare "https://x.io/a_bhttps://d.com/?q=1&r=2~~1["
+want same
+-- t1315 --
+in "HTTPS://b.org/p'](<~~wordhttp://x.io/a_b~~http://f.com/x.word](1"
+raw Bare "http://x.io/a_b"
+raw Bare "http://f.com/x.word](1"
+want same
+-- t1316 --
+in "https://b.org/p__<](http://d.com/?q=1&r=2"
+raw Bare "https://b.org/p__"
+raw Bare "http://d.com/?q=1&r=2"
+want same
+-- t1317 --
+in "http://a.com||](<||_[\"https://c.net/(z)*"
+raw Bare "http://a.com||]("
+raw Bare "https://c.net/(z)*"
+want same
+-- t1318 --
+in "http://c.net/(z)**https://a.com"
+raw Bare "http://c.net/(z)**https://a.com"
+want same
+-- t1319 --
+in "~~HTTPS://e.co/%7C<"
+-- t1320 --
+in "<<@1>a__"
+-- t1321 --
+in "[HTTPS://e.co/%7C]__https://x.io/a_b'\\<"
+raw Bare "https://x.io/a_b'\\"
+want same
+-- t1322 --
+in "http://d.com/?q=1&r=2\n](<[-http://d.com/?q=1&r=2\"<"
+raw Bare "http://d.com/?q=1&r=2"
+raw Bare "http://d.com/?q=1&r=2"
+want same
+-- t1323 --
+in "(https://a.com_~~](\\a~~"
+raw Bare "https://a.com_~~](\\a~~"
+want same
+-- t1324 --
+in "http://x.io/a_b_<"
+raw Bare "http://x.io/a_b_"
+want same
+-- t1325 --
+in "https://g.com/\u00e9_\u200bhttps://g.com/\u00e9http://b.org/p<t:1:R>||"
+raw Bare "https://g.com/\u00e9_\u200bhttps://g.com/\u00e9http://b.org/p"
+want same
+-- t1326 --
+in "\\http://a.com>'*)"
+raw Bare "http://a.com>'*"
+want same
+-- t1327 --
+in "~~HTTPS://f.com/x.1<t:1:R>word< <:a:1>("
+-- t1328 --
+in "||\n\">https://f.com/x.HTTPS://c.net/(z)https://g.com/\u00e9https://d.com/?q=1&r=2]**"
+raw Bare "https://f.com/x.HTTPS://c.net/(z)https://g.com/\u00e9https://d.com/?q=1&r=2]**"
+want same
+-- t1329 --
+in "(**]http://c.net/(z)\u00e9"
+raw Bare "http://c.net/(z)\u00e9"
+want same
+-- t1330 --
+in "'HTTPS://b.org/p||http://g.com/\u00e9](<`\u00a0<t:1:R>\u00a0<"
+raw Bare "http://g.com/\u00e9]("
+want same
+-- t1331 --
+in "]((\"https://b.org/p*~~HTTPS://g.com/\u00e9-(http://x.io/a_b**]"
+raw Bare "https://b.org/p*~~HTTPS://g.com/\u00e9-(http://x.io/a_b**"
+want same
+-- t1332 --
+in "http://f.com/x.\\"
+raw Bare "http://f.com/x.\\"
+want same
+-- t1333 --
+in "#```HTTPS://e.co/%7C\\http://f.com/x.https://e.co/%7C||"
+raw Bare "http://f.com/x.https://e.co/%7C||"
+want same
+-- t1334 --
+in "````\\https://e.co/%7C**)]"
+raw Bare "https://e.co/%7C**"
+want same
+-- t1335 --
+in "http://b.org/phttps://d.com/?q=1&r=2https://x.io/a_b)"
+raw Bare "http://b.org/phttps://d.com/?q=1&r=2https://x.io/a_b"
+want same
+-- t1336 --
+in "\u00e9word\u00a0__*](#https://c.net/(z)](http://g.com/\u00e9||HTTPS://g.com/\u00e9"
+raw Bare "https://c.net/(z)](http://g.com/\u00e9||HTTPS://g.com/\u00e9"
+want same
+-- t1337 --
+in "*> https://c.net/(z)'https://g.com/\u00e9https://f.com/x.https://b.org/p"
+raw Bare "https://c.net/(z)'https://g.com/\u00e9https://f.com/x.https://b.org/p"
+want same
+-- t1338 --
+in "https://g.com/\u00e9>\u00e9"
+raw Bare "https://g.com/\u00e9>\u00e9"
+want same
+-- t1339 --
+in "http://x.io/a_b\"https://f.com/x.\u00a0"
+raw Bare "http://x.io/a_b\"https://f.com/x"
+want same
+-- t1340 --
+in "1https://x.io/a_bhttps://x.io/a_b_(||<t:1:R>HTTPS://b.org/p__"
+raw Bare "https://x.io/a_bhttps://x.io/a_b_(||"
+want same
+-- t1341 --
+in "')||"
+-- t1342 --
+in "\n~~https://x.io/a_b[](<]"
+raw Bare "https://x.io/a_b[]("
+want same
+-- t1343 --
+in "**\nHTTPS://e.co/%7C\"([**<"
+-- t1344 --
+in "](< ```"
+-- t1345 --
+in "](https://a.comhttps://d.com/?q=1&r=2*HTTPS://g.com/\u00e9)<:a:1>HTTPS://e.co/%7C~~https://x.io/a_b](<]("
+raw Bare "https://a.comhttps://d.com/?q=1&r=2*HTTPS://g.com/\u00e9"
+raw Bare "https://x.io/a_b]("
+want same
+-- t1346 --
+in "https://x.io/a_b1https://f.com/x.*\\~~https://g.com/\u00e9```](https://e.co/%7C"
+raw Bare "https://x.io/a_b1https://f.com/x.*\\~~https://g.com/\u00e9```](https://e.co/%7C"
+want same
+-- t1347 --
+in ")'https://a.comahttps://a.com__]("
+raw Bare "https://a.comahttps://a.com__]("
+want same
+-- t1348 --
+in "HTTPS://b.org/p`]*\"#`"
+-- t1349 --
+in "HTTPS://a.com\u00e9\nhttps://x.io/a_b**~~<:a:1>http://f.com/x.'"
+raw Bare "https://x.io/a_b**~~"
+raw Bare "http://f.com/x"
+want same
+-- t1350 --
+in " **( ]("
+-- t1351 --
+in "\"]\"(HTTPS://a.com]\" \u200bHTTPS://a.com*"
+-- t1352 --
+in "https://c.net/(z)\\**http://a.com<:a:1>#"
+raw Bare "https://c.net/(z)\\**http://a.com"
+want same
+-- t1353 --
+in "\u200b__\u00e9\\HTTPS://b.org/p[HTTPS://e.co/%7C1"
+-- t1354 --
+in ")*||https://c.net/(z)"
+raw Bare "https://c.net/(z)"
+want same
+-- t1355 --
+in "**https://f.com/x.<t:1:R>"
+raw Bare "https://f.com/x"
+want same
+-- t1356 --
+in "```-\n~~*word)"
+-- t1357 --
+in " <```"
+-- t1358 --
+in " https://d.com/?q=1&r=2<~~"
+raw Bare "https://d.com/?q=1&r=2"
+want same
+-- t1359 --
+in "](](1\"word\n#"
+-- t1360 --
+in "** (https://f.com/x.~~<t:1:R>[ <http://x.io/a_b"
+raw Bare "https://f.com/x.~~"
+raw Bare "http://x.io/a_b"
+want same
+-- t1361 --
+in "'-\\https://c.net/(z)<http://x.io/a_b](](<( https://a.com`"
+raw Bare "https://c.net/(z)"
+raw Bare "http://x.io/a_b](]("
+raw Bare "https://a.com`"
+want same
+-- t1362 --
+in "https://a.com`HTTPS://g.com/\u00e9 ]https://d.com/?q=1&r=2HTTPS://g.com/\u00e9_https://e.co/%7C*https://b.org/p<t:1:R>"
+raw Bare "https://a.com`HTTPS://g.com/\u00e9"
+raw Bare "https://d.com/?q=1&r=2HTTPS://g.com/\u00e9_https://e.co/%7C*https://b.org/p"
+want same
+-- t1363 --
+in "https://g.com/\u00e9[||_https://f.com/x.)`http://g.com/\u00e9](<\u00e9"
+raw Bare "https://g.com/\u00e9[||_https://f.com/x.)`http://g.com/\u00e9]("
+want same
+-- t1364 --
+in "http://g.com/\u00e9**\\_https://g.com/\u00e9\"'http://x.io/a_b<"
+raw Bare "http://g.com/\u00e9**\\_https://g.com/\u00e9\"'http://x.io/a_b"
+want same
+-- t1365 --
+in "\\~~>)>[https://d.com/?q=1&r=2https://c.net/(z)\"\""
+raw Bare "https://d.com/?q=1&r=2https://c.net/(z)"
+want same
+-- t1366 --
+in "HTTPS://f.com/x.```\u00e9http://a.com_HTTPS://d.com/?q=1&r=2https://g.com/\u00e9_"
+raw Bare "http://a.com_HTTPS://d.com/?q=1&r=2https://g.com/\u00e9_"
+want same
+-- t1367 --
+in "a(\u200bHTTPS://d.com/?q=1&r=2\"__1http://g.com/\u00e9HTTPS://x.io/a_b]"
+raw Bare "http://g.com/\u00e9HTTPS://x.io/a_b"
+want same
+-- t1368 --
+in "~~ahttps://b.org/p]```#"
+raw Bare "https://b.org/p]```#"
+want same
+-- t1369 --
+in " ```["
+-- t1370 --
+in "\n<@1>word`\u00e9~~"
+-- t1371 --
+in "```https://d.com/?q=1&r=2\\"
+raw Bare "https://d.com/?q=1&r=2\\"
+want same
+-- t1372 --
+in "http://d.com/?q=1&r=2||1"
+raw Bare "http://d.com/?q=1&r=2||1"
+want same
+-- t1373 --
+in "http://e.co/%7C||*https://f.com/x."
+raw Bare "http://e.co/%7C||*https://f.com/x"
+want same
+-- t1374 --
+in "[\\```HTTPS://e.co/%7C"
+-- t1375 --
+in "https://a.com\u00e9HTTPS://e.co/%7C__ ](<\n"
+raw Bare "https://a.com\u00e9HTTPS://e.co/%7C__"
+want same
+-- t1376 --
+in "\"https://f.com/x.\"\"\u00a0)HTTPS://d.com/?q=1&r=2**"
+raw Bare "https://f.com/x"
+want same
+-- t1377 --
+in "http://b.org/p'https://a.com)https://a.com#HTTPS://a.com "
+raw Bare "http://b.org/p'https://a.com)https://a.com#HTTPS://a.com"
+want same
+-- t1378 --
+in "]<@1>"
+-- t1379 --
+in "HTTPS://g.com/\u00e9#```"
+-- t1380 --
+in ">_https://a.com_"
+raw Bare "https://a.com"
+want same
+-- t1381 --
+in "http://a.com)a\"||"
+raw Bare "http://a.com)a\"||"
+want same
+-- t1382 --
+in "https://f.com/x.)"
+raw Bare "https://f.com/x"
+want same
+-- t1383 --
+in "https://b.org/phttps://g.com/\u00e9<(#```word"
+raw Bare "https://b.org/phttps://g.com/\u00e9"
+want same
+-- t1384 --
+in "https://f.com/x.~~https://e.co/%7C<**~~HTTPS://c.net/(z)(\"~~HTTPS://c.net/(z)https://c.net/(z)~~https://x.io/a_b"
+raw Bare "https://f.com/x.~~https://e.co/%7C"
+raw Bare "https://c.net/(z)~~https://x.io/a_b"
+want same
+-- t1385 --
+in ")http://c.net/(z)~~http://g.com/\u00e9>http://b.org/p"
+raw Bare "http://c.net/(z)~~http://g.com/\u00e9>http://b.org/p"
+want same
+-- t1386 --
+in "http://b.org/p__-"
+raw Bare "http://b.org/p__-"
+want same
+-- t1387 --
+in "***\u00a0HTTPS://e.co/%7C\""
+-- t1388 --
+in "http://e.co/%7C> <t:1:R>word<@1><@1>https://c.net/(z)http://f.com/x.http://a.com"
+raw Bare "http://e.co/%7C>"
+raw Bare "https://c.net/(z)http://f.com/x.http://a.com"
+want same
+-- t1389 --
+in "(https://a.com <HTTPS://g.com/\u00e9[\\-"
+raw Bare "https://a.com"
+want same
+-- t1390 --
+in "#||'http://d.com/?q=1&r=2`]("
+raw Bare "http://d.com/?q=1&r=2`]("
+want same
+-- t1391 --
+in "HTTPS://g.com/\u00e91]`"
+-- t1392 --
+in "*word]((||\\\n"
+-- t1393 --
+in "HTTPS://d.com/?q=1&r=2>https://e.co/%7Chttps://g.com/\u00e9("
+raw Bare "https://e.co/%7Chttps://g.com/\u00e9("
+want same
+-- t1394 --
+in ")https://f.com/x.]\u200b"
+raw Bare "https://f.com/x.]\u200b"
+want same
+-- t1395 --
+in "_https://e.co/%7C\"*https://x.io/a_b'<t:1:R>\\"
+raw Bare "https://e.co/%7C\"*https://x.io/a_b"
+want same
+-- t1396 --
+in "\u00e9https://a.com](<"
+raw Bare "https://a.com]("
+want same
+-- t1397 --
+in "_https://a.com"
+raw Bare "https://a.com"
+want same
+-- t1398 --
+in "https://b.org/p_`](<`"
+raw Bare "https://b.org/p_`]("
+want same
+-- t1399 --
+in "'http://c.net/(z)>#"
+raw Bare "http://c.net/(z)>#"
+want same
+-- t1400 --
+in ">_https://c.net/(z)(_<[`-("
+raw Bare "https://c.net/(z)("
+want same
+-- t1401 --
+in "\u00e9a<:a:1>https://x.io/a_b(https://c.net/(z)||"
+raw Bare "https://x.io/a_b(https://c.net/(z)||"
+want same
+-- t1402 --
+in "<\u00a0"
+-- t1403 --
+in "http://a.com'*1 https://x.io/a_b<](< "
+raw Bare "http://a.com'*1"
+raw Bare "https://x.io/a_b"
+want same
+-- t1404 --
+in "](\"1]_ <"
+-- t1405 --
+in "'](<https://e.co/%7Chttps://g.com/\u00e9\u00e9'\u00a0_-<@1>"
+raw Suppressed "https://e.co/%7Chttps://g.com/\u00e9\u00e9'\u00a0_-<@1"
+want same
+-- t1406 --
+in "https://e.co/%7C]\"````\""
+raw Bare "https://e.co/%7C]\"````"
+want same
+-- t1407 --
+in "**~~**a`https://d.com/?q=1&r=2)\n*"
+raw Bare "https://d.com/?q=1&r=2"
+want same
+-- t1408 --
+in "http://f.com/x.\"word"
+raw Bare "http://f.com/x.\"word"
+want same
+-- t1409 --
+in "\"("
+-- t1410 --
+in "')word\u00e9```"
+-- t1411 --
+in "(https://d.com/?q=1&r=2HTTPS://d.com/?q=1&r=2<```HTTPS://a.comhttps://c.net/(z)HTTPS://g.com/\u00e9"
+raw Bare "https://d.com/?q=1&r=2HTTPS://d.com/?q=1&r=2"
+raw Bare "https://c.net/(z)HTTPS://g.com/\u00e9"
+want same
+-- t1412 --
+in "http://e.co/%7C**](https://x.io/a_b' -1word)HTTPS://x.io/a_b)"
+raw Bare "http://e.co/%7C**](https://x.io/a_b"
+want same
+-- t1413 --
+in " ~~__ HTTPS://f.com/x.https://c.net/(z)**]HTTPS://g.com/\u00e9 HTTPS://b.org/p"
+raw Bare "https://c.net/(z)**]HTTPS://g.com/\u00e9"
+want same
+-- t1414 --
+in "HTTPS://e.co/%7C~~http://e.co/%7Chttps://x.io/a_b["
+raw Bare "http://e.co/%7Chttps://x.io/a_b["
+want same
+-- t1415 --
+in "word\"_]()"
+-- t1416 --
+in "\u200b'https://d.com/?q=1&r=2_https://e.co/%7C](<[["
+raw Bare "https://d.com/?q=1&r=2_https://e.co/%7C]("
+want same
+-- t1417 --
+in "http://d.com/?q=1&r=2  \u200b"
+raw Bare "http://d.com/?q=1&r=2"
+want same
+-- t1418 --
+in "[http://c.net/(z)https://d.com/?q=1&r=2(HTTPS://d.com/?q=1&r=2~~>"
+raw Bare "http://c.net/(z)https://d.com/?q=1&r=2(HTTPS://d.com/?q=1&r=2~~>"
+want same
+-- t1419 --
+in "word[]\"\n](<HTTPS://x.io/a_b]\"http://x.io/a_b]"
+raw Bare "http://x.io/a_b"
+want same
+-- t1420 --
+in "http://c.net/(z)http://b.org/p>"
+raw Bare "http://c.net/(z)http://b.org/p>"
+want same
+-- t1421 --
+in "https://a.com**https://c.net/(z)'HTTPS://a.com*<t:1:R>\n__`*"
+raw Bare "https://a.com**https://c.net/(z)'HTTPS://a.com*"
+want same
+-- t1422 --
+in "a~~https://g.com/\u00e9<](<@1><t:1:R>https://g.com/\u00e9"
+raw Bare "https://g.com/\u00e9"
+raw Bare "https://g.com/\u00e9"
+want same
+-- t1423 --
+in "\\_http://x.io/a_b\""
+raw Bare "http://x.io/a_b"
+want same
+-- t1424 --
+in "](HTTPS://x.io/a_b```https://b.org/p<"
+raw Bare "https://b.org/p"
+want same
+-- t1425 --
+in "https://c.net/(z)https://a.com"
+raw Bare "https://c.net/(z)https://a.com"
+want same
+-- t1426 --
+in "http://a.com<t:1:R>"
+raw Bare "http://a.com"
+want same
+-- t1427 --
+in "<)__http://f.com/x.)"
+raw Bare "http://f.com/x"
+want same
+-- t1428 --
+in ")http://f.com/x.1```<t:1:R>HTTPS://c.net/(z)]**HTTPS://f.com/x."
+raw Bare "http://f.com/x.1```"
+want same
+-- t1429 --
+in "> ("
+-- t1430 --
+in "HTTPS://x.io/a_b(ahttps://x.io/a_bHTTPS://f.com/x.[\u200b "
+raw Bare "https://x.io/a_bHTTPS://f.com/x.[\u200b"
+want same
+-- t1431 --
+in "__](<>"
+-- t1432 --
+in "#https://b.org/p__HTTPS://d.com/?q=1&r=2<@1>'1<t:1:R>[\""
+raw Bare "https://b.org/p__HTTPS://d.com/?q=1&r=2"
+want same
+-- t1433 --
+in "HTTPS://d.com/?q=1&r=2<:a:1>\u00e9```\u00a0"
+-- t1434 --
+in "http://b.org/phttps://b.org/p<"
+raw Bare "http://b.org/phttps://b.org/p"
+want same
+-- t1435 --
+in "<t:1:R>1)]\n"
+-- t1436 --
+in " http://x.io/a_b'https://e.co/%7C<http://c.net/(z)](<"
+raw Bare "http://x.io/a_b'https://e.co/%7C"
+raw Bare "http://c.net/(z)]("
+want same
+-- t1437 --
+in "**https://x.io/a_b]<:a:1>\u200b](*word>"
+raw Bare "https://x.io/a_b"
+want same
+-- t1438 --
+in "http://b.org/p]'>_](<http://f.com/x.```"
+raw Bare "http://b.org/p]'>_]("
+raw Bare "http://f.com/x.```"
+want same
+-- t1439 --
+in "<@1>a~~HTTPS://f.com/x.'http://g.com/\u00e9\"]https://f.com/x.https://c.net/(z)**"
+raw Bare "http://g.com/\u00e9\"]https://f.com/x.https://c.net/(z)**"
+want same
+-- t1440 --
+in "HTTPS://g.com/\u00e9*>```\""
+-- t1441 --
+in "\u00e9http://c.net/(z)[__https://c.net/(z)"
+raw Bare "http://c.net/(z)[__https://c.net/(z)"
+want same
+-- t1442 --
+in "](1||https://a.comhttps://b.org/p~~https://g.com/\u00e9__("
+raw Bare "https://a.comhttps://b.org/p~~https://g.com/\u00e9__("
+want same
+-- t1443 --
+in "]https://c.net/(z)~~http://b.org/p\"[-https://f.com/x."
+raw Bare "https://c.net/(z)~~http://b.org/p\"[-https://f.com/x"
+want same
+-- t1444 --
+in "[http://c.net/(z)"
+raw Bare "http://c.net/(z)"
+want same
+-- t1445 --
+in "~~aHTTPS://x.io/a_b<t:1:R>"
+-- t1446 --
+in "https://e.co/%7C]"
+raw Bare "https://e.co/%7C"
+want same
+-- t1447 --
+in ")`https://b.org/p||<"
+raw Bare "https://b.org/p||"
+want same
+-- t1448 --
+in "](https://g.com/\u00e9"
+raw Bare "https://g.com/\u00e9"
+want same
+-- t1449 --
+in "\"_(]"
+-- t1450 --
+in "HTTPS://d.com/?q=1&r=2<@1>https://a.com]\n](<"
+raw Bare "https://a.com"
+want same
+-- t1451 --
+in "*\u00e9[http://x.io/a_b*"
+raw Bare "http://x.io/a_b"
+want same
+-- t1452 --
+in ">HTTPS://e.co/%7C[]("
+-- t1453 --
+in "```\\"
+-- t1454 --
+in "](<https://e.co/%7C](\"~~HTTPS://a.com]  <:a:1>"
+raw Bare "https://e.co/%7C](\"~~HTTPS://a.com"
+want same
+-- t1455 --
+in "\\<t:1:R>'[HTTPS://d.com/?q=1&r=2HTTPS://b.org/p```\\\n||~~"
+-- t1456 --
+in "https://f.com/x.)(HTTPS://a.com>"
+raw Bare "https://f.com/x.)(HTTPS://a.com>"
+want same
+-- t1457 --
+in "HTTPS://b.org/phttps://a.comhttps://e.co/%7Chttps://f.com/x.word"
+raw Bare "https://a.comhttps://e.co/%7Chttps://f.com/x.word"
+want same
+-- t1458 --
+in "( __ \\HTTPS://b.org/p"
+-- t1459 --
+in "a~~https://b.org/p1"
+raw Bare "https://b.org/p1"
+want same
+-- t1460 --
+in "<:a:1>https://a.com||-( word"
+raw Bare "https://a.com||-("
+want same
+-- t1461 --
+in "#https://c.net/(z)'http://g.com/\u00e9](<https://f.com/x.http://f.com/x.](<```**"
+raw Bare "https://c.net/(z)'http://g.com/\u00e9]("
+raw Bare "https://f.com/x.http://f.com/x.]("
+want same
+-- t1462 --
+in "https://g.com/\u00e9https://g.com/\u00e9'"
+raw Bare "https://g.com/\u00e9https://g.com/\u00e9"
+want same
+-- t1463 --
+in "https://g.com/\u00e9\u00a0-http://a.com__#[<t:1:R>https://g.com/\u00e9"
+raw Bare "https://g.com/\u00e9"
+raw Bare "http://a.com__#["
+raw Bare "https://g.com/\u00e9"
+want same
+-- t1464 --
+in "`\\>__||]HTTPS://f.com/x.*https://f.com/x.<@1>"
+raw Bare "https://f.com/x"
+want same
+-- t1465 --
+in "`HTTPS://e.co/%7C http://x.io/a_bhttps://b.org/p"
+raw Bare "http://x.io/a_bhttps://b.org/p"
+want same
+-- t1466 --
+in "](<\\|| https://b.org/p"
+raw Bare "https://b.org/p"
+want same
+-- t1467 --
+in "[http://f.com/x.]\u00e9```https://a.com\"```HTTPS://x.io/a_b**"
+raw Bare "http://f.com/x.]\u00e9```https://a.com\"```HTTPS://x.io/a_b**"
+want same
+-- t1468 --
+in "http://e.co/%7C <t:1:R>||**"
+raw Bare "http://e.co/%7C"
+want same
+-- t1469 --
+in "HTTPS://d.com/?q=1&r=2[1||"
+-- t1470 --
+in "(http://x.io/a_b](>**\u00e9__https://f.com/x.HTTPS://c.net/(z)"
+raw Bare "http://x.io/a_b](>**\u00e9__https://f.com/x.HTTPS://c.net/(z)"
+want same
+-- t1471 --
+in "\n\u200b)*\\a"
+-- t1472 --
+in "-https://f.com/x.__"
+raw Bare "https://f.com/x.__"
+want same
+-- t1473 --
+in ">](<'<:a:1>||"
+-- t1474 --
+in "\u00e9`](https://f.com/x."
+raw Bare "https://f.com/x"
+want same
+-- t1475 --
+in "http://f.com/x.](<"
+raw Bare "http://f.com/x.]("
+want same
+-- t1476 --
+in "https://a.comHTTPS://e.co/%7C_<@1>https://d.com/?q=1&r=2__"
+raw Bare "https://a.comHTTPS://e.co/%7C_"
+raw Bare "https://d.com/?q=1&r=2__"
+want same
+-- t1477 --
+in "a<t:1:R>](<https://b.org/p"
+raw Bare "https://b.org/p"
+want same
+-- t1478 --
+in "wordhttp://g.com/\u00e9](<https://x.io/a_b "
+raw Bare "http://g.com/\u00e9]("
+raw Bare "https://x.io/a_b"
+want same
+-- t1479 --
+in "\\a<t:1:R>* '[http://b.org/p"
+raw Bare "http://b.org/p"
+want same
+-- t1480 --
+in "<t:1:R>http://c.net/(z)http://a.com||word["
+raw Bare "http://c.net/(z)http://a.com||word["
+want same
+-- t1481 --
+in "HTTPS://b.org/p~~<_#||>'"
+-- t1482 --
+in "*<:a:1>>[https://c.net/(z)HTTPS://b.org/p>"
+raw Bare "https://c.net/(z)HTTPS://b.org/p>"
+want same
+-- t1483 --
+in "```HTTPS://d.com/?q=1&r=2)\u200bHTTPS://g.com/\u00e9__https://a.com___"
+raw Bare "https://a.com_"
+want same
+-- t1484 --
+in "```](http://d.com/?q=1&r=2\"\\<)"
+raw Bare "http://d.com/?q=1&r=2\"\\"
+want same
+-- t1485 --
+in "\na<>_<HTTPS://f.com/x.~~"
+-- t1486 --
+in "word~~](<"
+-- t1487 --
+in "\u00e9<:a:1>\\`-http://a.com](http://d.com/?q=1&r=2__https://c.net/(z)https://g.com/\u00e9("
+raw Bare "http://a.com](http://d.com/?q=1&r=2__https://c.net/(z)https://g.com/\u00e9("
+want same
+-- t1488 --
+in "\u00e9\"\\HTTPS://c.net/(z)_HTTPS://f.com/x.`"
+-- t1489 --
+in " HTTPS://b.org/p<](<||https://d.com/?q=1&r=2https://f.com/x.~~"
+raw Bare "https://d.com/?q=1&r=2https://f.com/x.~~"
+want same
+-- t1490 --
+in "```HTTPS://f.com/x.**\"<'#<:a:1>\u00e9[_"
+-- t1491 --
+in "](\u00a0http://d.com/?q=1&r=2"
+raw Bare "http://d.com/?q=1&r=2"
+want same
+-- t1492 --
+in "http://a.comhttps://g.com/\u00e9)http://e.co/%7C)<:a:1>)https://g.com/\u00e9_\u00e9"
+raw Bare "http://a.comhttps://g.com/\u00e9)http://e.co/%7C"
+raw Bare "https://g.com/\u00e9_\u00e9"
+want same
+-- t1493 --
+in "\\\u00e9https://d.com/?q=1&r=2HTTPS://c.net/(z)[**http://a.comhttps://d.com/?q=1&r=2**)"
+raw Bare "https://d.com/?q=1&r=2HTTPS://c.net/(z)[**http://a.comhttps://d.com/?q=1&r=2**"
+want same
+-- t1494 --
+in " HTTPS://x.io/a_b_<]https://c.net/(z)__http://g.com/\u00e9_"
+raw Bare "https://c.net/(z)__http://g.com/\u00e9_"
+want same
+-- t1495 --
+in ")~~http://c.net/(z)\nhttps://d.com/?q=1&r=2](<"
+raw Bare "http://c.net/(z)"
+raw Bare "https://d.com/?q=1&r=2]("
+want same
+-- t1496 --
+in " \\\u200bhttps://d.com/?q=1&r=2"
+raw Bare "https://d.com/?q=1&r=2"
+want same
+-- t1497 --
+in "~~http://e.co/%7C'<>\n\u00a0__#__"
+raw Bare "http://e.co/%7C"
+want same
+-- t1498 --
+in "<:a:1>\n(```\n[_https://x.io/a_b](<](HTTPS://c.net/(z)"
+want Bare "https://x.io/a_b]("
+-- t1499 --
+in "](<https://e.co/%7Ca"
+raw Bare "https://e.co/%7Ca"
+want same
+-- t1500 --
+in "<https://f.com/x.```https://g.com/\u00e9HTTPS://c.net/(z)''https://x.io/a_b**||"
+raw Bare "https://f.com/x.```https://g.com/\u00e9HTTPS://c.net/(z)''https://x.io/a_b**||"
+want same

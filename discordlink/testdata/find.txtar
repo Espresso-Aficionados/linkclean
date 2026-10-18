@@ -7,8 +7,11 @@ One section per case:
   shape <shape name> <n>      the named shapes_test.go generator at n bytes
   out <link>                  zero or more: Find's links, in order
   // unverified: <ID> <note>  the expectation rests on an unverified point
-  // uncapped: <link list>    cap rows: the uncapped grammar's answer, when
-                              it differs from Find's capped one
+  // verified <date> <case>: <note>
+                              a point the private-channel harness settled
+  // uncapped: <link>         cap rows: the uncapped grammar's answer, one
+                              line per link ("// uncapped: none" for no
+                              link), when it differs from Find's capped one
 
 <string> is a Go-quoted string, or several joined by " + ", each optionally
 repeated with *N: "https://a.com/" + "x"*1980. <link> is
@@ -19,7 +22,1035 @@ with Kind one of Bare, Suppressed, Masked, MaskedSuppressed; label= appears
 iff the label is not empty, and only for the Masked kinds. A case with no out
 line expects no links. Blank lines and lines starting with "# " are ignored.
 
+Expectations were computed with tools/discordref (simple-markdown with
+Discord's overrides and Find's documented choices, with and without the
+nesting limit) and agree with findRef; the shape rows use the shapes at
+4 KB. Never edit an expectation to match code: a disagreement is a bug on
+one side or a question for the maintainer.
+
 Unverified IDs: U1 (is ')' balanced?), U2 (do masked links embed?), U3
 (upper-case scheme), U4 (server unfurl vs client link), L1 (label filter), L2
 ([l](<url) kind), L3 (a non-http target is consumed), A1 (whitespace in an
 autolink target), B1 (block rules).
+
+-- bare-trailing-dot --
+in "see https://a.com/x."
+out Bare "https://a.com/x"
+
+-- bare-in-parens --
+in "(https://a.com/x)"
+out Bare "https://a.com/x"
+// unverified: U1 the unbalanced trailing ) is trimmed
+
+-- bare-balanced-parens --
+in "https://en.wikipedia.org/wiki/Foo_(bar)"
+out Bare "https://en.wikipedia.org/wiki/Foo_(bar)"
+// unverified: U1 a balanced ) stays in the URL
+
+-- bare-unbalanced-paren --
+in "https://a.com/x)"
+out Bare "https://a.com/x"
+// unverified: U1 the unbalanced trailing ) is trimmed
+
+-- bare-nested-parens --
+in "(see https://a.com/wiki/Foo_(bar))"
+out Bare "https://a.com/wiki/Foo_(bar)"
+// unverified: U1 only the unbalanced ) is trimmed
+
+-- bare-trailing-quote --
+in "https://a.com/x'"
+out Bare "https://a.com/x"
+
+-- bare-in-double-quotes --
+in "\"https://a.com/x\""
+out Bare "https://a.com/x"
+
+-- bare-trailing-bracket --
+in "https://a.com/x]"
+out Bare "https://a.com/x"
+
+-- bare-stops-at-angle --
+in "https://a.com/a<b"
+out Bare "https://a.com/a"
+
+-- bare-paren-run --
+in "x https://a.com/a_(b)_c)"
+out Bare "https://a.com/a_(b)_c"
+// unverified: U1 the unbalanced trailing ) is trimmed
+
+-- bare-semicolon-paren --
+in "https://a.com/x;)"
+out Bare "https://a.com/x"
+// unverified: U1 trimming ) re-applies the last-character rule
+
+-- bare-excluded-tail --
+in "http://a.com/.,:;"
+out Bare "http://a.com/"
+
+-- bare-trailing-angle --
+in "https://a.com/x>"
+out Bare "https://a.com/x>"
+
+-- bare-trailing-pipes --
+in "https://a.com/x||"
+out Bare "https://a.com/x||"
+
+-- bare-backticks-inside --
+in "https://a.com/`x`"
+out Bare "https://a.com/`x`"
+
+-- bare-emphasis-inside --
+in "https://a.com/x**y**"
+out Bare "https://a.com/x**y**"
+
+-- bare-escaped-underscore-inside --
+in "https://a.com/\\_x_"
+out Bare "https://a.com/\\_x_"
+
+-- bare-nbsp-ends --
+in "https://a.com/x\u00a0tail"
+out Bare "https://a.com/x"
+
+-- bare-ideographic-space-ends --
+in "https://a.com/x\u3000tail"
+out Bare "https://a.com/x"
+
+-- bare-zwsp-inside --
+in "https://a.com/x\u200btail"
+out Bare "https://a.com/x\u200btail"
+
+-- bare-nel-inside --
+in "https://a.com/x\u0085tail"
+out Bare "https://a.com/x\u0085tail"
+
+-- bare-bom-ends --
+in "https://a.com/x\ufefftail"
+out Bare "https://a.com/x"
+
+-- bare-scheme-only --
+in "https://"
+
+-- bare-one-char --
+in "https://a"
+
+-- bare-after-word --
+in "foohttps://a.com/x"
+out Bare "https://a.com/x"
+
+-- bare-upper-scheme --
+in "HTTPS://a.com/x"
+// unverified: U3 upper-case schemes are not links
+
+-- bare-mixed-case-scheme --
+in "Https://a.com/x"
+// unverified: U3 upper-case schemes are not links
+
+-- bare-steam-scheme --
+in "steam://run/1 https://a.com"
+out Bare "https://a.com"
+
+-- bare-after-backslash --
+in "\\https://a.com/x"
+out Bare "https://a.com/x"
+
+-- bare-escape-inside-scheme --
+in "h\\ttps://a.com/x"
+
+-- bare-after-unclosed-angle --
+in "<https://a.com/x"
+out Bare "https://a.com/x"
+
+-- bare-after-escaped-angle --
+in "\\<https://a.com/x>"
+out Bare "https://a.com/x>"
+
+-- bare-after-escaped-bracket --
+in "\\[lbl](https://a.com/x)"
+out Bare "https://a.com/x"
+
+-- bare-after-code-block --
+in "https://a.com/x\n```\ncode\n```"
+out Bare "https://a.com/x"
+
+-- autolink --
+in "<https://a.com/x>"
+out Suppressed "https://a.com/x"
+
+-- autolink-space --
+in "<https://a.com/x y>"
+out Bare "https://a.com/x"
+
+-- autolink-newline --
+in "<https://a.com/x\ny>"
+out Suppressed "https://a.com/x\ny"
+// unverified: A1 a newline inside the target is kept
+
+-- autolink-tab --
+in "<https://a.com/x\ty>"
+out Suppressed "https://a.com/x\ty"
+# simple-markdown's parse turns the tab into four spaces first, so its
+# answer is Bare "https://a.com/x"; Find parses the content as sent.
+// unverified: A1 a tab inside the target is kept
+
+-- autolink-nbsp --
+in "<https://a.com/x\u00a0y>"
+out Suppressed "https://a.com/x\u00a0y"
+// unverified: A1 an NBSP inside the target is kept
+
+-- autolink-one-slash --
+in "<https:/a.com>"
+
+-- autolink-ftp --
+in "<ftp://a.com/x>"
+
+-- autolink-mailto --
+in "<mailto:a@b.c>"
+
+-- autolink-upper-scheme --
+in "<HTTPS://a.com/x> https://b.com/y"
+out Bare "https://b.com/y"
+// unverified: U3 an upper-case autolink is consumed and not reported
+
+-- autolink-doubled --
+in "<<https://a.com/x>>"
+
+-- autolink-trailing-angle --
+in "<https://a.com/x>>"
+out Suppressed "https://a.com/x"
+
+-- autolink-in-spoiler --
+in "||<https://a.com/x>||"
+out Suppressed "https://a.com/x" spoiler
+
+-- masked --
+in "[lbl](https://a.com/x)"
+out Masked "https://a.com/x" label="lbl"
+// unverified: U2 Masked: WouldEmbed reports a preview
+
+-- masked-suppressed --
+in "[lbl](<https://a.com/x>)"
+out MaskedSuppressed "https://a.com/x" label="lbl"
+
+-- masked-parens-in-target --
+in "[lbl](https://a.com/(b))"
+out Masked "https://a.com/(b)" label="lbl"
+
+-- masked-title --
+in "[lbl](https://a.com/x \"title\")"
+out Masked "https://a.com/x" label="lbl"
+
+-- masked-nested-brackets --
+in "[l[i]b](https://a.com/x)"
+out Masked "https://a.com/x" label="l[i]b"
+
+-- masked-javascript --
+in "[lbl](javascript:alert(1)) https://b.com"
+out Bare "https://b.com"
+// unverified: L3 a non-http target is consumed and not reported
+
+-- masked-ftp-target --
+in "[l](ftp://a.com/x) https://b.com/y"
+out Bare "https://b.com/y"
+// unverified: L3 a non-http target is consumed and not reported
+
+-- masked-link-label --
+in "[https://a.com/x](https://b.com/y)"
+out Bare "https://a.com/x](https://b.com/y)"
+// unverified: L1 a label with http(s):// fails the masked rule
+
+-- masked-link-label-text --
+in "[see https://a.com/x here](https://b.com/y) z"
+out Bare "https://a.com/x"
+out Bare "https://b.com/y"
+// unverified: L1 a label with http(s):// fails the masked rule
+
+-- masked-angle-trailing --
+in "[lbl](https://a.com/x)>"
+out Masked "https://a.com/x" label="lbl"
+
+-- masked-parens-after --
+in "[l](https://a.com/x)(b)"
+out Masked "https://a.com/x" label="l"
+
+-- masked-spaces --
+in "[l]( https://a.com/x )"
+out Masked "https://a.com/x" label="l"
+
+-- masked-space-in-target --
+in "[l](https://a.com/x y)"
+out Bare "https://a.com/x"
+
+-- masked-newline-before-paren --
+in "[l]\n(https://a.com/x)"
+out Bare "https://a.com/x"
+
+-- masked-newline-in-label --
+in "[l\nm](https://a.com/x)"
+out Masked "https://a.com/x" label="l\nm"
+
+-- masked-empty-label --
+in "[](https://a.com/x)"
+out Masked "https://a.com/x"
+
+-- masked-escaped-paren --
+in "[l](https://a.com/x\\)y)"
+out Masked "https://a.com/x\\)y" label="l"
+
+-- masked-greedy-label --
+in "[a](b](https://a.com/x)"
+out Masked "https://a.com/x" label="a](b"
+
+-- masked-href-backtracking --
+in "[l](a(b \"t\") https://c.com/d"
+out Bare "https://c.com/d"
+
+-- masked-empty-target-title --
+in "[l]( \"https://a.com b\")"
+
+-- masked-open-angle-only --
+in "[l](<https://a.com/x) z"
+out Masked "https://a.com/x" label="l"
+// unverified: L2 Masked, not MaskedSuppressed: the > was not consumed (simple-markdown says MaskedSuppressed)
+
+-- masked-in-spoiler-strong --
+in "||**[l](<https://a.com/x>)**||"
+out MaskedSuppressed "https://a.com/x" spoiler label="l"
+
+-- spoiler --
+in "||https://a.com/x||"
+out Bare "https://a.com/x" spoiler
+// unverified: U4 a spoilered link is counted as previewed
+
+-- spoiler-first-closer --
+in "||https://a.com/x||y||"
+out Bare "https://a.com/x" spoiler
+
+-- spoiler-pairs-around --
+in "||a|| https://a.com/x ||b||"
+out Bare "https://a.com/x"
+
+-- spoiler-unclosed --
+in "|| unclosed https://a.com/x"
+out Bare "https://a.com/x"
+
+-- spoiler-four-pipes --
+in "||||https://a.com/x||"
+out Bare "https://a.com/x" spoiler
+
+-- spoiler-ignores-escapes --
+in "||a\\||https://a.com/x||"
+out Bare "https://a.com/x||"
+
+-- strong --
+in "**https://a.com/x**"
+out Bare "https://a.com/x"
+
+-- strong-extra-star --
+in "**https://a.com/x***"
+out Bare "https://a.com/x*"
+
+-- strong-escaped-closer --
+in "**a\\** https://b.com/y**"
+out Bare "https://b.com/y"
+
+-- strong-ignores-code --
+in "**a`**`https://a.com/x"
+out Bare "https://a.com/x"
+
+-- em-star --
+in "*https://a.com/a*b*"
+out Bare "https://a.com/a"
+
+-- em-star-space-after-opener --
+in "* https://a.com/x*"
+out Bare "https://a.com/x*"
+
+-- em-star-space-before-closer --
+in "*https://a.com/x *"
+out Bare "https://a.com/x"
+
+-- em-star-escaped-space --
+in "*https://a.com/x\\ *"
+out Bare "https://a.com/x\\"
+
+-- em-wins-by-quality --
+in "***https://a.com/x*"
+out Bare "https://a.com/x"
+
+-- em-odd-run-closes --
+in "*a ***https://a.com/x*"
+out Bare "https://a.com/x*"
+
+-- em-underscore --
+in "_https://a.com/x_"
+out Bare "https://a.com/x"
+
+-- em-underscore-after-word --
+in "a_https://a.com/x_"
+out Bare "https://a.com/x"
+
+-- em-underscore-inner --
+in "_https://a.com/a_b_"
+out Bare "https://a.com/a_b_"
+
+-- em-underscore-space --
+in "_a https://a.com/x_"
+out Bare "https://a.com/x"
+
+-- u --
+in "__https://a.com/a__b__"
+out Bare "https://a.com/a"
+
+-- u-extra-underscore --
+in "__https://a.com/x___"
+out Bare "https://a.com/x_"
+
+-- del --
+in "~~https://a.com/x~~"
+out Bare "https://a.com/x"
+
+-- del-extra-tilde --
+in "~~https://a.com/x~~~"
+out Bare "https://a.com/x"
+
+-- del-not-before-underscore --
+in "~~https://a.com/x~~_"
+out Bare "https://a.com/x~~_"
+
+-- code --
+in "`https://a.com/x`"
+// unverified: U4 a link in a code span is not a link
+
+-- code-double-backtick --
+in "``a`https://a.com/x``"
+
+-- code-opener-backtracks --
+in "``a`https://a.com/x` https://b.com/z"
+out Bare "https://a.com/x`"
+out Bare "https://b.com/z"
+
+-- code-spaces --
+in "`` https://a.com/x ``"
+
+-- code-crosses-lines --
+in "`a\nhttps://a.com/x`"
+
+-- code-unclosed --
+in "`unclosed https://a.com/x"
+out Bare "https://a.com/x"
+
+-- fence --
+in "```\nhttps://a.com/x\n```"
+
+-- fence-one-line --
+in "```https://a.com/x```"
+
+-- fence-language --
+in "```go\nfmt.Println(\"https://a.com/x\")\n``` https://b.com/y"
+out Bare "https://b.com/y"
+
+-- fence-unclosed --
+in "``` https://a.com/x"
+out Bare "https://a.com/x"
+
+-- mentions --
+in "<@123> https://a.com/x <#456> <:e:789> <t:1:R>"
+out Bare "https://a.com/x"
+
+-- mention-emoji-underscore --
+in "<:a_:1> https://a.com/x_"
+out Bare "https://a.com/x_"
+
+-- mention-user-nick --
+in "<@!1> https://a.com/x"
+out Bare "https://a.com/x"
+
+-- mention-role --
+in "<@&1> https://a.com/x"
+out Bare "https://a.com/x"
+
+-- mention-channel --
+in "<#1> https://a.com/x"
+out Bare "https://a.com/x"
+
+-- mention-game --
+in "<@$1> https://a.com/x"
+out Bare "https://a.com/x"
+
+-- mention-slash --
+in "</a_b c:1> https://a.com/x_"
+out Bare "https://a.com/x_"
+
+-- mention-animated-emoji --
+in "<a:b_c:1> https://a.com/x_"
+out Bare "https://a.com/x_"
+
+-- mention-timestamp --
+in "<t:1> https://a.com/x"
+out Bare "https://a.com/x"
+
+-- mention-timestamp-not --
+in "<t:1_> https://a.com/x_"
+out Bare "https://a.com/x"
+
+-- mention-timestamp-style --
+in "<t:-1:F> https://a.com/x"
+out Bare "https://a.com/x"
+
+-- mention-guild-nav --
+in "<1:linked-roles:2> https://a.com/x"
+out Bare "https://a.com/x"
+
+-- mention-guild-nav-browse --
+in "<1:browse> https://a.com/x"
+out Bare "https://a.com/x"
+
+-- subtext --
+in "-# https://a.com/x"
+out Bare "https://a.com/x"
+
+-- quote --
+in "> https://a.com/x"
+out Bare "https://a.com/x"
+
+-- subtext-spoiler-across-lines --
+in "-# ||a\n||https://a.com/x||"
+out Bare "https://a.com/x||"
+// unverified: B1 the spoiler crosses into a subtext line; Discord may scope it per line
+
+-- heading-strong-across-lines --
+in "# **a\nhttps://a.com/x**"
+out Bare "https://a.com/x"
+// unverified: B1 the strong span crosses out of a heading line; Discord may scope it per line
+
+-- quote-code-across-lines --
+in "> `a\nhttps://a.com/x` https://b.com/y"
+out Bare "https://b.com/y"
+// unverified: B1 the code span crosses out of a quote line; Discord may scope it per line
+
+-- invalid-utf8-inside --
+in "https://a.com/\xff\xfe x"
+out Bare "https://a.com/\xff\xfe"
+# Not in the oracle: JavaScript strings cannot hold invalid UTF-8.
+
+-- invalid-utf8-after-escape --
+in "\\\xff https://a.com/x"
+out Bare "https://a.com/x"
+# Not in the oracle: JavaScript strings cannot hold invalid UTF-8.
+
+-- cap-star-wrap-34 --
+in "*"*34 + "https://a.com/x" + "*"*34
+out Bare "https://a.com/x**********************************"
+# The '*' runs nest past the limit among themselves, but the link sits
+# at most two levels deep, so the limit does not change the answer.
+
+-- cap-star-wrap-36 --
+in "*"*36 + "https://a.com/x" + "*"*36
+out Bare "https://a.com/x************************************"
+# The '*' runs nest past the limit among themselves, but the link sits
+# at most two levels deep, so the limit does not change the answer.
+
+-- cap-star-wrap-40 --
+in "*"*40 + "https://a.com/x" + "*"*40
+out Bare "https://a.com/x****************************************"
+# The '*' runs nest past the limit among themselves, but the link sits
+# at most two levels deep, so the limit does not change the answer.
+
+-- cap-star-wrap-spoiler-34 --
+in "*"*34 + "||https://a.com/x||" + "*"*34
+out Bare "https://a.com/x" spoiler
+# The '*' runs nest past the limit among themselves, but the link sits
+# at most two levels deep, so the limit does not change the answer.
+
+-- cap-star-wrap-spoiler-35 --
+in "*"*35 + "||https://a.com/x||" + "*"*35
+out Bare "https://a.com/x" spoiler
+# The '*' runs nest past the limit among themselves, but the link sits
+# at most two levels deep, so the limit does not change the answer.
+
+-- cap-star-wrap-spoiler-36 --
+in "*"*36 + "||https://a.com/x||" + "*"*36
+out Bare "https://a.com/x" spoiler
+# The '*' runs nest past the limit among themselves, but the link sits
+# at most two levels deep, so the limit does not change the answer.
+
+-- shape-backslash-run --
+shape backslash-run 4096
+out Bare "https://a.example/x"
+
+-- shape-backtick-runs --
+shape backtick-runs 4096
+out Bare "https://a.example/x"
+
+-- shape-bracket-gap --
+shape bracket-gap 4096
+out Bare "https://a.example/x"
+
+-- shape-href-paren-quote --
+shape href-paren-quote 4096
+out Bare "https://a.example/x"
+
+-- shape-label-chain --
+shape label-chain 4096
+out Bare "https://a.example/x"
+
+-- shape-masked-candidates --
+shape masked-candidates 4096
+out Bare "https://a.example/x"
+
+-- shape-masked-close-chain --
+shape masked-close-chain 4096
+out Bare "https://a.example/x"
+
+-- shape-masked-every-level --
+shape masked-every-level 4096
+out Bare "https://a.example/x" spoiler
+
+-- shape-masked-unclosed --
+shape masked-unclosed 4096
+out Bare "https://a.example/x"
+
+-- shape-mention-colon --
+shape mention-colon 4096
+out Bare "https://a.example/x"
+
+-- shape-mixed-delims --
+shape mixed-delims 4096
+out Bare "https://a.example/x"
+
+-- shape-nested-open --
+shape nested-open 4096
+out Bare "https://a.example/x" spoiler
+
+-- shape-open-angle --
+shape open-angle 4096
+out Bare "https://a.example/x"
+
+-- shape-open-backtick --
+shape open-backtick 4096
+out Bare "https://a.example/x"
+
+-- shape-open-bracket --
+shape open-bracket 4096
+out Bare "https://a.example/x"
+
+-- shape-paren-run --
+shape paren-run 4096
+out Bare "https://a.com/"
+
+-- shape-paren-units --
+shape paren-units 4096
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+out Bare "https://a.com/x"
+
+-- shape-realistic --
+shape realistic 4096
+out Bare "https://www.amazon.com/dp/B0ABCDEF12?tag=x-20&ref_=nav_logo"
+out Suppressed "https://www.example.com/shop/item?id=42&utm_source=newsletter"
+out Masked "https://youtu.be/dQw4w9WgXcQ?si=AbCdEfGh" label="the review"
+out Bare "https://en.wikipedia.org/wiki/Mercury_(planet)" spoiler
+out MaskedSuppressed "https://pkg.go.dev/net/url#URL.Query" label="docs"
+out Bare "https://twitter.com/someone/status/1234567890?s=20&t=abcDEF"
+out Bare "https://www.amazon.com/dp/B0ABCDEF12?tag=x-20&ref_=nav_logo"
+out Suppressed "https://www.example.com/shop/item?id=42&utm_source=newsletter"
+out Masked "https://youtu.be/dQw4w9WgXcQ?si=AbCdEfGh" label="the review"
+out Bare "https://en.wikipedia.org/wiki/Mercury_(planet)" spoiler
+out MaskedSuppressed "https://pkg.go.dev/net/url#URL.Query" label="docs"
+out Bare "https://twitter.com/someone/status/1234567890?s=20&t=abcDEF"
+out Bare "https://www.amazon.com/dp/B0ABCDEF12?tag=x-20&ref_=nav_logo"
+out Suppressed "https://www.example.com/shop/item?id=42&utm_source=newsletter"
+out Masked "https://youtu.be/dQw4w9WgXcQ?si=AbCdEfGh" label="the review"
+out Bare "https://en.wikipedia.org/wiki/Mercury_(planet)" spoiler
+out MaskedSuppressed "https://pkg.go.dev/net/url#URL.Query" label="docs"
+out Bare "https://twitter.com/someone/status/1234567890?s=20&t=abcDEF"
+out Bare "https://www.amazon.com/dp/B0ABCDEF12?tag=x-20&ref_=nav_logo"
+out Suppressed "https://www.example.com/shop/item?id=42&utm_source=newsletter"
+out Masked "https://youtu.be/dQw4w9WgXcQ?si=AbCdEfGh" label="the review"
+out Bare "https://en.wikipedia.org/wiki/Mercury_(planet)" spoiler
+out MaskedSuppressed "https://pkg.go.dev/net/url#URL.Query" label="docs"
+out Bare "https://twitter.com/someone/status/1234567890?s=20&t=abcDEF"
+out Bare "https://www.amazon.com/dp/B0ABCDEF12?tag=x-20&ref_=nav_logo"
+out Suppressed "https://www.example.com/shop/item?id=42&utm_source=newsletter"
+out Masked "https://youtu.be/dQw4w9WgXcQ?si=AbCdEfGh" label="the review"
+out Bare "https://en.wikipedia.org/wiki/Mercury_(planet)" spoiler
+out MaskedSuppressed "https://pkg.go.dev/net/url#URL.Query" label="docs"
+out Bare "https://twitter.com/someone/status/1234567890?s=20&t=abcDEF"
+out Bare "https://www.amazon.com/dp/B0ABCDEF12?tag=x-20&ref_=nav_logo"
+out Suppressed "https://www.example.com/shop/item?id=42&utm_source=newsletter"
+out Masked "https://youtu.be/dQw4w9WgXcQ?si=AbCdEfGh" label="the review"
+out Bare "https://en.wikipedia.org/wiki/Mercury_(planet)" spoiler
+out MaskedSuppressed "https://pkg.go.dev/net/url#URL.Query" label="docs"
+out Bare "https://twitter.com/someone/status/1234567890?s=20&t=abcDEF"
+
+-- shape-spoiler-pairs --
+shape spoiler-pairs 4096
+out Bare "https://a.example/x"
+
+-- shape-star-run --
+shape star-run 4096
+out Bare "https://a.example/x"
+
+-- shape-star-wrap-34 --
+shape star-wrap-34 4096
+out Bare "https://a.example/x"
+out Bare "https://a.com/x**********************************"
+out Bare "https://a.com/x**********************************"
+out Bare "https://a.com/x**********************************"
+out Bare "https://a.com/x**********************************"
+out Bare "https://a.com/x**********************************"
+out Bare "https://a.com/x**********************************"
+out Bare "https://a.com/x**********************************"
+out Bare "https://a.com/x**********************************"
+out Bare "https://a.com/x**********************************"
+out Bare "https://a.com/x**********************************"
+out Bare "https://a.com/x**********************************"
+out Bare "https://a.com/x**********************************"
+out Bare "https://a.com/x**********************************"
+out Bare "https://a.com/x**********************************"
+out Bare "https://a.com/x**********************************"
+out Bare "https://a.com/x**********************************"
+out Bare "https://a.com/x**********************************"
+out Bare "https://a.com/x**********************************"
+out Bare "https://a.com/x**********************************"
+out Bare "https://a.com/x**********************************"
+out Bare "https://a.com/x**********************************"
+out Bare "https://a.com/x**********************************"
+out Bare "https://a.com/x**********************************"
+out Bare "https://a.com/x**********************************"
+out Bare "https://a.com/x**********************************"
+out Bare "https://a.com/x**********************************"
+out Bare "https://a.com/x**********************************"
+out Bare "https://a.com/x**********************************"
+out Bare "https://a.com/x**********************************"
+out Bare "https://a.com/x**********************************"
+out Bare "https://a.com/x**********************************"
+out Bare "https://a.com/x**********************************"
+out Bare "https://a.com/x**********************************"
+out Bare "https://a.com/x**********************************"
+out Bare "https://a.com/x**********************************"
+out Bare "https://a.com/x**********************************"
+out Bare "https://a.com/x**********************************"
+out Bare "https://a.com/x**********************************"
+out Bare "https://a.com/x**********************************"
+out Bare "https://a.com/x**********************************"
+out Bare "https://a.com/x**********************************"
+out Bare "https://a.com/x**********************************"
+out Bare "https://a.com/x**********************************"
+out Bare "https://a.com/x**********************************"
+out Bare "https://a.com/x**********************************"
+out Bare "https://a.com/x**********************************"
+out Bare "https://a.com/x**********************************"
+out Bare "https://a.com/x**********************************"
+
+-- shape-star-wrap-36 --
+shape star-wrap-36 4096
+out Bare "https://a.example/x"
+out Bare "https://a.com/x************************************"
+out Bare "https://a.com/x************************************"
+out Bare "https://a.com/x************************************"
+out Bare "https://a.com/x************************************"
+out Bare "https://a.com/x************************************"
+out Bare "https://a.com/x************************************"
+out Bare "https://a.com/x************************************"
+out Bare "https://a.com/x************************************"
+out Bare "https://a.com/x************************************"
+out Bare "https://a.com/x************************************"
+out Bare "https://a.com/x************************************"
+out Bare "https://a.com/x************************************"
+out Bare "https://a.com/x************************************"
+out Bare "https://a.com/x************************************"
+out Bare "https://a.com/x************************************"
+out Bare "https://a.com/x************************************"
+out Bare "https://a.com/x************************************"
+out Bare "https://a.com/x************************************"
+out Bare "https://a.com/x************************************"
+out Bare "https://a.com/x************************************"
+out Bare "https://a.com/x************************************"
+out Bare "https://a.com/x************************************"
+out Bare "https://a.com/x************************************"
+out Bare "https://a.com/x************************************"
+out Bare "https://a.com/x************************************"
+out Bare "https://a.com/x************************************"
+out Bare "https://a.com/x************************************"
+out Bare "https://a.com/x************************************"
+out Bare "https://a.com/x************************************"
+out Bare "https://a.com/x************************************"
+out Bare "https://a.com/x************************************"
+out Bare "https://a.com/x************************************"
+out Bare "https://a.com/x************************************"
+out Bare "https://a.com/x************************************"
+out Bare "https://a.com/x************************************"
+out Bare "https://a.com/x************************************"
+out Bare "https://a.com/x************************************"
+out Bare "https://a.com/x************************************"
+out Bare "https://a.com/x************************************"
+out Bare "https://a.com/x************************************"
+out Bare "https://a.com/x************************************"
+out Bare "https://a.com/x************************************"
+out Bare "https://a.com/x************************************"
+out Bare "https://a.com/x************************************"
+out Bare "https://a.com/x************************************"
+out Bare "https://a.com/x************************************"
+
+-- shape-star-wrap-40 --
+shape star-wrap-40 4096
+out Bare "https://a.example/x"
+out Bare "https://a.com/x****************************************"
+out Bare "https://a.com/x****************************************"
+out Bare "https://a.com/x****************************************"
+out Bare "https://a.com/x****************************************"
+out Bare "https://a.com/x****************************************"
+out Bare "https://a.com/x****************************************"
+out Bare "https://a.com/x****************************************"
+out Bare "https://a.com/x****************************************"
+out Bare "https://a.com/x****************************************"
+out Bare "https://a.com/x****************************************"
+out Bare "https://a.com/x****************************************"
+out Bare "https://a.com/x****************************************"
+out Bare "https://a.com/x****************************************"
+out Bare "https://a.com/x****************************************"
+out Bare "https://a.com/x****************************************"
+out Bare "https://a.com/x****************************************"
+out Bare "https://a.com/x****************************************"
+out Bare "https://a.com/x****************************************"
+out Bare "https://a.com/x****************************************"
+out Bare "https://a.com/x****************************************"
+out Bare "https://a.com/x****************************************"
+out Bare "https://a.com/x****************************************"
+out Bare "https://a.com/x****************************************"
+out Bare "https://a.com/x****************************************"
+out Bare "https://a.com/x****************************************"
+out Bare "https://a.com/x****************************************"
+out Bare "https://a.com/x****************************************"
+out Bare "https://a.com/x****************************************"
+out Bare "https://a.com/x****************************************"
+out Bare "https://a.com/x****************************************"
+out Bare "https://a.com/x****************************************"
+out Bare "https://a.com/x****************************************"
+out Bare "https://a.com/x****************************************"
+out Bare "https://a.com/x****************************************"
+out Bare "https://a.com/x****************************************"
+out Bare "https://a.com/x****************************************"
+out Bare "https://a.com/x****************************************"
+out Bare "https://a.com/x****************************************"
+out Bare "https://a.com/x****************************************"
+out Bare "https://a.com/x****************************************"
+out Bare "https://a.com/x****************************************"
+out Bare "https://a.com/x****************************************"
+
+-- shape-underscore-run --
+shape underscore-run 4096
+out Bare "https://a.example/x"
