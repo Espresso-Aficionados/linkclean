@@ -18,6 +18,27 @@ For chat bots, the `discordlink` package finds the links in a Discord message
 as Discord's clients parse them, cleans them, and renders the cleaned URLs as
 reply bodies that fit Discord's limits.
 
+## Command line
+
+```
+go install github.com/Espresso-Aficionados/linkclean/cmd/linkclean@latest
+```
+
+`linkclean URL...` prints each cleaned URL. With no arguments it reads one URL
+per line from standard input and writes one line per input line; use standard
+input for lists of URLs, and `linkclean -- URL...` when an argument may start
+with `-`. `-explain` describes each change and `-json` writes one JSON object
+per input, with parameter names, rule IDs and affiliate networks: never the
+input or the removed values; affiliate IDs are shown (they are
+attacker-controlled text and are escaped). The cleaned URL itself still
+carries whatever was kept. `-affiliate strip` also removes affiliate tags.
+`-check` reads `<id> <url>` lines and exits 1 if any URL would change under
+either affiliate policy. Plain and `-json` output are URL data and can contain
+Unicode control or bidi characters from the input; use `-explain` to view
+untrusted input on a terminal. The command never uses the network and does not
+resolve short links. `-licenses` prints the notices a copy of the binary must
+carry.
+
 ## Unshortening (opt-in, network)
 
 Package `unshorten` resolves an allowlisted set of short links (t.co,
@@ -67,7 +88,8 @@ If you distribute a binary built with linkclean, MPL-2.0 §3.2 requires you to
 tell recipients where the MPL-covered source is. This module's source together
 with `rules/brave/NOTICE` and `NOTICE.md` suffices, and `Cleaner.Notices()`
 returns the same attribution at run time for an about page or a `--licenses`
-flag. There are no obligations for your own code.
+flag. There are no obligations for your own code. The `linkclean` command
+prints all of these with `-licenses`.
 
 linkclean also depends on `golang.org/x/net` and `golang.org/x/text`
 (BSD-3-Clause, the Go project's license). A binary must reproduce their

@@ -35,6 +35,10 @@ Every overlay rule must also be named by at least one case in
 entry's evidence. Overlay path globs may use `*` only as their last character,
 and `urlRegexps` must not mention a host.
 
+`testdata/golden/negative.txt` lists URLs that must come back unchanged under
+both affiliate policies. A quick local check of them:
+`go run ./cmd/linkclean -check < testdata/golden/negative.txt`.
+
 ### Provenance history
 
 The evaluation corpus was written by model agents that had ClearURLs' provider

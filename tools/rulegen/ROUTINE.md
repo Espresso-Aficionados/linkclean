@@ -630,12 +630,19 @@ the checks that need no base; the base-relative gates are enforced by the PR's
 cd /tmp/lc/pr-<n> && go test -race ./...
 cd /tmp/lc/pr-<n> && go -C tools test ./...
 cd /tmp/lc/pr-<n> && go test -run '^TestRules$/^Golden$' .
+cd /tmp/lc/pr-<n> && go run ./cmd/linkclean -check < testdata/golden/negative.txt
 ```
 
-The last one covers `testdata/golden/negative.txt` until a `cmd/linkclean`
-command exists; once it does, also run
-`go run ./cmd/linkclean -check < testdata/golden/negative.txt`, which must exit 0.
-Any failure: escalate.
+The last two both check `testdata/golden/negative.txt`: the Golden test
+through the test harness, and `linkclean -check` as the command built from
+this tree, which must exit 0 and print
+`ok: <N> cases unchanged under keep and strip`. Neither can pass vacuously:
+step 4 escalated any change outside the gitlink, `rules/brave/*` and
+`rules.lock.json`, so the case file and `cmd/linkclean` are `main`'s, and
+`-check` fails on zero cases. `go run` exits 1 on any failure. On stderr,
+`exit status 1` means a case changed, `exit status 2` means bad input or rule
+data that does not compile, and no `exit status` line means `go run` itself
+failed (a build error). Any failure: escalate.
 
 ### 8. Read the upstream compare diff
 

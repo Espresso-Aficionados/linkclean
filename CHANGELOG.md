@@ -6,6 +6,15 @@ cut by `rulegen release` and are not listed.
 
 ## v0.3.0
 
+- `cmd/linkclean`: a command-line front end. It cleans the URLs given as
+  arguments, or one URL per line of standard input; `-explain` and `-json`
+  report what was removed and why, by parameter name, rule ID and affiliate
+  network: never the input or the removed values; affiliate IDs are shown
+  (they are attacker-controlled text and are escaped). `-affiliate strip`
+  also removes affiliate tags; `-check` exits non-zero if any `<id> <url>`
+  case changes under either affiliate policy; `-licenses` prints the notices
+  a copy of the binary must carry; `-version` names the build and the rule
+  data. It never uses the network and does not include `unshorten`.
 - `unshorten`: opt-in resolution of short links over the network, for an
   allowlisted set of shorteners that the package documentation lists with
   every host it contacts. `New` and `Resolver` (`Resolve`, `Process`,
