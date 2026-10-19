@@ -310,6 +310,37 @@ func TestTransportFieldsReviewed(t *testing.T) {
 	}
 }
 
+// TestTransportCheckHeaderLimit: with Allow, the warning for an
+// *http.Transport names its MaxResponseHeaderBytes when response headers
+// are not capped at 32 KiB, since New then uses the transport as is.
+func TestTransportCheckHeaderLimit(t *testing.T) {
+	for _, c := range []struct {
+		name string
+		rt   *http.Transport
+		want string // "" means the attribute is absent
+	}{
+		{"zero", &http.Transport{}, "max_response_header_bytes=0"},
+		{"large", &http.Transport{MaxResponseHeaderBytes: 1 << 20}, "max_response_header_bytes=1048576"},
+		{"capped clone", NewTransport(TransportOptions{}).Clone(), ""},
+		{"small", &http.Transport{MaxResponseHeaderBytes: 4096}, ""},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			var logs capturedLog
+			out, err := checkTransport(c.rt, true, logs.logger())
+			if err != nil || out != c.rt {
+				t.Fatalf("got %p, %v: want the caller's transport", out, err)
+			}
+			if logs.lines() != 1 {
+				t.Fatalf("%d log lines, want 1: %s", logs.lines(), logs.String())
+			}
+			has := strings.Contains(logs.String(), "max_response_header_bytes")
+			if c.want == "" && has || c.want != "" && !strings.Contains(logs.String(), c.want) {
+				t.Errorf("warning %q, want header limit %q", logs.String(), c.want)
+			}
+		})
+	}
+}
+
 // TestTransportCheck is New's transport decision table, on
 // checkTransport.
 func TestTransportCheck(t *testing.T) {
@@ -337,7 +368,7 @@ func TestTransportCheck(t *testing.T) {
 		{name: "GuardTransport", rt: func() http.RoundTripper { return guarded }, ok: true},
 		{name: "Clone", rt: func() http.RoundTripper { return NewTransport(TransportOptions{}).Clone() }, mention: "not built by", warn: true},
 		{name: "plain", rt: func() http.RoundTripper { return &http.Transport{} }, mention: "not built by", warn: true},
-		{name: "opaque", rt: func() http.RoundTripper { return &opaqueTransport{} }, mention: "not an *http.Transport"},
+		{name: "opaque", rt: func() http.RoundTripper { return &opaqueTransport{} }, mention: "not an *http.Transport", warn: true},
 		{name: "ProxyFromEnvironment", rt: mutate(func(tr *http.Transport) { tr.Proxy = http.ProxyFromEnvironment }), mention: "ProxyFromEnvironment", warn: true},
 		{name: "foreign DialContext", rt: mutate(func(tr *http.Transport) { tr.DialContext = (&net.Dialer{}).DialContext }), mention: "DialContext", warn: true},
 		{name: "nil DialContext", rt: mutate(func(tr *http.Transport) { tr.DialContext = nil }), mention: "DialContext", warn: true},

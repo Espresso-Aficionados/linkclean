@@ -23,8 +23,11 @@ import (
 //   - *http.Transport whose Proxy is http.ProxyFromEnvironment (so
 //     http.DefaultTransport is caught), or any other *http.Transport or
 //     RoundTripper → error wrapping ErrUnguardedTransport, unless
-//     AllowUnguardedTransport. When allowed and the transport is detectably
-//     unguarded (an *http.Transport), New logs one warning via cfg.Logger.
+//     AllowUnguardedTransport. When allowed, New logs one warning via
+//     cfg.Logger: for an *http.Transport it names what failed verification
+//     and, when response headers are not capped at 32 KiB, the transport's
+//     MaxResponseHeaderBytes; for any other RoundTripper it says New cannot
+//     inspect it.
 //
 // After verification New uses a private Clone() of an attested transport
 // (re-attested internally), so mutating the caller's transport after New has

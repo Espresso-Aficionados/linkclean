@@ -21,7 +21,8 @@ type Config struct {
 	// SSRF-guarded (any non-*http.Transport, e.g. an otelhttp wrapper, or an
 	// *http.Transport not produced by NewTransport/GuardTransport, or one whose
 	// Proxy is http.ProxyFromEnvironment). Set it only when you have guarded the
-	// dialer yourself (GuardDialer) or wrap a guarded transport.
+	// dialer yourself (GuardDialer) or wrap a guarded transport. New then uses
+	// the Transport as is (no 32 KiB response-header cap) and logs one warning.
 	AllowUnguardedTransport bool
 	// Logger: nil means slog.Default(). It is used for the unguarded-transport
 	// warning and to log a recovered strategy panic at Error level (entry,

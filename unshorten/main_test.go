@@ -3,6 +3,7 @@ package unshorten
 import (
 	"errors"
 	"fmt"
+	"log/slog"
 	"net"
 	"net/http"
 	"os"
@@ -24,6 +25,9 @@ func TestMain(m *testing.M) {
 	origDefaultTransport = http.DefaultTransport
 	http.DefaultTransport = failingTransport{}
 	restore := dialhook.SetResolve(failClosedResolve)
+	// Tests that set AllowUnguardedTransport without a Logger would print New's
+	// warning on stderr; tests that check logging pass their own Logger.
+	slog.SetDefault(slog.New(slog.DiscardHandler))
 	code := m.Run()
 	restore()
 	if leaks := offNetwork.list(); len(leaks) > 0 {

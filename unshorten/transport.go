@@ -51,7 +51,7 @@ const (
 // MaxIdleConnsPerHost 2; MaxConnsPerHost 4; IdleConnTimeout 30s;
 // DisableCompression, so no Accept-Encoding header is added.
 // Wrap it freely (otelhttp.NewTransport(t)) and set AllowUnguardedTransport,
-// since New cannot see through wrappers. An invalid opts.Proxy makes New
+// since New cannot see through wrappers; New then logs one warning. An invalid opts.Proxy makes New
 // refuse the transport and fails each request made with it directly.
 func NewTransport(opts TransportOptions) *http.Transport {
 	a := &attestation{dial: newGuardDialer(orDefault(opts.DialTimeout, defaultDialTimeout))}
@@ -97,6 +97,12 @@ func orDefault(v, d time.Duration) time.Duration {
 // discarding it. To keep a custom dialer, wrap its net.Dialer with GuardDialer
 // and set AllowUnguardedTransport. An invalid proxy URL is an error; no error
 // contains the proxy URL.
+//
+// The clone keeps t's other settings, MaxResponseHeaderBytes included. Passed
+// to New as is, it is used through New's private clone, which caps response
+// headers at 32 KiB. Wrapped (AllowUnguardedTransport), the wrapper reaches
+// it directly and t's limit applies; zero means net/http's default, which is
+// far larger. Set MaxResponseHeaderBytes on t before wrapping.
 func GuardTransport(t *http.Transport, proxy *url.URL) (*http.Transport, error) {
 	switch {
 	case t == nil:
@@ -388,22 +394,30 @@ func privateClone(t *http.Transport, a *attestation) *http.Transport {
 //   - an attested *http.Transport that verifies: its privateClone;
 //   - an attested *http.Transport that was changed, or any other
 //     *http.Transport: an error wrapping ErrUnguardedTransport, or with
-//     allow, rt itself after one warning on log;
+//     allow, rt itself after one warning on log. The warning also carries
+//     max_response_header_bytes when the transport does not cap response
+//     headers at 32 KiB (net/http's default limit is far larger);
 //   - any other RoundTripper: the same error, or with allow, rt itself
-//     without a warning (New cannot tell whether it wraps a guarded
-//     transport).
+//     after one warning on log: New cannot see through a wrapper, so it
+//     cannot check the dial guard, the proxy or the header limit.
 //
 // No error or log line contains a proxy URL.
 func checkTransport(rt http.RoundTripper, allow bool, log *slog.Logger) (http.RoundTripper, error) {
 	if rt == nil {
 		return NewTransport(TransportOptions{}), nil
 	}
+	if log == nil {
+		log = slog.Default()
+	}
 	t, ok := rt.(*http.Transport)
 	if !ok {
-		if allow {
-			return rt, nil
+		err := unguarded("Config.Transport is not an *http.Transport; set AllowUnguardedTransport if it wraps a guarded one")
+		if !allow {
+			return nil, err
 		}
-		return nil, unguarded("Config.Transport is not an *http.Transport; set AllowUnguardedTransport if it wraps a guarded one")
+		log.Warn("unshorten: using a transport New cannot inspect (Config.AllowUnguardedTransport); its dial guard, proxy and response-header limit are the caller's",
+			slog.String("reason", err.Error()), slog.String("type", reflect.TypeOf(rt).String()))
+		return rt, nil
 	}
 	if t == nil {
 		// Unusable whatever allow says: every request would panic.
@@ -420,11 +434,11 @@ func checkTransport(rt http.RoundTripper, allow bool, log *slog.Logger) (http.Ro
 	if !allow {
 		return nil, err
 	}
-	if log == nil {
-		log = slog.Default()
+	attrs := []any{slog.String("reason", err.Error())}
+	if t.MaxResponseHeaderBytes <= 0 || t.MaxResponseHeaderBytes > maxResponseHeaderBytes {
+		attrs = append(attrs, slog.Int64("max_response_header_bytes", t.MaxResponseHeaderBytes))
 	}
-	log.Warn("unshorten: using a transport that is not verifiably SSRF-guarded (Config.AllowUnguardedTransport)",
-		slog.String("reason", err.Error()))
+	log.Warn("unshorten: using a transport that is not verifiably SSRF-guarded (Config.AllowUnguardedTransport)", attrs...)
 	return rt, nil
 }
 

@@ -179,7 +179,7 @@ func TestTransportCheckNew(t *testing.T) {
 		"NewTransport":     {NewTransport(TransportOptions{}), true, false},
 		"DefaultTransport": {origDefaultTransport, false, true},
 		"Clone":            {NewTransport(TransportOptions{}).Clone(), false, true},
-		"opaque":           {&opaqueTransport{}, false, false},
+		"opaque":           {&opaqueTransport{}, false, true},
 	} {
 		var logs capturedLog
 		_, err := New(Config{Transport: c.rt, Logger: logs.logger()})
