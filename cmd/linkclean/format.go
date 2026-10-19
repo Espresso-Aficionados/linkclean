@@ -276,11 +276,11 @@ func appendJSONError(b []byte, n int, msg string) []byte {
 	return out
 }
 
-// appendEncoded appends v as one JSON line, with '&', '<' and '>' left as is
-// and every non-printable rune at or above U+0080 written as a \u escape
-// (encoding/json already escapes C0, U+2028 and U+2029). The rewrite keeps
-// the JSON value: every string in the line is valid UTF-8 and the JSON
-// structure itself is ASCII.
+// appendEncoded appends v as one JSON line, with '&', '<' and '>' left as is,
+// and DEL and every non-printable rune at or above U+0080 written as a \u
+// escape (encoding/json already escapes C0, U+2028 and U+2029, but not DEL).
+// The rewrite keeps the JSON value: every string in the line is valid UTF-8
+// and the JSON structure itself is ASCII.
 func appendEncoded(b []byte, v any) ([]byte, error) {
 	var buf bytes.Buffer
 	enc := json.NewEncoder(&buf)
@@ -295,7 +295,7 @@ func appendEncoded(b []byte, v any) ([]byte, error) {
 	for s := buf.Bytes(); len(s) > 0; {
 		r, size := utf8.DecodeRune(s)
 		switch {
-		case r < utf8.RuneSelf || strconv.IsPrint(r):
+		case r < utf8.RuneSelf && r != 0x7f || r >= utf8.RuneSelf && strconv.IsPrint(r):
 			b = append(b, s[:size]...)
 		case r > 0xFFFF:
 			hi, lo := utf16.EncodeRune(r)

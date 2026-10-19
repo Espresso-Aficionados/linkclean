@@ -16,12 +16,12 @@ import (
 	"github.com/Espresso-Aficionados/linkclean"
 )
 
-// hostile holds ESC, U+009B (C1), U+202E (bidi override), an invalid byte
-// and a quote; written with byte escapes only.
-const hostile = "a\x1b\xc2\x9b\xe2\x80\xae\xff\"b"
+// hostile holds ESC, U+009B (C1), U+202E (bidi override), an invalid byte,
+// DEL and a quote; written with byte escapes only.
+const hostile = "a\x1b\xc2\x9b\xe2\x80\xae\xff\x7f\"b"
 
 // hostileQ is strconv.Quote(hostile).
-const hostileQ = `"a\x1b\u009b\u202e\xff\"b"`
+const hostileQ = `"a\x1b\u009b\u202e\xff\x7f\"b"`
 
 // fullResult has every line kind and every optional field of a record.
 func fullResult() linkclean.Result {
@@ -418,21 +418,21 @@ func TestJSONInvalidUTF8(t *testing.T) {
 }
 
 // TestHostileAffiliateID runs a real affiliate link whose ID holds a bidi
-// override, ESC, a C1 control, an invalid byte and a newline through run in
+// override, ESC, a C1 control, an invalid byte, DEL and a newline through run in
 // both modes: the ID is shown, escaped, and no raw control or bidi character
 // reaches stdout. The rule is a human-owned overlay rule, so a Brave data
 // refresh cannot change the result.
 func TestHostileAffiliateID(t *testing.T) {
-	const in = "https://www.amazon.com/dp/B0?tag=%E2%80%AE%1B%C2%9B%FF%0Ax"
+	const in = "https://www.amazon.com/dp/B0?tag=%E2%80%AE%1B%C2%9B%FF%7F%0Ax"
 	tests := []struct {
 		args  []string
 		stdin string
 		want  string
 	}{
-		{[]string{"-affiliate", "strip", "-explain", in}, "", `id="\u202e\x1b\u009b\xff\nx"`},
-		{[]string{"-affiliate", "strip", "-json", in}, "", `"id":"\u202e\u001b\u009b%FF\nx"`},
-		{[]string{"-affiliate", "strip", "-explain"}, in + "\n", `id="\u202e\x1b\u009b\xff\nx"`},
-		{[]string{"-affiliate", "strip", "-json"}, in + "\n", `"id":"\u202e\u001b\u009b%FF\nx"`},
+		{[]string{"-affiliate", "strip", "-explain", in}, "", `id="\u202e\x1b\u009b\xff\x7f\nx"`},
+		{[]string{"-affiliate", "strip", "-json", in}, "", `"id":"\u202e\u001b\u009b%FF\u007f\nx"`},
+		{[]string{"-affiliate", "strip", "-explain"}, in + "\n", `id="\u202e\x1b\u009b\xff\x7f\nx"`},
+		{[]string{"-affiliate", "strip", "-json"}, in + "\n", `"id":"\u202e\u001b\u009b%FF\u007f\nx"`},
 	}
 	for _, tt := range tests {
 		var stdout, stderr bytes.Buffer

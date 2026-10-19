@@ -277,6 +277,7 @@ func TestRunTerminalSafe(t *testing.T) {
 		"https://example.com/\xc2\x9b?\xe2\x80\xae=1&utm_source=x",
 		"https://example.com/\xff?a=1",
 		"https://example.com/\x1b[31m?a=1",
+		"https://example.com/a\x7fb?utm_source=1", // DEL: ambiguous, url unchanged
 		"https://example.com/?a=1&\xe2\x80\xa8=2#\xf3\xa0\x80\x81",
 	}
 	stdin := strings.Join(inputs, "\n") + "\n"
@@ -297,11 +298,11 @@ func TestRunTerminalSafe(t *testing.T) {
 }
 
 // ctHostileID is an affiliate ID holding a bidi override, a C1 control, ESC,
-// an invalid UTF-8 byte and a newline, as Beneficiary.ID decodes it from
+// an invalid UTF-8 byte, DEL and a newline, as Beneficiary.ID decodes it from
 // ctHostile (an all-ASCII URL, so the engine cleans it).
 const (
-	ctHostile   = "https://www.amazon.com/dp/B0?tag=x%E2%80%AE%C2%9B%1B%FF%0Ay"
-	ctHostileID = "x\xe2\x80\xae\xc2\x9b\x1b\xff\ny"
+	ctHostile   = "https://www.amazon.com/dp/B0?tag=x%E2%80%AE%C2%9B%1B%FF%7F%0Ay"
+	ctHostileID = "x\xe2\x80\xae\xc2\x9b\x1b\xff\x7f\ny"
 )
 
 // TestAffiliateIDEscaped: the affiliate ID is shown under
@@ -323,7 +324,7 @@ func TestAffiliateIDEscaped(t *testing.T) {
 		want := ctExplain(1, strings.Replace(ctAmazonStripExplain, `id="foo-20"`, "id="+strconv.Quote(ctHostileID), 1))
 		ctCheck(t, got, want, "", 0)
 		ctAssertTerminalSafe(t, "stdout", got.stdout)
-		if !strings.Contains(got.stdout, `id="x\u202e\u009b\x1b\xff\ny"`) {
+		if !strings.Contains(got.stdout, `id="x\u202e\u009b\x1b\xff\x7f\ny"`) {
 			t.Errorf("stdout lacks the strconv.Quote form of the ID: %q", got.stdout)
 		}
 	})
@@ -337,7 +338,7 @@ func TestAffiliateIDEscaped(t *testing.T) {
 			t.Fatalf("want exactly one JSON line, got %q", got.stdout)
 		}
 		low := strings.ToLower(got.stdout)
-		for _, esc := range []string{`\u202e`, `\u009b`, `\u001b`, `%ff`, `\n`} {
+		for _, esc := range []string{`\u202e`, `\u009b`, `\u001b`, `%ff`, `\u007f`, `\n`} {
 			if !strings.Contains(low, esc) {
 				t.Errorf("stdout lacks the escape %s: %q", esc, got.stdout)
 			}
@@ -353,7 +354,7 @@ func TestAffiliateIDEscaped(t *testing.T) {
 		if err := json.Unmarshal([]byte(got.stdout), &rec); err != nil {
 			t.Fatalf("decode %q: %v", got.stdout, err)
 		}
-		wantID := "x\xe2\x80\xae\xc2\x9b\x1b%FF\ny" // the invalid byte as %XX; the rest decodes back
+		wantID := "x\xe2\x80\xae\xc2\x9b\x1b%FF\x7f\ny" // the invalid byte as %XX; the rest decodes back
 		if rec.Line != 1 || rec.Error != "" || rec.URL != ctAmazonStrip || len(rec.Removed) != 1 ||
 			rec.Removed[0].Category != "affiliate" || rec.Removed[0].Network != "Amazon Associates" ||
 			rec.Removed[0].ID != wantID {
