@@ -517,6 +517,12 @@ func TestRunUsage(t *testing.T) {
 		{args: []string{ctAmazon, "--", ctGoogle}, err: misplaced("--")},
 		{args: []string{"-"}, err: misplaced("-")},
 		{args: []string{ctAmazon, "-"}, err: misplaced("-")},
+		// Flag errors echo the argument escaped: an argument can come from
+		// an untrusted list (bare xargs linkclean).
+		{args: []string{"-\x1b]0;x\a\x1b[2J", ctAmazon}},
+		{args: []string{"--=\x1b[31m"}},
+		{args: []string{"-\xe2\x80\xaeX\xc2\x9b\x7f\xff=1"}},
+		{args: []string{"-json=\x1b[31m"}},
 	}
 	for _, r := range rows {
 		t.Run(strings.Join(r.args, " "), func(t *testing.T) {
@@ -533,6 +539,7 @@ func TestRunUsage(t *testing.T) {
 			if got.stderr == "" {
 				t.Error("stderr is empty, want a usage error")
 			}
+			ctAssertTerminalSafe(t, "stderr", got.stderr)
 		})
 	}
 

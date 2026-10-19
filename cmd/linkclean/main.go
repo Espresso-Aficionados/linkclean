@@ -83,7 +83,9 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strconv"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/Espresso-Aficionados/linkclean"
 )
@@ -154,7 +156,8 @@ func run(e env, args []string) int {
 			fs.PrintDefaults()
 			return exitOK
 		}
-		return usagef(e, "%v", err)
+		// The flag package echoes the offending argument raw.
+		return usagef(e, "%s", printable(err.Error()))
 	}
 	inputs := fs.Args()
 	if n := len(args) - len(inputs); n == 0 || args[n-1] != "--" {
@@ -229,6 +232,28 @@ func usagef(e env, format string, a ...any) int {
 func errorf(e env, format string, a ...any) int {
 	fmt.Fprintf(e.Stderr, "linkclean: "+format+"\n", a...)
 	return exitError
+}
+
+// printable returns s with every byte that is not valid UTF-8 and every rune
+// that strconv.IsPrint rejects written as its Go escape (\x1b, \u202e, \xff),
+// so a message that echoes untrusted text cannot drive a terminal. Other
+// runes, quotes and backslashes included, are kept as is.
+func printable(s string) string {
+	var b strings.Builder
+	for i := 0; i < len(s); {
+		r, size := utf8.DecodeRuneInString(s[i:])
+		switch {
+		case r == utf8.RuneError && size == 1:
+			fmt.Fprintf(&b, `\x%02x`, s[i])
+		case strconv.IsPrint(r):
+			b.WriteString(s[i : i+size])
+		default:
+			q := strconv.QuoteRune(r)
+			b.WriteString(q[1 : len(q)-1])
+		}
+		i += size
+	}
+	return b.String()
 }
 
 // cleanRun writes one result per input to w.
