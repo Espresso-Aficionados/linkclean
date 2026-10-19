@@ -69,6 +69,11 @@ with `rules/brave/NOTICE` and `NOTICE.md` suffices, and `Cleaner.Notices()`
 returns the same attribution at run time for an about page or a `--licenses`
 flag. There are no obligations for your own code.
 
+linkclean also depends on `golang.org/x/net` and `golang.org/x/text`
+(BSD-3-Clause, the Go project's license). A binary must reproduce their
+copyright notice, as it must for the Go standard library under the same
+license.
+
 `unshorten` depends on [`code.dny.dev/ssrf`](https://pkg.go.dev/code.dny.dev/ssrf)
 (MIT). A binary that includes `unshorten` must carry ssrf's copyright and
 permission notice, which `NOTICE.md` reproduces; programs that import only
