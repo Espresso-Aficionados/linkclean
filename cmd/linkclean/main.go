@@ -118,6 +118,10 @@ URL arguments that may start with "-". Plain and -json output are URL data and
 may contain Unicode control or bidi characters from the input; use -explain to
 view untrusted input on a terminal.
 
+-explain and -json report what was removed and why: parameter names, rule IDs
+and affiliate networks, never the input or the removed values; affiliate IDs
+are shown (they are attacker-controlled text and are escaped).
+
 Exit status: 0 success; 1 a -check case changed, a -explain/-json input could
 not be reported, or a line over 1 MiB was copied unchanged; 2 an input, output
 or rule-data error; 64 a usage error.
