@@ -419,35 +419,52 @@ func (s *ctSyncBuffer) String() string {
 	return s.b.String()
 }
 
-// TestRunStreams: a result is written once its line is complete and no more
-// input is buffered, so interactive or tail -f use sees it before the next
-// line arrives.
+// TestRunStreams: a result is written once its line is complete, before run
+// blocks reading more input, so interactive or tail -f use sees it before the
+// next line arrives. That holds when the next line is already partly read
+// (a producer or the pipe delivered part of it with the complete line), and
+// when that next line is over the cap and being copied or discarded.
 func TestRunStreams(t *testing.T) {
+	tails := []struct {
+		name, tail string
+		code       int // after the tail's line ends at EOF
+	}{
+		{"whole lines", "", 0},
+		{"partial next line", "https://partial.example/", 0},
+		{"partial long line", strings.Repeat("a", ctMaxLine+10), 1},
+	}
 	for _, mode := range [][]string{nil, {"-explain"}, {"-json"}} {
-		t.Run(fmt.Sprint(mode), func(t *testing.T) {
-			pr, pw := io.Pipe()
-			out := &ctSyncBuffer{}
-			done := make(chan int, 1)
-			go func() {
-				_, code := ctRunWith(pr, out, mode...)
-				done <- code
-			}()
-			if _, err := io.WriteString(pw, ctGoogle+"\n"); err != nil {
-				t.Fatal(err)
-			}
-			for deadline := time.Now().Add(10 * time.Second); !strings.Contains(out.String(), ctGoogleOut); {
-				if time.Now().After(deadline) {
-					pw.Close()
-					<-done
-					t.Fatal("no output for a complete line while stdin stays open")
+		for _, tt := range tails {
+			t.Run(fmt.Sprint(mode)+"/"+tt.name, func(t *testing.T) {
+				pr, pw := io.Pipe()
+				out := &ctSyncBuffer{}
+				done := make(chan int, 1)
+				go func() {
+					_, code := ctRunWith(pr, out, mode...)
+					done <- code
+				}()
+				wrote := make(chan error, 1)
+				go func() {
+					_, err := io.WriteString(pw, ctGoogle+"\n"+tt.tail)
+					wrote <- err
+				}()
+				for deadline := time.Now().Add(10 * time.Second); !strings.Contains(out.String(), ctGoogleOut); {
+					if time.Now().After(deadline) {
+						pw.Close()
+						<-done
+						t.Fatal("no output for a complete line while stdin stays open")
+					}
+					time.Sleep(time.Millisecond)
 				}
-				time.Sleep(time.Millisecond)
-			}
-			pw.Close()
-			if code := <-done; code != 0 {
-				t.Errorf("exit code %d, want 0", code)
-			}
-		})
+				if err := <-wrote; err != nil {
+					t.Fatal(err)
+				}
+				pw.Close()
+				if code := <-done; code != tt.code {
+					t.Errorf("exit code %d, want %d", code, tt.code)
+				}
+			})
+		}
 	}
 }
 

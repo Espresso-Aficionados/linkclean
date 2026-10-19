@@ -289,7 +289,8 @@ func runClean(e env, c *linkclean.Cleaner, mode int, args []string) int {
 		return p.code
 	}
 
-	lr := &lineReader{r: bufio.NewReaderSize(e.Stdin, 64<<10)}
+	in := &flushReader{r: e.Stdin, w: p.w}
+	lr := &lineReader{r: bufio.NewReaderSize(in, 64<<10)}
 	var spill func([]byte)
 	var raw rawCopy
 	if mode == modePlain {
@@ -297,14 +298,12 @@ func runClean(e env, c *linkclean.Cleaner, mode int, args []string) int {
 		spill = raw.write
 	}
 	for {
-		if lr.r.Buffered() == 0 {
-			if err := p.w.Flush(); err != nil {
-				return errorf(e, "writing output: %v", err)
-			}
-		}
 		line, long, err := lr.next(spill)
 		if err == io.EOF {
 			break
+		}
+		if in.err != nil {
+			return errorf(e, "writing output: %v", in.err)
 		}
 		if err != nil {
 			p.w.Flush()
@@ -332,6 +331,23 @@ func runClean(e env, c *linkclean.Cleaner, mode int, args []string) int {
 		return errorf(e, "writing output: %v", err)
 	}
 	return p.code
+}
+
+// flushReader flushes w before every read from r, so each result already
+// written to w reaches stdout before reading more input can block, also
+// when part of the next line is already buffered. A flush error is kept in
+// err and also returned from Read.
+type flushReader struct {
+	r   io.Reader
+	w   *bufio.Writer
+	err error
+}
+
+func (f *flushReader) Read(p []byte) (int, error) {
+	if f.err = f.w.Flush(); f.err != nil {
+		return 0, f.err
+	}
+	return f.r.Read(p)
 }
 
 // lineReader splits standard input into lines without holding more than
