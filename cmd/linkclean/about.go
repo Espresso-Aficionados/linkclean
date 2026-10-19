@@ -28,7 +28,7 @@ var (
 func runAbout(e env, write func(io.Writer, *linkclean.Cleaner)) int {
 	keep, err := linkclean.New(linkclean.Config{})
 	if err != nil {
-		return errorf(e, "%v", err)
+		return ruleDataError(e, err)
 	}
 	w := bufio.NewWriter(e.Stdout)
 	write(w, keep)

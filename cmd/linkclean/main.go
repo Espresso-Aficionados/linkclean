@@ -217,7 +217,7 @@ func run(e env, args []string) int {
 	}
 	c, err := linkclean.New(cfg)
 	if err != nil {
-		return errorf(e, "%v", err)
+		return ruleDataError(e, err)
 	}
 	return runClean(e, c, mode, inputs)
 }
@@ -231,6 +231,17 @@ func usagef(e env, format string, a ...any) int {
 // errorf reports an input, output or rule-data error and returns exitError.
 func errorf(e env, format string, a ...any) int {
 	fmt.Fprintf(e.Stderr, "linkclean: "+format+"\n", a...)
+	return exitError
+}
+
+// ruleDataError reports an error from linkclean.New and returns exitError:
+// one line per joined error, each escaped with printable, because rule IDs
+// are upstream pattern text and -check runs on unreviewed rule data. The
+// errors already start with "linkclean: ", which is not repeated.
+func ruleDataError(e env, err error) int {
+	for _, line := range strings.Split(err.Error(), "\n") {
+		fmt.Fprintf(e.Stderr, "linkclean: %s\n", printable(strings.TrimPrefix(line, "linkclean: ")))
+	}
 	return exitError
 }
 

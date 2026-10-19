@@ -61,11 +61,11 @@ func runCheck(e env) int {
 
 	keep, err := linkclean.New(linkclean.Config{})
 	if err != nil {
-		return errorf(e, "%v", err)
+		return ruleDataError(e, err)
 	}
 	strip, err := linkclean.New(linkclean.Config{Affiliate: linkclean.AffiliateStrip})
 	if err != nil {
-		return errorf(e, "%v", err)
+		return ruleDataError(e, err)
 	}
 	w := bufio.NewWriter(e.Stdout)
 	failed := 0
