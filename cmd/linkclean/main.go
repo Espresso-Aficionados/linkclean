@@ -116,9 +116,10 @@ const usageText = `usage: linkclean [-affiliate keep|strip] [-explain | -json] [
 linkclean cleans each URL argument, or each line of standard input when there
 are none, and writes one result per input. It never uses the network and does
 not resolve short links. For lists of URLs, use standard input; put -- before
-URL arguments that may start with "-". Plain and -json output are URL data and
-may contain Unicode control or bidi characters from the input; use -explain to
-view untrusted input on a terminal.
+URL arguments that may start with "-". Plain output is URL data and may
+contain Unicode control or bidi characters from the input (-json escapes them,
+but its decoded strings carry them); use -explain to view untrusted input on a
+terminal.
 
 -explain and -json report what was removed and why: parameter names, rule IDs
 and affiliate networks, never the input or the removed values; affiliate IDs

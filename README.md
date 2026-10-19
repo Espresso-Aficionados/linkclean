@@ -33,9 +33,10 @@ input or the removed values; affiliate IDs are shown (they are
 attacker-controlled text and are escaped). The cleaned URL itself still
 carries whatever was kept. `-affiliate strip` also removes affiliate tags.
 `-check` reads `<id> <url>` lines and exits 1 if any URL would change under
-either affiliate policy. Plain and `-json` output are URL data and can contain
-Unicode control or bidi characters from the input; use `-explain` to view
-untrusted input on a terminal. The command never uses the network and does not
+either affiliate policy. Plain output is URL data and can contain Unicode
+control or bidi characters from the input (`-json` escapes them, but its
+decoded strings carry them); use `-explain` to view untrusted input on a
+terminal. The command never uses the network and does not
 resolve short links. `-licenses` prints the notices a copy of the binary must
 carry.
 
