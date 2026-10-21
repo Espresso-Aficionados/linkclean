@@ -482,8 +482,8 @@
   {
     "id": "negatives-036",
     "category": "auth/oauth-authorize",
-    "input": "https://accounts.google.com/o/oauth2/v2/auth?client_id=1234567890-abc.apps.googleusercontent.com&redirect_uri=https%3A%2F%2Fsprobot.example%2Fcallback%3Fsource%3Ddiscord&response_type=code&scope=openid%20email&state=af0ifjsldkj&access_type=offline",
-    "expected": "https://accounts.google.com/o/oauth2/v2/auth?client_id=1234567890-abc.apps.googleusercontent.com&redirect_uri=https%3A%2F%2Fsprobot.example%2Fcallback%3Fsource%3Ddiscord&response_type=code&scope=openid%20email&state=af0ifjsldkj&access_type=offline",
+    "input": "https://accounts.google.com/o/oauth2/v2/auth?client_id=1234567890-abc.apps.googleusercontent.com&redirect_uri=https%3A%2F%2Fapp.example%2Fcallback%3Fsource%3Ddiscord&response_type=code&scope=openid%20email&state=af0ifjsldkj&access_type=offline",
+    "expected": "https://accounts.google.com/o/oauth2/v2/auth?client_id=1234567890-abc.apps.googleusercontent.com&redirect_uri=https%3A%2F%2Fapp.example%2Fcallback%3Fsource%3Ddiscord&response_type=code&scope=openid%20email&state=af0ifjsldkj&access_type=offline",
     "tracking_params": [],
     "functional_params": [
       "client_id",

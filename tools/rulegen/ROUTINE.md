@@ -235,7 +235,7 @@ hold's reason and findings, step 5).
 | alert addition | ``its gitlink is off the rewritten `master`; close it`` |
 | alert | `#<n> merged at head <sha>, not the verified head <V>; review before any release` |
 | alert | `merge of #<n> at <sha> refused: <gh's error>; not retried` |
-| alert | `linkclean rules <tag> released: +<A>/−<R> params, upstream <short G>; sprobot PR #<m>` (drop `; sprobot PR #<m>` while step 11 is disabled) |
+| alert | `linkclean rules <tag> released: +<A>/−<R> params, upstream <short G>` |
 | alert | `manual release needed` |
 
 ## Alerts
@@ -730,23 +730,18 @@ disarm here. Leave any auto-merge the maintainer armed as it is.
 
    They are released by the next data release or a manual one.
 
-### 11. sprobot bump PR (disabled)
+### 11. Consumers
 
-Skip this step until this file enables it (the sprobot side lands later).
-When enabled, before 13:00 UTC: in a clone of `Espresso-Aficionados/sprobot`
-create branch `linkclean-<tag>`, run
-`go get github.com/Espresso-Aficionados/linkclean@<tag> && go mod tidy`,
-commit, push, write the release notes to `/tmp/lc/notes-<tag>.md` with your
-file-writing tool, and open the PR and label it:
-`gh api -X POST repos/Espresso-Aficionados/sprobot/pulls -f title="Bump linkclean to <tag>" -f head=linkclean-<tag> -f base=main -F body=@/tmp/lc/notes-<tag>.md --jq .number`,
-then `gh api -X POST repos/Espresso-Aficionados/sprobot/issues/<m>/labels -f 'labels[]=dependencies' -f 'labels[]=linkclean-bump'`.
+Nothing to do. Projects that use linkclean pick up a release through their
+own dependency updates; the routine never opens pull requests outside this
+repository.
 
 ### 12. Alert
 
 After a release: alert
 `linkclean rules <tag> released: +<A>/−<R> params, upstream <short G>` (the
 added and removed pair counts from the summary). On any failure in steps 9
-to 11, alert with the error. A run that merged a no-op bump, closed a held PR
+and 10, alert with the error. A run that merged a no-op bump, closed a held PR
 or found nothing to do sends no alert, unless an earlier step raised one.
 
 ### 13. First Tuesday of the month, additionally

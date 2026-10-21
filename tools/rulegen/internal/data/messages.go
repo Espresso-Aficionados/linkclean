@@ -88,7 +88,7 @@ const (
 	AlertOffMaster        = "its gitlink is off the rewritten `master`; close it"                                                              //
 	AlertUnverifiedHead   = "#%d merged at head %s, not the verified head %s; review before any release"                                       // n, sha, V
 	AlertMergeRefused     = "merge of #%d at %s refused: %s; not retried"                                                                      // n, sha, gh's error
-	AlertReleased         = "linkclean rules %s released: +%d/−%d params, upstream %s; sprobot PR #%d"                                         // tag, A, R, short, m
+	AlertReleased         = "linkclean rules %s released: +%d/−%d params, upstream %s"                                                         // tag, A, R, short
 	CommentGone           = "gitlink left upstream master; closing so Dependabot can propose the rewritten master (§11.6)"                     //
 	CommentRulesMoved     = "main's rules moved (takeover/other sync) since this PR was opened; closing so that Dependabot re-proposes upstream against current main (§11.6)"
 	CommentRulesMovedPast = "main's rules moved (takeover/other sync) past this PR's gitlink; closing so that Dependabot re-proposes upstream against current main (§11.6)"
