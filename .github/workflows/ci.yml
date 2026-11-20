@@ -7,11 +7,14 @@ jobs:
   test:
     strategy: {fail-fast: false, matrix: {go: ["1.26.x", "stable"]}}
     name: test (${{ matrix.go }})
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1; submodules not checked out: nothing builds from them
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with: {go-version: "${{ matrix.go }}"}
+      - name: gofmt
+        run: u=$(gofmt -l .); [ -z "$u" ] || { echo "::error::gofmt needed on:"; echo "$u"; exit 1; }
       - run: go vet ./... && go test -race ./...
       - run: go run ./cmd/linkclean -check < testdata/golden/negative.txt
       - run: go -C tools vet ./... && go -C tools test ./...
@@ -33,7 +36,8 @@ jobs:
           - {check: risky,      sub: Risky}
           - {check: golden,     sub: Golden}
     name: rules-${{ matrix.check }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with: {fetch-depth: 0}                 # full history: basedir reads the base commit with git show/ls-tree
