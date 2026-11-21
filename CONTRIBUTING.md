@@ -147,9 +147,10 @@ commit id) matters, so you never need `git submodule update`.
    from X to Y", labelled `rules-update`. It changes only the gitlink. CI's
    `rules-provenance` is red on it until the vendored bytes are synced, unless
    the upstream commit left the three files and `LICENSE` unchanged (a
-   **no-op bump**, about 3 weeks in 4). The dep-review gate sends every
-   submodule PR to a human, so you get a notification for it; the routine
-   takes it the next day. Nobody else can push to Dependabot's branch (the
+   **no-op bump**, about 3 weeks in 4). The dep-review gate ignores
+   submodule PRs (`ignore_ecosystems: submodules` in `dep-review.yaml`): no
+   status, comment or notification; the routine takes the PR the next day.
+   Nobody else can push to Dependabot's branch (the
    `dependabot/**` ruleset), and the routine never merges it.
 2. **Tuesday 11:00 UTC:** a review routine, running as the maintainer, follows
    [`tools/rulegen/ROUTINE.md`](tools/rulegen/ROUTINE.md). For Dependabot's

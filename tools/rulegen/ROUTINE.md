@@ -31,9 +31,9 @@ secrets; see "Alerts".
   `refs/heads/dependabot/**` lets nobody but Dependabot create, push to,
   merge into or delete those branches, and the dep-review gate
   (`.github/workflows/dep-review.yaml`) reviews and merges Dependabot's PRs.
-  The gate never merges a submodule PR: it sends each one to a human, so the
-  maintainer gets a notification every time Dependabot opens one. That is
-  expected; the routine takes the PR the next day. The routine never pushes
+  The gate ignores submodule PRs (`ignore_ecosystems: submodules`): it never
+  merges, comments on or sets a status for one, and the routine takes the PR
+  the next day. The routine never pushes
   to, merges or rebases a Dependabot PR; on the submodule PR it only reads,
   comments and closes.
 - The vendored copies in `rules/brave/` (three JSON files, `LICENSE`, the
@@ -811,7 +811,7 @@ only Dependabot and verified routine commits.
 | Scenario | Input state | Required action |
 |---|---|---|
 | first_rules_pr | New data PR `#n`, no `rules-sync/<n>` branch; `sync` writes the new bytes | Commit the sync output on `<P>`, push `rules-sync/<n>`, open rules PR `#m` (no `rules-update` label), post the summary on `#m`, work `#m`. Never push to or merge `#n`; after `#m` merges, close `#n` `superseded by #m` |
-| gate_sent_to_human | The dep-review gate commented on `#n`, notified the maintainer and set `dep-review` to failure on `<P>` (it sends every submodule PR to a human) | Expected: work `#n` as usual. The `dep-review` status is a commit status on `<P>`, so a no-op bump's rules PR (head `<P>`) shows it too; it is not a check run, not one of the eight checks and not required, and the gate never acts on a rules PR |
+| gate_sent_to_human | The dep-review gate commented on `#n` and set `dep-review` to failure on `<P>` (a submodule PR it handled before `dep-review.yaml` set `ignore_ecosystems: submodules`) | Expected: work `#n` as usual. The `dep-review` status is a commit status on `<P>`, so a no-op bump's rules PR (head `<P>`) shows it too; it is not a check run, not one of the eight checks and not required, and the gate never acts on a rules PR |
 | held_closed | Routine PR, synced; the only red check is `rules-provenance` "held: …" (the hold is on `main`) | Close the data path with the held text (`#m`, then `#n`); no alert. Weeks later, with no new Dependabot PR, liveness counts `#n`'s gitlink as proposed: no liveness alert while upstream has not moved past it |
 | held_closed_with_findings | Routine PR whose held bytes also carry a scoped ⚠ pair, a ⚑ candidate and a red `rules-compile` (unclassified debounce include) | Hold first: close the data path with the held text, the close comment listing those findings; no alert |
 | held_plus_provenance_mismatch | A matching hold plus another `rules-provenance` failure ("vendored bytes ≠ upstream@G") | Hold first does not apply: escalate, do not close |
