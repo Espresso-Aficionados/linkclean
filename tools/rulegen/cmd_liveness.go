@@ -117,8 +117,9 @@ The verdict, the first of these that applies, is one line on stdout:
   blocked #<n>    open Dependabot submodule PR #<n> (the newest such) carries
                   a commit whose authors (its author login and any
                   Co-authored-by trailer) are not all dependabot[bot]
-                  (escalated or human-edited): Dependabot opens nothing newer
-                  while it is open. Steps 2-4 report it.
+                  (only Dependabot may push to dependabot/** branches, so
+                  the ruleset is not holding): Dependabot opens nothing
+                  newer while it is open. Step 2 reports it.
   quiet (no change evidence)
                   upstream gave Dependabot nothing to propose: master M
                   equals G, or every commit in G..M was under 3 days old at

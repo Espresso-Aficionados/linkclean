@@ -12,7 +12,9 @@ updates:
      groups: {actions: {update-types: [minor, patch]}}}
   # The upstream-change detector. Tracks tools/upstream/adblock-lists, whose .gitmodules entry
   # says branch = master. No cooldown key: Dependabot's default 3-day cooldown is kept on purpose.
-  # No open-pull-requests-limit: the default (5) is kept. It does not matter for the data path: an
-  # edited open PR blocks newer ones whatever the limit, and the routine closes held PRs.
+  # No open-pull-requests-limit: the default (5) is kept. It does not matter for the data path:
+  # nobody pushes to Dependabot's branches (the dependabot/** ruleset), so each newer upstream
+  # commit supersedes the open PR, and the routine closes held PRs. The routine syncs on its own
+  # rules-sync/<n> PR (tools/rulegen/ROUTINE.md).
   - {package-ecosystem: gitsubmodule, directory: "/", schedule: {interval: weekly, day: monday},
      labels: [rules-update]}

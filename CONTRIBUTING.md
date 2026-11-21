@@ -147,54 +147,66 @@ commit id) matters, so you never need `git submodule update`.
    from X to Y", labelled `rules-update`. It changes only the gitlink. CI's
    `rules-provenance` is red on it until the vendored bytes are synced, unless
    the upstream commit left the three files and `LICENSE` unchanged (a
-   **no-op bump**, about 3 weeks in 4).
+   **no-op bump**, about 3 weeks in 4). The dep-review gate sends every
+   submodule PR to a human, so you get a notification for it; the routine
+   takes it the next day. Nobody else can push to Dependabot's branch (the
+   `dependabot/**` ruleset), and the routine never merges it.
 2. **Tuesday 11:00 UTC:** a review routine, running as the maintainer, follows
-   [`tools/rulegen/ROUTINE.md`](tools/rulegen/ROUTINE.md). On a PR that only
-   Dependabot and the routine have touched, it commits `rulegen sync`'s output
+   [`tools/rulegen/ROUTINE.md`](tools/rulegen/ROUTINE.md). For Dependabot's
+   PR `#n` it pushes branch `rules-sync/<n>`, starting at Dependabot's
+   commit, and opens a **rules PR** from it (no `rules-update` label). On a
+   rules PR that only it has touched, it commits `rulegen sync`'s output
    (trailer `Rulegen-Sync: <G>`), merges `origin/main` into the branch when
    `main` moved (trailer `Rulegen-Merge: main`), posts a summary comment, and
    then does one of these:
-   - **no-op bump:** merges it; no release;
-   - **clean data change:** merges it and tags a patch release with
-     `rulegen release -pr <n>`;
+   - **no-op bump:** merges the rules PR and closes Dependabot's as
+     superseded; no release;
+   - **clean data change:** merges the rules PR, closes Dependabot's, and
+     tags a patch release with `rulegen release -pr <m>`;
    - **held** (a hold in `rules/acks.json` on `main` matches the new bytes):
-     closes it; Dependabot's next PR is checked against the hold again;
+     closes both PRs; Dependabot's next PR is checked against the hold again;
    - **can never merge** (its gitlink left upstream `master`, or `main`'s
-     rules moved past it): closes it, so Dependabot proposes current upstream;
+     rules moved past it): closes both, so Dependabot proposes current
+     upstream;
    - **needs a human** (a red check, a risky, corpus-host or affiliate-candidate
      pair in the summary, a lapsed hold, a LICENSE change, …): escalates
-     (comments and alerts the maintainer) and leaves it open. It works the
-     PR again the next week, so a fix that lands on `main` can still make it
-     mergeable.
-3. The routine never force-pushes, never pushes to `main` and never uses an
-   admin bypass. It merges only once all eight checks are green on the head
-   it verified, through GitHub's REST merge endpoint pinned to that head (no
-   auto-merge), so a push after its review makes GitHub refuse the merge.
+     (comments and alerts the maintainer) and leaves the rules PR open. It
+     works the PR again the next week, so a fix that lands on `main` can still
+     make it mergeable; when Dependabot proposes a newer upstream commit
+     instead, the routine opens a rules PR for that and closes the old one
+     as superseded.
+3. The routine never force-pushes, never pushes to `main` or to a
+   `dependabot/` branch and never uses an admin bypass. It merges only once
+   all eight checks are green on the head it verified, through GitHub's REST
+   merge endpoint pinned to that head (no auto-merge), so a push after its
+   review makes GitHub refuse the merge. Dependabot's other PRs belong to the
+   dep-review gate.
 
-**An edited PR blocks the next one.** While a Dependabot submodule PR that
-carries anyone else's commit is open, Dependabot opens no newer one. A commit
-you push to the branch (a debounce classification, an ack, a hold, a
-`known-broken.txt` line) makes the PR yours: the routine stops pushing to it,
-merging it and closing it, and alerts "data path waiting on #n" every week
-until you settle it. Settle it within the week:
+**An edited rules PR holds the next one.** A commit you push to a
+`rules-sync/<n>` branch (a debounce classification, an ack, a hold, a
+`known-broken.txt` line) makes the rules PR yours: the routine stops pushing
+to it, merging it and closing it, opens no newer rules PR while it is open,
+and alerts "data path waiting on #m" every week until you settle it. Settle
+it within the week:
 
 - **merge it** once the checks are green, with a squash merge (never the
   bypass), then tag it:
-  `GH_TOKEN="$(gh auth token)" go -C tools run ./rulegen release -root .. -pr <n>`;
-- or **close it**. Its commits stay reachable at `refs/pull/<n>/head`
-  (`git fetch origin pull/<n>/head`), and Dependabot proposes current
-  upstream on its next run.
+  `GH_TOKEN="$(gh auth token)" go -C tools run ./rulegen release -root .. -pr <m>`,
+  and close Dependabot's PR if Dependabot has not;
+- or **close it**, and Dependabot's PR with it. Its commits stay reachable at
+  `refs/pull/<m>/head` (`git fetch origin pull/<m>/head`), and Dependabot
+  proposes current upstream on its next run.
 
-Do not comment `@dependabot rebase` or `@dependabot recreate` on a rules PR:
-recreate drops every commit that is not Dependabot's, and rebase on an
-edited PR is undocumented.
+Do not push to Dependabot's branch (the ruleset refuses it) or comment
+`@dependabot rebase` or `@dependabot recreate` on its PR: the routine needs
+Dependabot's commit as it is.
 
-**Takeover branches are optional.** To detach a rules change from
-Dependabot's PR anyway, create `rules/takeover-<short G>` from the PR head,
-open a PR from it labelled `rules-update`, and close Dependabot's PR. The
-routine reports a takeover PR and never syncs, merges or closes it; you merge
-it and run `rulegen release -pr <n>`. It does not unblock the data path:
-Dependabot's next PR is cumulative and usually needs the same decision.
+**Takeover branches are optional.** To detach a rules change from the
+routine entirely, create `rules/takeover-<short G>` from Dependabot's PR
+head, open a PR from it labelled `rules-update`, and close Dependabot's PR.
+The routine reports a takeover PR and never syncs, merges or closes it; you
+merge it and run `rulegen release -pr <n>`. Dependabot's next PR is
+cumulative and usually needs the same decision.
 
 A change that is not data (an overlay or engine change, a reclassification of
 an existing debounce entry, a golden-row change) goes through a normal PR to
