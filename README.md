@@ -72,8 +72,9 @@ posted, and a shortener may count it as a click.
 
 A submodule gitlink at `tools/upstream/adblock-lists` tracks Brave's
 `master`. Each Monday Dependabot proposes moving it. On Tuesday a review
-routine copies the three lists into `rules/brave/` with `rulegen sync`,
-checks the result with the same gates CI runs, and merges it. A change to the
+routine opens its own PR with Dependabot's gitlink bump, copies the three
+lists into `rules/brave/` there with `rulegen sync`, checks the result with
+the same gates CI runs, and merges it. A change to the
 lists is then tagged as a patch release, but only if CI on the merged commit
 is green; an upstream commit that leaves the lists unchanged releases
 nothing. Anything the gates or the routine flag waits for a human. Rule
