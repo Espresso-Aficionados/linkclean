@@ -1,0 +1,42 @@
+dep-review.yaml has the gate caller's shape and nothing more: another
+trigger, more workflows or filters on workflow_run, workflow_dispatch inputs,
+wider permissions, a top-level env, expressions in with: and a second job
+are each reported.
+-- dep-review.yaml --
+name: dep-review
+on:
+  push: {branches: [main]}
+  workflow_run:
+    workflows: [dep-review-trigger, ci]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      ref: {type: string}
+permissions: {contents: read}
+env: {A: b}
+jobs:
+  gate:
+    uses: sadbox/dep-review/.github/workflows/gate.yml@9fe007b3653f3ccb0b328e70e1bf6f13e45cedaf
+    permissions:
+      contents: write
+      id-token: write
+    with:
+      ref: ${{ github.event.workflow_run.head_branch }}
+  extra:
+    runs-on: ubuntu-26.04
+    steps:
+      - run: "true"
+-- want --
+dep-review.yaml:3 gate-caller
+dep-review.yaml:5 gate-caller
+dep-review.yaml:7 gate-caller
+dep-review.yaml:9 gate-caller
+dep-review.yaml:10 gate-caller
+dep-review.yaml:11 gate-caller
+dep-review.yaml:12 gate-caller
+dep-review.yaml:17 gate-caller
+dep-review.yaml:20 gate-caller
+dep-review.yaml:21 gate-caller
+dep-review.yaml:22 gate-caller
+dep-review.yaml:23 gate-caller

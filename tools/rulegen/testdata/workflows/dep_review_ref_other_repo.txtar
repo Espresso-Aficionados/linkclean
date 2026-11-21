@@ -1,0 +1,35 @@
+The same for another repository's gate.yml at a commit SHA, and for a short
+SHA would be refused too: only sadbox/dep-review's gate.yml counts.
+-- dep-review.yaml --
+name: dep-review
+on:
+  workflow_run:
+    workflows: [dep-review-trigger]
+    types: [completed]
+  schedule:
+    - cron: "17,47 * * * *"
+  workflow_dispatch:
+permissions: {}
+jobs:
+  gate:
+    uses: someone/dep-review/.github/workflows/gate.yml@9fe007b3653f3ccb0b328e70e1bf6f13e45cedaf
+    permissions:
+      contents: read
+      pull-requests: read
+      id-token: write
+    secrets:
+      DEP_REVIEW_APP_KEY: ${{ secrets.DEP_REVIEW_APP_KEY }}
+      PUSHOVER_APP_TOKEN: ${{ secrets.PUSHOVER_APP_TOKEN }}
+      PUSHOVER_USER_KEY: ${{ secrets.PUSHOVER_USER_KEY }}
+    with:
+      anthropic_federation_rule_id: fdrl_012wV5ykPZk8GgpufmkZUJft
+-- want --
+dep-review.yaml:12 gate-caller
+dep-review.yaml:17 secrets-outside-alert
+dep-review.yaml:17 secrets-not-step-env
+dep-review.yaml:18 secrets-outside-alert
+dep-review.yaml:18 secrets-not-step-env
+dep-review.yaml:19 secrets-outside-alert
+dep-review.yaml:19 secrets-not-step-env
+dep-review.yaml:20 secrets-outside-alert
+dep-review.yaml:20 secrets-not-step-env

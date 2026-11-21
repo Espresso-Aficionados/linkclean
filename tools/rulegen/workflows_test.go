@@ -16,7 +16,10 @@ import (
 
 // TestWorkflowSecrets keeps the Pushover credentials, which live in Actions
 // secrets, out of reach of anything a pull request or an alert's text
-// controls. It is a line scan with no YAML dependency: it understands the
+// controls. The one other holder is the dep-review gate: dep-review.yaml
+// passes them, with the gate app's key, to sadbox/dep-review's reusable
+// workflow at a pinned commit, and nothing else (gate-caller below).
+// It is a line scan with no YAML dependency: it understands the
 // workflow shapes this repository writes (block mappings, flow collections
 // on one key's line, block-scalar run: bodies) and reports anything else it
 // cannot place, such as anchors, aliases and tags (at the start of a value
@@ -25,8 +28,9 @@ import (
 // one id each:
 //
 //   - secrets-outside-alert: only rules-alert.yml may mention the secrets
-//     context, in any form (secrets.X, secrets['X'], toJSON(secrets));
-//     .yml and .yaml files are both workflows.
+//     context, in any form (secrets.X, secrets['X'], toJSON(secrets)),
+//     apart from the gate call's lines (gate-caller below); .yml and .yaml
+//     files are both workflows.
 //   - secrets-inherit, tojson-secrets: never, in any workflow.
 //   - secrets-not-step-env, secrets-in-run: secrets appear only in a
 //     step-level env: (a key of a jobs.<id>.steps item, the item's "- "
@@ -50,8 +54,18 @@ import (
 //     command), curl runs only inside that capture and without -v or
 //     --trace, and the response V is used only as
 //     echo "$V" | jq ... >/dev/null or grep -q... <<<"$V".
-//   - trigger-forbidden: no pull_request_target or workflow_run trigger.
+//   - trigger-forbidden: no pull_request_target trigger, and no
+//     workflow_run trigger outside dep-review.yaml.
 //   - alert-trigger: rules-alert.yml's only trigger is workflow_dispatch.
+//   - gate-caller: dep-review.yaml, the dep-review gate's caller, has
+//     exactly that caller's shape (see gate): top-level permissions: {},
+//     triggers workflow_run on workflows: [dep-review-trigger] plus
+//     schedule and workflow_dispatch, and one job calling sadbox/dep-review's
+//     gate.yml at a 40-hex commit SHA. Its secrets: mapping, and only its
+//     DEP_REVIEW_APP_KEY, PUSHOVER_APP_TOKEN and PUSHOVER_USER_KEY lines of
+//     the form NAME: ${{ secrets.NAME }}, are exempt from
+//     secrets-outside-alert and secrets-not-step-env; every other rule
+//     still applies there, and .yml is not that file.
 //   - on-unparsed, yaml-unsupported: a form the scan cannot read.
 //
 // The package directory is tools/rulegen, so the repository's workflows are
@@ -60,13 +74,20 @@ func TestWorkflowSecrets(t *testing.T) {
 	t.Run("real", func(t *testing.T) {
 		dir := filepath.Join("..", "..", ".github", "workflows")
 		files := wfReadDir(t, dir)
-		for _, name := range []string{"ci.yml", "fuzz.yml", wfAlertFile} {
+		for _, name := range []string{"ci.yml", "fuzz.yml", wfAlertFile, wfGateFile, "dep-review-trigger.yaml"} {
 			if _, ok := files[name]; !ok {
 				t.Fatalf("%s: %s missing", dir, name)
 			}
 		}
 		if vs := wfCheck(files); len(vs) > 0 {
 			t.Errorf("the repository's workflows break the credential rules:\n\t%s", wfJoin(vs))
+		}
+
+		// The scan must understand the real gate caller: its exemption
+		// covers the secrets: key and one line per gate secret, no more.
+		exempt, names, _ := wfParse(wfGateFile, files[wfGateFile]).gate()
+		if slices.Sort(names); !slices.Equal(names, wfGateSecrets) || len(exempt) != len(wfGateSecrets)+1 {
+			t.Errorf("%s: gate secrets = %q on %d exempt lines, want %q on %d", wfGateFile, names, len(exempt), wfGateSecrets, len(wfGateSecrets)+1)
 		}
 
 		// The scan must understand the real alert workflow: exactly one step
@@ -171,6 +192,11 @@ func TestWorkflowSecrets(t *testing.T) {
 		"trigger_workflow_run",
 		"alert_second_trigger",
 		"secrets_in_yaml_workflow",
+		"ok_dep_review_gate",
+		"dep_review_second_workflow_run",
+		"dep_review_extra_secret",
+		"dep_review_ref_not_sha",
+		"dep_review_shape",
 	} {
 		if !have[name] {
 			t.Errorf("fixture testdata/workflows/%s.txtar missing", name)
@@ -337,6 +363,7 @@ const (
 	wfRuleOutput       = "secret-output"
 	wfRuleTrigger      = "trigger-forbidden"
 	wfRuleAlertTrigger = "alert-trigger"
+	wfRuleGate         = "gate-caller"
 	wfRuleOn           = "on-unparsed"
 	wfRuleYAML         = "yaml-unsupported"
 )
@@ -724,11 +751,17 @@ func (f *wfFile) check() []wfViolation {
 	add := func(n int, rule, format string, args ...any) {
 		out = append(out, wfViolation{f.name, n, rule, fmt.Sprintf(format, args...)})
 	}
+	var gateLines map[int]bool // the gate call's secrets lines, exempt below
+	if f.name == wfGateFile {
+		var vs []wfViolation
+		gateLines, _, vs = f.gate()
+		out = append(out, vs...)
+	}
 	for _, l := range f.lines {
 		_, key, inStep := wfStep(l.path)
 		isRun := inStep && key == "run"
 		last := l.path[len(l.path)-1]
-		if wfSecretsRe.MatchString(l.text) {
+		if wfSecretsRe.MatchString(l.text) && !gateLines[l.n] {
 			if f.name != wfAlertFile {
 				add(l.n, wfRuleOutsideAlert, "secrets mentioned outside %s", wfAlertFile)
 			}
@@ -852,14 +885,244 @@ func (f *wfFile) checkOn() []wfViolation {
 		add(onLine, wfRuleOn, "on: names no trigger")
 	}
 	for _, tr := range triggers {
-		if tr.name == "pull_request_target" || tr.name == "workflow_run" {
+		gate := f.name == wfGateFile
+		switch {
+		case tr.name == "pull_request_target" || tr.name == "workflow_run" && !gate:
 			add(tr.line, wfRuleTrigger, "%s trigger", tr.name)
+		case gate && !slices.Contains([]string{"workflow_run", "schedule", "workflow_dispatch"}, tr.name):
+			add(tr.line, wfRuleGate, "%s trigger: %s runs on workflow_run, schedule and workflow_dispatch only", tr.name, wfGateFile)
 		}
 	}
 	if f.name == wfAlertFile && (len(triggers) != 1 || triggers[0].name != "workflow_dispatch") {
 		add(onLine, wfRuleAlertTrigger, "%s must have workflow_dispatch as its only trigger", wfAlertFile)
 	}
 	return out
+}
+
+// wfGateFile is the dep-review gate's caller: the one workflow that may
+// use workflow_run and pass secrets to a called workflow.
+const wfGateFile = "dep-review.yaml"
+
+// wfGateSecrets are the secrets the gate call may pass, each as
+// NAME: ${{ secrets.NAME }}.
+var wfGateSecrets = []string{"DEP_REVIEW_APP_KEY", "PUSHOVER_APP_TOKEN", "PUSHOVER_USER_KEY"}
+
+// wfGateUsesRe is the gate's reusable workflow, pinned by commit.
+var wfGateUsesRe = regexp.MustCompile(`^sadbox/dep-review/\.github/workflows/gate\.yml@[0-9a-f]{40}$`)
+
+// wfGateJobPerms are the gate job's permissions, all of them optional.
+var wfGateJobPerms = map[string]string{"contents": "read", "pull-requests": "read", "id-token": "write"}
+
+// gate checks wfGateFile against the gate's caller shape, reading only
+// the block forms that shape uses and reporting anything else:
+//
+//   - top-level keys name, on, permissions, concurrency and jobs, with
+//     permissions exactly {};
+//   - on: a block mapping of workflow_run (exactly workflows:
+//     [dep-review-trigger] and types: [completed]), optionally schedule
+//     (- cron: entries) and workflow_dispatch (no inputs); checkOn reports
+//     any other trigger;
+//   - one job, whose keys are uses: (sadbox/dep-review's gate.yml at a
+//     40-hex commit), permissions: (a subset of wfGateJobPerms), secrets:
+//     and with: (literals only).
+//
+// It returns the lines the secrets rules exempt: the job's secrets: key
+// and each NAME: ${{ secrets.NAME }} line for a name in wfGateSecrets
+// (the first of each), only while the job's uses: is the pinned gate. Any
+// other line naming secrets, in this file too, gets the usual rules.
+// names are the secrets the exempt lines pass.
+func (f *wfFile) gate() (exempt map[int]bool, names []string, out []wfViolation) {
+	add := func(n int, format string, args ...any) {
+		out = append(out, wfViolation{f.name, n, wfRuleGate, fmt.Sprintf(format, args...)})
+	}
+	type secretLine struct {
+		job, name string // name is "" for the secrets: key line
+		n         int
+	}
+	var (
+		secretLines []secretLine
+		jobs        []string
+		jobLine     = map[string]int{}
+		usesOK      = map[string]bool{}
+		hasUses     = map[string]bool{}
+		permsLine   int
+		wrLine      int
+		wr          = map[string]string{} // on.workflow_run's keys and values
+		wrKeyLine   = map[string]int{}
+	)
+	for _, l := range f.lines {
+		if l.content && strings.TrimSpace(l.text) == "" {
+			continue // a blank line after a value
+		}
+		p := l.path
+		own := l.own()
+		v := ""
+		if own {
+			v = wfStripComment(l.value)
+		}
+		if p[0].item {
+			add(l.n, "not a mapping")
+			continue
+		}
+		switch p[0].key {
+		case "name", "concurrency":
+		case "permissions":
+			if len(p) == 1 && own {
+				permsLine = l.n
+				if v != "{}" {
+					add(l.n, "top-level permissions: %q, want {}", v)
+				}
+			} else {
+				add(l.n, "top-level permissions: must be {}")
+			}
+		case "on":
+			if len(p) == 1 || p[1].item {
+				continue // checkOn reads the names; workflow_run then has no block and is reported below
+			}
+			switch p[1].key {
+			case "workflow_run":
+				switch {
+				case len(p) == 2 && own:
+					wrLine = l.n
+					if v != "" {
+						add(l.n, "workflow_run: must be a block mapping")
+					}
+				case len(p) == 3 && own && !p[2].item:
+					if _, dup := wr[p[2].key]; dup {
+						add(l.n, "workflow_run: %s repeated", p[2].key)
+					}
+					wr[p[2].key], wrKeyLine[p[2].key] = v, l.n
+				default:
+					add(l.n, "workflow_run: holds only workflows: and types: flow values")
+				}
+			case "schedule":
+				switch {
+				case len(p) == 2 && own && v == "":
+				case len(p) == 4 && p[2].item && p[3].key == "cron" && own && !strings.Contains(l.text, "${{"):
+				default:
+					add(l.n, "schedule: holds only - cron: entries")
+				}
+			case "workflow_dispatch":
+				if len(p) != 2 || !own || v != "" && v != "{}" {
+					add(l.n, "workflow_dispatch: takes no inputs")
+				}
+			}
+		case "jobs":
+			if len(p) == 1 {
+				if !own || v != "" {
+					add(l.n, "jobs: must be a block mapping")
+				}
+				continue
+			}
+			if p[1].item {
+				add(l.n, "jobs: must be a block mapping")
+				continue
+			}
+			id := p[1].key
+			if len(p) == 2 {
+				if own && v == "" {
+					jobs, jobLine[id] = append(jobs, id), l.n
+				} else {
+					add(l.n, "job %s must be a block mapping", id)
+				}
+				continue
+			}
+			if p[2].item {
+				add(l.n, "job %s must be a block mapping", id)
+				continue
+			}
+			switch k := p[2].key; k {
+			case "uses":
+				hasUses[id] = true
+				if len(p) == 3 && own && wfGateUsesRe.MatchString(v) {
+					usesOK[id] = true
+				} else {
+					add(l.n, "uses: %q is not sadbox/dep-review/.github/workflows/gate.yml pinned to a 40-hex commit SHA", strings.TrimSpace(wfStripComment(wfRunText(l))))
+				}
+			case "permissions":
+				switch {
+				case len(p) == 3 && own && v == "":
+				case len(p) == 4 && own && !p[3].item && wfGateJobPerms[p[3].key] != "" && v == wfGateJobPerms[p[3].key]:
+				default:
+					add(l.n, "job permissions: only a block mapping of contents: read, pull-requests: read, id-token: write")
+				}
+			case "secrets":
+				switch {
+				case len(p) == 3 && own && v == "":
+					secretLines = append(secretLines, secretLine{id, "", l.n})
+				case len(p) == 3:
+					add(l.n, "secrets: must be a block mapping of %s", strings.Join(wfGateSecrets, ", "))
+				case len(p) == 4 && own && !p[3].item:
+					if nm := p[3].key; slices.Contains(wfGateSecrets, nm) && v == "${{ secrets."+nm+" }}" {
+						secretLines = append(secretLines, secretLine{id, nm, l.n})
+					} // anything else is left to the secrets rules
+				default:
+					add(l.n, "secrets: holds only NAME: ${{ secrets.NAME }} lines")
+				}
+			case "with":
+				if strings.Contains(l.text, "${{") {
+					add(l.n, "with: takes literals only")
+				}
+			default:
+				if len(p) == 3 && own {
+					add(l.n, "job key %s: the gate job has only uses:, permissions:, secrets: and with:", k)
+				}
+			}
+		default:
+			if len(p) == 1 && own {
+				add(l.n, "top-level key %s: %s has only name, on, permissions, concurrency and jobs", p[0].key, wfGateFile)
+			}
+		}
+	}
+
+	if permsLine == 0 {
+		add(1, "no top-level permissions: {}")
+	}
+	if wrLine == 0 {
+		add(1, "no on.workflow_run: block naming workflows: [dep-review-trigger]")
+	} else {
+		for k, want := range map[string]string{"workflows": "dep-review-trigger", "types": "completed"} {
+			v, ok := wr[k]
+			if !ok {
+				add(wrLine, "workflow_run: has no %s: [%s]", k, want)
+				continue
+			}
+			if got, ok := wfFlowNames(v); v == "" || !ok || !slices.Equal(got, []string{want}) {
+				add(wrKeyLine[k], "workflow_run: %s: %s, want [%s]", k, v, want)
+			}
+		}
+		for k, n := range wrKeyLine {
+			if k != "workflows" && k != "types" {
+				add(n, "workflow_run: %s: is not part of the gate's trigger", k)
+			}
+		}
+	}
+	switch {
+	case len(jobs) == 0:
+		add(1, "no gate job")
+	case len(jobs) > 1:
+		for _, id := range jobs[1:] {
+			add(jobLine[id], "job %s: %s holds one job, the gate call", id, wfGateFile)
+		}
+	}
+	for _, id := range jobs {
+		if !hasUses[id] {
+			add(jobLine[id], "job %s has no uses: of the gate", id)
+		}
+	}
+
+	exempt = map[int]bool{}
+	seen := map[string]bool{}
+	for _, s := range secretLines {
+		if len(jobs) != 1 || s.job != jobs[0] || !usesOK[s.job] || seen[s.name] {
+			continue
+		}
+		exempt[s.n], seen[s.name] = true, true
+		if s.name != "" {
+			names = append(names, s.name)
+		}
+	}
+	return exempt, names, out
 }
 
 // wfFlowNames reads a scalar, a flow sequence of scalars or the top-level
