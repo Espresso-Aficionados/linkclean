@@ -7,10 +7,12 @@ on:
     inputs:
       title: {required: true, type: string}
       body:  {required: true, type: string}
-permissions: {issues: write}
+permissions: {contents: read}
 jobs:
   alert:
-    runs-on: ubuntu-24.04                       # pinned, as in the maintainer's other repos
+    runs-on: ubuntu-26.04
+    timeout-minutes: 5
+    permissions: {issues: write}                # the issue step
     steps:
       - name: pushover                          # a failed push fails the run; the issue still runs
         env: {PO_USER: "${{ secrets.PUSHOVER_USER_KEY }}", PO_TOKEN: "${{ secrets.PUSHOVER_APP_TOKEN }}", TITLE: "${{ inputs.title }}", BODY: "${{ inputs.body }}"}
