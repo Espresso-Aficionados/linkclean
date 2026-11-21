@@ -1,0 +1,35 @@
+The secrets exemption holds only while the job calls the gate pinned to a
+40-hex commit SHA: a tag (which can move) loses it.
+-- dep-review.yaml --
+name: dep-review
+on:
+  workflow_run:
+    workflows: [dep-review-trigger]
+    types: [completed]
+  schedule:
+    - cron: "17,47 * * * *"
+  workflow_dispatch:
+permissions: {}
+jobs:
+  gate:
+    uses: sadbox/dep-review/.github/workflows/gate.yml@v0.1.0
+    permissions:
+      contents: read
+      pull-requests: read
+      id-token: write
+    secrets:
+      DEP_REVIEW_APP_KEY: ${{ secrets.DEP_REVIEW_APP_KEY }}
+      PUSHOVER_APP_TOKEN: ${{ secrets.PUSHOVER_APP_TOKEN }}
+      PUSHOVER_USER_KEY: ${{ secrets.PUSHOVER_USER_KEY }}
+    with:
+      anthropic_federation_rule_id: fdrl_012wV5ykPZk8GgpufmkZUJft
+-- want --
+dep-review.yaml:12 gate-caller
+dep-review.yaml:17 secrets-outside-alert
+dep-review.yaml:17 secrets-not-step-env
+dep-review.yaml:18 secrets-outside-alert
+dep-review.yaml:18 secrets-not-step-env
+dep-review.yaml:19 secrets-outside-alert
+dep-review.yaml:19 secrets-not-step-env
+dep-review.yaml:20 secrets-outside-alert
+dep-review.yaml:20 secrets-not-step-env
