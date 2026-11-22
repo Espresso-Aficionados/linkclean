@@ -1,20 +1,28 @@
 version: 2
+# Every entry sets cooldown default-days: 3 explicitly (sadbox/ci STANDARDS.md, Dependabot):
+# Dependabot's own default, written out. Schedules stay weekly: the rules routine's liveness
+# check (tools/rulegen/cmd_liveness.go) assumes the gitsubmodule entry's Monday run.
 updates:
   # code.dny.dev/ssrf is pinned to v0.3.x: a minor or major release can change which addresses
   # unshorten's dial guard denies, so moving to one is a reviewed change, not a routine bump.
   # Patch updates still come.
   - {package-ecosystem: gomod, directory: "/", schedule: {interval: weekly},
+     cooldown: {default-days: 3},
      groups: {golang-x: {patterns: ["golang.org/x/*"]}},
      ignore: [{dependency-name: code.dny.dev/ssrf,
                update-types: [version-update:semver-minor, version-update:semver-major]}]}
-  - {package-ecosystem: gomod, directory: "/tools", schedule: {interval: weekly}}
+  - {package-ecosystem: gomod, directory: "/tools", schedule: {interval: weekly},
+     cooldown: {default-days: 3}}
   - {package-ecosystem: github-actions, directory: "/", schedule: {interval: weekly},
+     cooldown: {default-days: 3},
      groups: {actions: {update-types: [minor, patch]}}}
   # The upstream-change detector. Tracks tools/upstream/adblock-lists, whose .gitmodules entry
-  # says branch = master. No cooldown key: Dependabot's default 3-day cooldown is kept on purpose.
+  # says branch = master. cooldown default-days: 3 is the 72 h liveness counts (liveCooldown, as
+  # at 00:00 UTC on the most recent Monday); change the two together.
   # No open-pull-requests-limit: the default (5) is kept. It does not matter for the data path:
   # nobody pushes to Dependabot's branches (the dependabot/** ruleset), so each newer upstream
   # commit supersedes the open PR, and the routine closes held PRs. The routine syncs on its own
   # rules-sync/<n> PR (tools/rulegen/ROUTINE.md).
   - {package-ecosystem: gitsubmodule, directory: "/", schedule: {interval: weekly, day: monday},
+     cooldown: {default-days: 3},
      labels: [rules-update]}

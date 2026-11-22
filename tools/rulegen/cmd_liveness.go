@@ -22,7 +22,7 @@ func init() { register("liveness", runLiveness) }
 // The review routine's step 1: is Dependabot's submodule path alive?
 const (
 	liveWindowDays = 14             // a Dependabot submodule PR opened this recently: ok
-	liveCooldown   = 72 * time.Hour // Dependabot's default cooldown for gitsubmodule
+	liveCooldown   = 72 * time.Hour // dependabot.yml's gitsubmodule cooldown (default-days: 3)
 
 	// liveBotLogin is Dependabot's GitHub login, as the REST API spells it
 	// for the author of a PR and of a commit Dependabot made itself.
