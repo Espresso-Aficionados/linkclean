@@ -773,15 +773,19 @@ func TestInformationalFlood(t *testing.T) {
 		t.Run(proto, func(t *testing.T) {
 			n := installNet(t)
 			h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				// Every header is set before the first 103 and never touched
+				// again: the h2 server can still be encoding a 1xx's header
+				// map when the handler runs on, so a later Set or Del races
+				// with it (go test -race, Go 1.26). The 301 carries the Link
+				// header too; nothing reads it.
+				w.Header().Set("Link", "</style.css>; rel=preload; as=style")
+				w.Header().Set("Location", "https://example.net/p")
 				for range 1000 {
-					w.Header().Set("Link", "</style.css>; rel=preload; as=style")
 					w.WriteHeader(http.StatusEarlyHints)
 					if r.Context().Err() != nil {
 						return
 					}
 				}
-				w.Header().Del("Link")
-				w.Header().Set("Location", "https://example.net/p")
 				w.WriteHeader(301)
 			})
 			if proto == "h1" {
