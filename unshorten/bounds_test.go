@@ -9,6 +9,7 @@ package unshorten
 // does NOT happen for a while.
 
 import (
+	"cmp"
 	"context"
 	"errors"
 	"log/slog"
@@ -16,6 +17,7 @@ import (
 	"net/http"
 	"net/url"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -433,6 +435,9 @@ func TestOnRequestCalls(t *testing.T) {
 	if len(got) != 2 {
 		t.Fatalf("%d calls, want 2: %+v", len(got), got)
 	}
+	// OnRequest runs on the goroutine that fetched the hop and may run
+	// after Resolve returns, so the calls can arrive in either order.
+	slices.SortFunc(got, func(a, b RequestInfo) int { return cmp.Compare(a.Hop, b.Hop) })
 	for i, info := range got {
 		want := RequestInfo{Entry: "s.example.net", Strategy: "Redirect", Host: "s.example.net", Hop: i, Status: 301 + i, Duration: info.Duration}
 		if info != want || info.Duration <= 0 {
