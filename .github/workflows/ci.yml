@@ -12,7 +12,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7.0.1 # submodules not checked out: nothing builds from them
         with: {persist-credentials: false}
-      - uses: actions/setup-go@v7.0.0
+      - uses: actions/setup-go@v7.1.0
         with: {go-version: "${{ matrix.go }}"}
       - name: gofmt
         run: u=$(gofmt -l .); [ -z "$u" ] || { echo "::error::gofmt needed on:"; echo "$u"; exit 1; }
@@ -42,7 +42,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7.0.1
         with: {fetch-depth: 0, persist-credentials: false} # full history: basedir reads the base commit with git show/ls-tree
-      - uses: actions/setup-go@v7.0.0
+      - uses: actions/setup-go@v7.1.0
         with: {go-version: "1.26.x"}
       - name: upstream clone for the provenance checks (URL pinned in Go; commits and trees only)
         if: matrix.check == 'provenance'

@@ -33,7 +33,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7.0.1
         with: {persist-credentials: false}
-      - uses: actions/setup-go@v7.0.0
+      - uses: actions/setup-go@v7.1.0
         with: {go-version: "1.26.x"}
       - run: go test -run '^$' -fuzz "^${{ matrix.target }}$" -fuzztime "${{ github.event_name == 'pull_request' && '2m' || '10m' }}" "${{ matrix.pkg }}"
   bench:
@@ -42,7 +42,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7.0.1
         with: {persist-credentials: false}
-      - uses: actions/setup-go@v7.0.0
+      - uses: actions/setup-go@v7.1.0
         with: {go-version: "1.26.x"}
       - shell: bash                            # -eo pipefail: a failing benchmark is not hidden by tee
         run: go test -run '^$' -bench . -benchtime "${{ github.event_name == 'pull_request' && '1x' || '1s' }}" ./... | tee -a "$GITHUB_STEP_SUMMARY"
