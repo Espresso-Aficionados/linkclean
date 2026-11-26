@@ -31,7 +31,7 @@ func fixtureHandler(fx *fixture) http.Handler {
 			w.Header().Set("Set-Cookie", "s=REDACTED; Path=/")
 		}
 		w.WriteHeader(fx.status)
-		w.Write(fx.replayBody())
+		_, _ = w.Write(fx.replayBody()) // a failed write is the client's to report
 	})
 }
 

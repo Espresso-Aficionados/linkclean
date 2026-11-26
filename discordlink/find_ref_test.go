@@ -233,7 +233,7 @@ func (r *refParser) token(i, hi int, spoiler bool, depth int, capped bool) int {
 func refTextBoundary(rest string) bool {
 	c, _ := utf8.DecodeRuneInString(rest)
 	isAlnum := '0' <= c && c <= '9' || 'A' <= c && c <= 'Z' || 'a' <= c && c <= 'z'
-	if !isAlnum && !isJSSpace(c) && !(0xC0 <= c && c <= 0xFFFF) && c <= 0xFFFF {
+	if !isAlnum && !isJSSpace(c) && (c < 0xC0 || 0xFFFF < c) && c <= 0xFFFF {
 		return true
 	}
 	return c == '\n' || refWordColon.MatchString(rest)

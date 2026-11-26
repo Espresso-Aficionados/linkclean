@@ -21,8 +21,8 @@ type served struct {
 
 // runStrategy runs s.Next for u under entry over an opaque transport
 // serving pages, inside a synctest bubble. It returns the next URL ("" on
-// error), the error and the request URLs in order.
-func runStrategy(t *testing.T, entry Entry, s Strategy, u string, pages map[string]served) (next string, err error, reqs []string) {
+// error), the request URLs in order and the error.
+func runStrategy(t *testing.T, entry Entry, s Strategy, u string, pages map[string]served) (next string, reqs []string, err error) {
 	t.Helper()
 	reg, rerr := NewRegistry(entry)
 	if rerr != nil {
@@ -52,7 +52,7 @@ func runStrategy(t *testing.T, entry Entry, s Strategy, u string, pages map[stri
 		}
 		err = e
 	})
-	return next, err, reqs
+	return next, reqs, err
 }
 
 func TestStrategyNames(t *testing.T) {
@@ -70,7 +70,7 @@ func TestRedirect(t *testing.T) {
 	entry := Entry{Name: "t.co", Match: []string{"*://t.co/*"}, Strategy: Redirect()}
 	for _, status := range []int{200, 204, 300, 301, 302, 303, 304, 305, 307, 308, 400, 403, 404, 410, 429, 500, 501, 502, 503, 504, 999} {
 		for _, loc := range []string{"", "https://example.net/p?utm_source=x"} {
-			next, err, reqs := runStrategy(t, entry, Redirect(), "https://t.co/TOKEN1#f",
+			next, reqs, err := runStrategy(t, entry, Redirect(), "https://t.co/TOKEN1#f",
 				map[string]served{"https://t.co/TOKEN1": {status: status, location: loc}})
 			if len(reqs) != 1 {
 				t.Errorf("%d %q: %d requests", status, loc, len(reqs))
@@ -118,7 +118,7 @@ func TestBodyRegexp(t *testing.T) {
 		{301, ``, "", nil, 301},
 	}
 	for _, tt := range tests {
-		next, err, _ := runStrategy(t, entry, entry.Strategy, "https://lnkd.in/TOKEN1",
+		next, _, err := runStrategy(t, entry, entry.Strategy, "https://lnkd.in/TOKEN1",
 			map[string]served{"https://lnkd.in/TOKEN1": {status: tt.status, body: tt.body}})
 		var se *StatusError
 		switch {
@@ -170,7 +170,7 @@ func TestTikTokOEmbed(t *testing.T) {
 		{400, `{}`, "", nil},
 	}
 	for _, tt := range tests {
-		next, err, reqs := runStrategy(t, entry, entry.Strategy, "https://vm.tiktok.com/TOKEN1/",
+		next, reqs, err := runStrategy(t, entry, entry.Strategy, "https://vm.tiktok.com/TOKEN1/",
 			map[string]served{oembed: {status: tt.status, body: tt.body}})
 		if len(reqs) != 1 || reqs[0] != oembed {
 			t.Errorf("requests %q, want only %s", reqs, oembed)
@@ -214,7 +214,7 @@ func TestTinyURLPreview(t *testing.T) {
 		if tt.fetch != "" {
 			pages[tt.fetch] = served{status: 200, body: tt.body}
 		}
-		next, err, reqs := runStrategy(t, entry, entry.Strategy, tt.in, pages)
+		next, reqs, err := runStrategy(t, entry, entry.Strategy, tt.in, pages)
 		if want := []string{tt.fetch}; tt.fetch == "" && len(reqs) != 0 || tt.fetch != "" && (len(reqs) != 1 || reqs[0] != want[0]) {
 			t.Errorf("%s: requests %q, want %q", tt.in, reqs, tt.fetch)
 		}
@@ -231,24 +231,24 @@ func TestBitlyInfo(t *testing.T) {
                   href="https://example.net/p?a=1&amp;b=2"
                   target="_blank">x</a></li></ul>`
 	for _, in := range []string{"https://bit.ly/TOKEN1", "https://bit.ly/TOKEN1+", "http://BIT.LY/TOKEN1#x", "https://bitly.com/TOKEN1"} {
-		next, err, reqs := runStrategy(t, entry, entry.Strategy, in,
+		next, reqs, err := runStrategy(t, entry, entry.Strategy, in,
 			map[string]served{"https://bit.ly/TOKEN1+": {status: 200, body: page}})
 		if err != nil || next != "https://example.net/p?a=1&b=2" || strings.Join(reqs, " ") != "https://bit.ly/TOKEN1+" {
 			t.Errorf("%s: %q, %v, requests %q", in, next, err, reqs)
 		}
 	}
-	next, err, reqs := runStrategy(t, entry, entry.Strategy, "https://bit.ly/TOKEN1",
+	next, reqs, err := runStrategy(t, entry, entry.Strategy, "https://bit.ly/TOKEN1",
 		map[string]served{"https://bit.ly/TOKEN1+": {status: 200, body: `<a href="https://bitly.com/">`}})
 	if !errors.Is(err, ErrNoMatch) || next != "" || len(reqs) != 1 {
 		t.Errorf("no anchor: %q, %v, %q", next, err, reqs)
 	}
-	_, err, reqs = runStrategy(t, entry, entry.Strategy, "https://bit.ly/TOKEN1", nil)
+	_, reqs, err = runStrategy(t, entry, entry.Strategy, "https://bit.ly/TOKEN1", nil)
 	var se *StatusError
 	if !errors.As(err, &se) || se.Status != 404 || len(reqs) != 1 {
 		t.Errorf("404: %v, %q", err, reqs)
 	}
 	for _, in := range []string{"https://bit.ly/", "https://bit.ly/+"} {
-		if _, err, reqs := runStrategy(t, entry, entry.Strategy, in, nil); !errors.Is(err, ErrNotShortLink) || len(reqs) != 0 {
+		if _, reqs, err := runStrategy(t, entry, entry.Strategy, in, nil); !errors.Is(err, ErrNotShortLink) || len(reqs) != 0 {
 			t.Errorf("%s: %v, %q", in, err, reqs)
 		}
 	}
@@ -266,7 +266,7 @@ func TestStrategiesHonourFetcher(t *testing.T) {
 		{BitlyInfo(), "https://vm.tiktok.com/TOKEN1"},
 	} {
 		entry := Entry{Name: "e", Match: []string{"*://vm.tiktok.com/*"}, Strategy: tt.s}
-		if _, err, reqs := runStrategy(t, entry, tt.s, tt.in, nil); !errors.Is(err, ErrFetchDenied) || len(reqs) != 0 {
+		if _, reqs, err := runStrategy(t, entry, tt.s, tt.in, nil); !errors.Is(err, ErrFetchDenied) || len(reqs) != 0 {
 			t.Errorf("%s: %v, %q", tt.s.Name(), err, reqs)
 		}
 	}

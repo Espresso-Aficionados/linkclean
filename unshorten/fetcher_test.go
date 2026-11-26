@@ -589,7 +589,8 @@ func TestGetGlobalSlot(t *testing.T) {
 		st := newTestState(t, Config{MaxConcurrentRequestsPerHost: 1, MaxConcurrentRequests: 1}, testRegistry(t), lim, rt)
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 		defer cancel()
-		go newTestFetcher(t, st, "t.co", ctx).Get(ctx, mustURL(t, "https://t.co/a"), false)
+		first, firstURL := newTestFetcher(t, st, "t.co", ctx), mustURL(t, "https://t.co/a")
+		go func() { _, _ = first.Get(ctx, firstURL, false) }() // it only holds the slot
 		synctest.Wait()
 		bDone := make(chan error, 1)
 		go func() {
@@ -711,7 +712,8 @@ func TestGetHopCanceled(t *testing.T) {
 		})
 		st := newTestState(t, Config{MaxConcurrentRequestsPerHost: 1}, testRegistry(t), nil, rt)
 		hop, cancel := context.WithTimeout(context.Background(), time.Hour)
-		go newTestFetcher(t, st, "t.co", hop).Get(hop, mustURL(t, "https://t.co/a"), false)
+		first, firstURL := newTestFetcher(t, st, "t.co", hop), mustURL(t, "https://t.co/a")
+		go func() { _, _ = first.Get(hop, firstURL, false) }() // it only holds the slot
 		synctest.Wait()
 		f := newTestFetcher(t, st, "t.co", hop)
 		done := make(chan error, 1)

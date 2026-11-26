@@ -131,7 +131,7 @@ func newFake(t *testing.T) *fakeDiscord {
 		f.msgs[m.ID] = m
 		if f.badReply > 0 && len(f.msgs) >= f.badReply {
 			w.WriteHeader(200)
-			io.WriteString(w, "{not json")
+			_, _ = io.WriteString(w, "{not json") // a failed write is the client's to report
 			return
 		}
 		f.jsonLocked(w, 200, m.message)
@@ -181,7 +181,7 @@ func (f *fakeDiscord) json(w http.ResponseWriter, status int, v any) {
 func (f *fakeDiscord) jsonLocked(w http.ResponseWriter, status int, v any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
-	json.NewEncoder(w).Encode(v)
+	_ = json.NewEncoder(w).Encode(v) // a failed write is the client's to report
 }
 
 func (f *fakeDiscord) requests() []request {
@@ -354,7 +354,9 @@ func TestSend(t *testing.T) {
 				t.Errorf("POST %d: allowed_mentions %s", i, got)
 			}
 			var out outgoing
-			json.Unmarshal(r.body, &out)
+			if err := json.Unmarshal(r.body, &out); err != nil {
+				t.Fatal(err)
+			}
 			posts = append(posts, out)
 		}
 	}
@@ -616,11 +618,15 @@ func TestTokenFileRefused(t *testing.T) {
 			return writeMode(t, filepath.Join(h.dir, "t"), testToken+" "+testToken, 0o600)
 		}, "more than one"},
 		{"in a git tree", func(t *testing.T, h *harness) string {
-			os.MkdirAll(filepath.Join(h.dir, "repo", ".git"), 0o700)
+			if err := os.MkdirAll(filepath.Join(h.dir, "repo", ".git"), 0o700); err != nil {
+				t.Fatal(err)
+			}
 			return writeMode(t, filepath.Join(h.dir, "repo", "token"), testToken, 0o600)
 		}, "inside a git work tree"},
 		{"symlink into a git tree", func(t *testing.T, h *harness) string {
-			os.MkdirAll(filepath.Join(h.dir, "repo", ".git"), 0o700)
+			if err := os.MkdirAll(filepath.Join(h.dir, "repo", ".git"), 0o700); err != nil {
+				t.Fatal(err)
+			}
 			real := writeMode(t, filepath.Join(h.dir, "repo", "token"), testToken, 0o600)
 			link := filepath.Join(h.dir, "link")
 			if err := os.Symlink(real, link); err != nil {
@@ -657,7 +663,9 @@ func writeMode(t *testing.T, path, content string, mode os.FileMode) string {
 
 func TestOutDirRefused(t *testing.T) {
 	h := newHarness(t, testName+"\n")
-	os.MkdirAll(filepath.Join(h.dir, "repo", ".git"), 0o700)
+	if err := os.MkdirAll(filepath.Join(h.dir, "repo", ".git"), 0o700); err != nil {
+		t.Fatal(err)
+	}
 	args := h.sendArgs(t, "all")
 	args[len(args)-1] = filepath.Join(h.dir, "repo", "out")
 	if code := h.run(args...); code != exitFail || !strings.Contains(h.stderr.String(), "-out is inside a git work tree") {
@@ -816,7 +824,6 @@ func TestCleanup(t *testing.T) {
 		}
 	}
 	// A second cleanup has nothing to do and asks nothing.
-	before = len(h.f.requests())
 	h.stdout.Reset()
 	if code := h.run(h.cleanupArgs(t)...); code != exitOK || !strings.Contains(h.stdout.String(), "nothing to delete") {
 		t.Errorf("second cleanup: exit %d, stdout %q", code, h.stdout)

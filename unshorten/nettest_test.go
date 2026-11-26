@@ -532,8 +532,9 @@ func (p *testProxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	defer stop()
 	var wg sync.WaitGroup
 	wg.Add(2)
-	go func() { defer wg.Done(); io.Copy(up, c); up.Close() }()
-	go func() { defer wg.Done(); io.Copy(c, up); c.Close() }()
+	// Each copy ends when either side closes; how it ended is not the point.
+	go func() { defer wg.Done(); _, _ = io.Copy(up, c); up.Close() }()
+	go func() { defer wg.Done(); _, _ = io.Copy(c, up); c.Close() }()
 	wg.Wait()
 }
 

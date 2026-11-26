@@ -103,13 +103,10 @@ func (s *sumSide) load() {
 }
 
 func (s *sumSide) noteJSON(p string, b []byte) {
-	switch {
-	case b == nil:
+	if b == nil {
 		s.notes = append(s.notes, fmt.Sprintf("%s %s: missing", s.name, p))
-	default:
-		if msg := sumParseError(b); msg != "" {
-			s.notes = append(s.notes, fmt.Sprintf("%s %s: %s", s.name, p, msg))
-		}
+	} else if msg := sumParseError(b); msg != "" {
+		s.notes = append(s.notes, fmt.Sprintf("%s %s: %s", s.name, p, msg))
 	}
 }
 

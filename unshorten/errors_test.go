@@ -49,18 +49,18 @@ func (l *rvLog) logger() *slog.Logger {
 // rvFailRegistry is the failure table's registry:
 //   - short (s.example.net): Redirect; a home.example.net root is its fallback;
 //   - body (b.example.net): BodyRegexp of href="…";
-//   - script (c.example.net, may also fetch f.example.net): strat;
+//   - script (c.example.net, may also fetch f.example.net): strategy;
 //   - inter (i.example.net, Intermediate): fetches once, then ErrNotShortLink.
-func rvFailRegistry(t *testing.T, strat Strategy) *Registry {
+func rvFailRegistry(t *testing.T, strategy Strategy) *Registry {
 	short := rvEntry("s.example.net")
 	short.Name = "short"
 	short.IsFallback = func(_, target *url.URL) bool { return target.Host == "home.example.net" && target.Path == "/" }
-	if strat == nil {
-		strat = rvStopper()
+	if strategy == nil {
+		strategy = rvStopper()
 	}
 	return rvRegistry(t, short,
 		Entry{Name: "body", Match: []string{"*://b.example.net/*"}, Strategy: BodyRegexp(regexp.MustCompile(`href="([^"]+)"`))},
-		Entry{Name: "script", Match: []string{"*://c.example.net/*"}, FetchHosts: []string{"f.example.net"}, Strategy: strat},
+		Entry{Name: "script", Match: []string{"*://c.example.net/*"}, FetchHosts: []string{"f.example.net"}, Strategy: strategy},
 		Entry{Name: "inter", Match: []string{"*://i.example.net/*"}, Strategy: rvStopper(), Intermediate: true},
 	)
 }

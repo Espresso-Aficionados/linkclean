@@ -586,30 +586,30 @@ func TestLivenessErrors(t *testing.T) {
 		{"head_not_fetched", liveLine(liveDependabot(5, "OPEN", liveOld, "h1")), func(t *testing.T, prs string) {
 			b, _ := os.ReadFile(prs)
 			b = []byte(headSha.ReplaceAllString(string(b), `${1}`+strings.Repeat("a", 40)+`"`))
-			os.WriteFile(prs, b, 0o644)
+			liveWrite(t, prs, b)
 		}, nil, exitUnverifiable, "is not in"},
 		{"head_not_sha", liveLine(liveDependabot(5, "OPEN", liveOld, "h1")), func(t *testing.T, prs string) {
 			b, _ := os.ReadFile(prs)
 			b = []byte(headSha.ReplaceAllString(string(b), `${1}main"`))
-			os.WriteFile(prs, b, 0o644)
+			liveWrite(t, prs, b)
 		}, nil, exitUnverifiable, `head.sha "main" is not a commit id`},
 		{"missing_commits_page", liveLine(noCommits), nil, nil, exitUnverifiable, "open #5 has no commits page; use the command of rulegen liveness -h"},
 		{"missing_comments_page", liveLine(noComments), nil, nil, exitUnverifiable, "closed #7 has no comments page; use the command of rulegen liveness -h"},
 		{"missing_key", liveLine(noMergedAt), nil, nil, exitUnverifiable, `value 1: PR object has no "merged_at"; use the command`},
 		{"gh_pr_list_array", liveLine(), func(t *testing.T, prs string) {
-			os.WriteFile(prs, []byte(`[{"number": 5, "state": "OPEN", "headRefOid": "main"}]`), 0o644)
+			liveWrite(t, prs, []byte(`[{"number": 5, "state": "OPEN", "headRefOid": "main"}]`))
 		}, nil, exitUnverifiable, "value 1: not a JSON object"},
-		{"unknown_value", liveLine(), func(t *testing.T, prs string) { os.WriteFile(prs, []byte(`{"total_count": 0}`), 0o644) }, nil, exitUnverifiable, "neither a PR object nor"},
+		{"unknown_value", liveLine(), func(t *testing.T, prs string) { liveWrite(t, prs, []byte(`{"total_count": 0}`)) }, nil, exitUnverifiable, "neither a PR object nor"},
 		{"page_both_kinds", liveLine(), func(t *testing.T, prs string) {
-			os.WriteFile(prs, []byte(`{"pull_number": 5, "comments": [], "commits": []}`), 0o644)
+			liveWrite(t, prs, []byte(`{"pull_number": 5, "comments": [], "commits": []}`))
 		}, nil, exitUnverifiable, `exactly one of "comments" and "commits"`},
 		{"page_of_unlisted_pr", liveLine(), func(t *testing.T, prs string) {
-			os.WriteFile(prs, []byte(`{"pull_number": 5, "comments": []}`+"\n"+liveDone), 0o644)
+			liveWrite(t, prs, []byte(`{"pull_number": 5, "comments": []}`+"\n"+liveDone))
 		}, nil, exitUnverifiable, "a page of #5, which is not listed"},
 		// A listing that did not complete is never read as one with fewer
 		// PRs: without its last line #4 would be missing and the window empty.
 		{"listing_empty", liveLine(liveDependabot(4, "OPEN", "2026-10-13T04:00:00Z", "h1")), func(t *testing.T, prs string) {
-			os.WriteFile(prs, nil, 0o644)
+			liveWrite(t, prs, nil)
 		}, nil, exitUnverifiable, "the listing did not complete"},
 		{"listing_cut", liveLine(liveDependabot(4, "OPEN", "2026-10-13T04:00:00Z", "h1")), func(t *testing.T, prs string) {
 			liveEditLines(t, prs, func(l []string) []string { return l[:len(l)-1] })
@@ -621,10 +621,10 @@ func TestLivenessErrors(t *testing.T) {
 			liveEditLines(t, prs, func(l []string) []string { return append(l, liveDone) })
 		}, nil, exitUnverifiable, "value 2: a value after " + liveDone},
 		{"listing_marker_other", liveLine(), func(t *testing.T, prs string) {
-			os.WriteFile(prs, []byte(`{"listing": "partial"}`), 0o644)
+			liveWrite(t, prs, []byte(`{"listing": "partial"}`))
 		}, nil, exitUnverifiable, "value 1: not " + liveDone},
 		{"listing_marker_extra_key", liveLine(), func(t *testing.T, prs string) {
-			os.WriteFile(prs, []byte(`{"listing": "complete", "number": 4}`), 0o644)
+			liveWrite(t, prs, []byte(`{"listing": "complete", "number": 4}`))
 		}, nil, exitUnverifiable, "value 1: not " + liveDone},
 		{"no_number", liveLine(func() []map[string]any {
 			p := liveDependabot(5, "OPEN", liveOld, "h1")
@@ -641,7 +641,7 @@ func TestLivenessErrors(t *testing.T) {
 			p[0]["created_at"] = nil
 			return p
 		}()), nil, nil, exitUnverifiable, "#5: no created_at"},
-		{"not_json", liveLine(), func(t *testing.T, prs string) { os.WriteFile(prs, []byte("[{"), 0o644) }, nil, exitUnverifiable, "prs.json"},
+		{"not_json", liveLine(), func(t *testing.T, prs string) { liveWrite(t, prs, []byte("[{")) }, nil, exitUnverifiable, "prs.json"},
 		{"unknown_state", liveLine(func() []map[string]any {
 			p := liveDependabot(5, "OPEN", liveOld, "h1")
 			p[0]["state"] = "OPEN"
@@ -801,5 +801,13 @@ func TestLivenessProduceCommand(t *testing.T) {
 		case strings.Contains(strings.ToLower(m[1]), "graphql"):
 			t.Errorf("GraphQL: gh %s", m[1])
 		}
+	}
+}
+
+// liveWrite replaces the listing file prs with b.
+func liveWrite(t *testing.T, prs string, b []byte) {
+	t.Helper()
+	if err := os.WriteFile(prs, b, 0o644); err != nil {
+		t.Fatal(err)
 	}
 }

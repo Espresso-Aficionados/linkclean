@@ -296,7 +296,7 @@ func TestCallerCancel(t *testing.T) {
 				res, err = r.Resolve(ctx, raw)
 			}()
 			rvWaitFor(t, "the request", func() bool { return g.arrived.Load() == 1 })
-			if tc.want == context.Canceled {
+			if errors.Is(tc.want, context.Canceled) {
 				cancel()
 			}
 			<-done
@@ -382,7 +382,7 @@ func TestTimeoutBoundsCacheGet(t *testing.T) {
 func TestStoreAfterLateOutcome(t *testing.T) {
 	n := installNet(t)
 	n.HandleTLS("s.example.net", rvRedirect(301, "https://example.net/p"))
-	strat := rvStrategy{name: "Late", next: func(ctx context.Context, f *Fetcher, u *url.URL) (*url.URL, error) {
+	strategy := rvStrategy{name: "Late", next: func(ctx context.Context, f *Fetcher, u *url.URL) (*url.URL, error) {
 		resp, err := f.Get(ctx, u, false)
 		if err != nil {
 			return nil, err
@@ -396,7 +396,7 @@ func TestStoreAfterLateOutcome(t *testing.T) {
 	inner := NewMemoryCache(0)
 	spy := &rvCache{inner: inner}
 	r := rvResolver(t, n, Config{
-		Registry: rvRegistry(t, Entry{Name: "late", Match: []string{"*://s.example.net/*"}, Strategy: strat}),
+		Registry: rvRegistry(t, Entry{Name: "late", Match: []string{"*://s.example.net/*"}, Strategy: strategy}),
 		Cache:    &rvCtxCache{Cache: spy, set: func(ctx context.Context) { mu.Lock(); setErrs = append(setErrs, ctx.Err()); mu.Unlock() }},
 		Timeout:  300 * time.Millisecond,
 	})
@@ -512,7 +512,7 @@ func TestOnRequestFailureKinds(t *testing.T) {
 func TestOnRequestStrategyPanic(t *testing.T) {
 	n := installNet(t)
 	s := n.HandleTLS("s.example.net", rvRedirect(301, "https://example.net/p"))
-	strat := rvStrategy{name: "Panicker", next: func(ctx context.Context, f *Fetcher, u *url.URL) (*url.URL, error) {
+	strategy := rvStrategy{name: "Panicker", next: func(ctx context.Context, f *Fetcher, u *url.URL) (*url.URL, error) {
 		if _, err := f.Get(ctx, u, false); err != nil {
 			return nil, err
 		}
@@ -521,7 +521,7 @@ func TestOnRequestStrategyPanic(t *testing.T) {
 	var logs lockedBuffer
 	infos := &rvInfos{}
 	r := rvResolver(t, n, Config{
-		Registry:  rvRegistry(t, Entry{Name: "p", Match: []string{"*://s.example.net/*"}, Strategy: strat}),
+		Registry:  rvRegistry(t, Entry{Name: "p", Match: []string{"*://s.example.net/*"}, Strategy: strategy}),
 		OnRequest: infos.record, Logger: slog.New(slog.NewTextHandler(&logs, nil)),
 	})
 	raw := "https://s.example.net/" + rvToken
@@ -551,13 +551,13 @@ func TestOnRequestStrayGet(t *testing.T) {
 	infos := &rvInfos{}
 	var s *testServer
 	var g *rvGate
-	strat := rvStrategy{name: "Stray", next: func(ctx context.Context, f *Fetcher, u *url.URL) (*url.URL, error) {
+	strategy := rvStrategy{name: "Stray", next: func(ctx context.Context, f *Fetcher, u *url.URL) (*url.URL, error) {
 		go func() { _, _ = f.Get(context.Background(), u, false) }()
 		rvWaitFor(t, "the stray request", func() bool { return g.arrived.Load() == 1 })
 		return nil, ErrNotShortLink
 	}}
 	r := rvResolver(t, n, Config{
-		Registry:  rvRegistry(t, Entry{Name: "stray", Match: []string{"*://s.example.net/*"}, Strategy: strat}),
+		Registry:  rvRegistry(t, Entry{Name: "stray", Match: []string{"*://s.example.net/*"}, Strategy: strategy}),
 		OnRequest: infos.record,
 	})
 	g = rvNewGate(t)
@@ -580,7 +580,7 @@ func TestOnRequestStrayGet(t *testing.T) {
 func TestOnRequestNotForRefusals(t *testing.T) {
 	t.Run("fetcher", func(t *testing.T) {
 		var calls atomic.Int64
-		strat := rvStrategy{name: "Refused", next: func(ctx context.Context, f *Fetcher, u *url.URL) (*url.URL, error) {
+		strategy := rvStrategy{name: "Refused", next: func(ctx context.Context, f *Fetcher, u *url.URL) (*url.URL, error) {
 			for _, s := range []string{"https://other.example.net/x", "https://127.0.0.1/x", "http://c.example.net/x"} {
 				target, _ := url.Parse(s)
 				if _, err := f.Get(ctx, target, false); err == nil {
@@ -595,7 +595,7 @@ func TestOnRequestNotForRefusals(t *testing.T) {
 		n := installNet(t)
 		s := n.HandleTLS("c.example.net", rvBody("ok"))
 		infos := &rvInfos{}
-		r := rvResolver(t, n, Config{Registry: rvRegistry(t, Entry{Name: "c", Match: []string{"*://c.example.net/*"}, Strategy: strat}), OnRequest: infos.record})
+		r := rvResolver(t, n, Config{Registry: rvRegistry(t, Entry{Name: "c", Match: []string{"*://c.example.net/*"}, Strategy: strategy}), OnRequest: infos.record})
 		_, err := r.Resolve(context.Background(), "https://c.example.net/x")
 		if !errors.Is(err, ErrNoMatch) {
 			t.Errorf("err %v", err)

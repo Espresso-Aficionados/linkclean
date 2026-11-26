@@ -51,7 +51,7 @@ func canonHost(raw string, strict bool) (host string, isIP, idnaOK bool) {
 // matchpattern has the same function: the packages share no helpers.
 func asciiLower(s string) string {
 	i := 0
-	for i < len(s) && !('A' <= s[i] && s[i] <= 'Z') {
+	for i < len(s) && (s[i] < 'A' || 'Z' < s[i]) {
 		i++
 	}
 	if i == len(s) {
@@ -71,7 +71,7 @@ func asciiLower(s string) string {
 func idnaShortcut(h string) bool {
 	for i := 0; i < len(h); i++ {
 		c := h[i]
-		if !('a' <= c && c <= 'z' || '0' <= c && c <= '9' || c == '.' || c == '-' || c == '_') {
+		if (c < 'a' || 'z' < c) && (c < '0' || '9' < c) && c != '.' && c != '-' && c != '_' {
 			return false
 		}
 		if c == 'x' && (i == 0 || h[i-1] == '.') && strings.HasPrefix(h[i:], "xn--") {

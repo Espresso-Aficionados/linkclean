@@ -154,7 +154,7 @@ func (m *Pattern) parseHost(host string, allowLabel bool) error {
 	if !isASCII(host) {
 		a, err := idna.Lookup.ToASCII(host)
 		if err != nil {
-			return fmt.Errorf("host %q: %v", host, err)
+			return fmt.Errorf("host %q: %w", host, err)
 		}
 		host = strings.TrimRight(a, ".")
 	}

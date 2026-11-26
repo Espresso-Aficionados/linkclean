@@ -43,22 +43,23 @@ func runAbout(e env, write func(io.Writer, *linkclean.Cleaner)) int {
 // golang.org/x/text and the Go standard library. Write errors surface from
 // the caller's Flush.
 func writeLicenses(w io.Writer, keep *linkclean.Cleaner) {
-	io.WriteString(w, versionLine()+"\n\n"+
+	_, _ = io.WriteString(w, versionLine()+"\n\n"+
 		"linkclean (github.com/Espresso-Aficionados/linkclean), MIT License:\n\n"+mitLicense+
 		"\nEmbedded rule data:\n\n"+keep.Notices()+"\n"+
 		"\ngolang.org/x/net, golang.org/x/text and the Go standard library, BSD-3-Clause:\n\n"+bsdLicense)
 }
 
 // writeVersion writes the version line and one line per rule set:
-// "<name> <license>[ <commit> <sha256>]".
+// "<name> <license>[ <commit> <sha256>]". Write errors surface from the
+// caller's Flush.
 func writeVersion(w io.Writer, keep *linkclean.Cleaner) {
-	io.WriteString(w, versionLine()+"\n")
+	_, _ = io.WriteString(w, versionLine()+"\n")
 	for _, s := range keep.Sources() {
 		line := s.Name + " " + s.License
 		if s.Commit != "" {
 			line += " " + s.Commit + " " + s.SHA256
 		}
-		io.WriteString(w, line+"\n")
+		_, _ = io.WriteString(w, line+"\n")
 	}
 }
 

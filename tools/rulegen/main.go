@@ -15,6 +15,7 @@ package main
 import (
 	"bytes"
 	"context"
+	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -118,7 +119,7 @@ func usage(w io.Writer) {
 		fmt.Fprintf(&b, "  %s\n", n)
 	}
 	b.WriteString("\nRun 'rulegen <command> -h' for its flags.\n")
-	w.Write(b.Bytes())
+	_, _ = w.Write(b.Bytes()) // the usage text; nothing is left to report a failure to
 }
 
 // newFlags returns the flag set of a command, reporting to e.Stderr.
@@ -132,7 +133,7 @@ func newFlags(e *Env, name string) *flag.FlagSet {
 // is false the command returns code: 0 after -h, exitUsage otherwise.
 func parseFlags(fs *flag.FlagSet, args []string) (code int, ok bool) {
 	if err := fs.Parse(args); err != nil {
-		if err == flag.ErrHelp {
+		if errors.Is(err, flag.ErrHelp) {
 			return exitOK, false
 		}
 		return exitUsage, false

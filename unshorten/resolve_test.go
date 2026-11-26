@@ -766,7 +766,7 @@ func TestValidateDirectGet(t *testing.T) {
 	}
 	var mu sync.Mutex
 	got := map[string]error{}
-	strat := rvStrategy{name: "Direct", next: func(ctx context.Context, f *Fetcher, u *url.URL) (*url.URL, error) {
+	strategy := rvStrategy{name: "Direct", next: func(ctx context.Context, f *Fetcher, u *url.URL) (*url.URL, error) {
 		i, _ := strconv.Atoi(strings.TrimPrefix(u.Path, "/t"))
 		_, err := f.Get(ctx, targets[i].u, false)
 		mu.Lock()
@@ -780,7 +780,7 @@ func TestValidateDirectGet(t *testing.T) {
 	n := installNet(t)
 	d := n.HandleTLS("d.example.net", rvRedirect(500, ""))
 	other := n.HandleTLS("other.example.net", rvRedirect(500, ""))
-	r := rvResolver(t, n, Config{Registry: rvRegistry(t, Entry{Name: "direct", Match: []string{"*://d.example.net/*"}, Strategy: strat})})
+	r := rvResolver(t, n, Config{Registry: rvRegistry(t, Entry{Name: "direct", Match: []string{"*://d.example.net/*"}, Strategy: strategy})})
 	for i, tg := range targets {
 		t.Run(strconv.Itoa(i), func(t *testing.T) {
 			raw := "https://d.example.net/t" + strconv.Itoa(i)
@@ -894,7 +894,7 @@ func TestHopLimit(t *testing.T) {
 // server sees exactly 2 requests; the ErrBudget outcome is cached.
 func TestBudget(t *testing.T) {
 	var errs [3]error
-	strat := rvStrategy{name: "Greedy", next: func(ctx context.Context, f *Fetcher, u *url.URL) (*url.URL, error) {
+	strategy := rvStrategy{name: "Greedy", next: func(ctx context.Context, f *Fetcher, u *url.URL) (*url.URL, error) {
 		for i := range errs {
 			_, errs[i] = f.Get(ctx, u, false)
 		}
@@ -902,7 +902,7 @@ func TestBudget(t *testing.T) {
 	}}
 	n := installNet(t)
 	s := n.HandleTLS("b.example.net", rvBody("ok"))
-	r := rvResolver(t, n, Config{Registry: rvRegistry(t, Entry{Name: "budget", Match: []string{"*://b.example.net/*"}, Strategy: strat})})
+	r := rvResolver(t, n, Config{Registry: rvRegistry(t, Entry{Name: "budget", Match: []string{"*://b.example.net/*"}, Strategy: strategy})})
 	raw := "https://b.example.net/x"
 	res, err := r.Resolve(context.Background(), raw)
 	rvFailOpen(t, r, raw, res, err, ErrBudget)
@@ -923,7 +923,7 @@ func TestBudget(t *testing.T) {
 // most 2 pass the budget (run under -race).
 func TestBudgetConcurrent(t *testing.T) {
 	var passed, refused atomic.Int64
-	strat := rvStrategy{name: "Burst", next: func(ctx context.Context, f *Fetcher, u *url.URL) (*url.URL, error) {
+	strategy := rvStrategy{name: "Burst", next: func(ctx context.Context, f *Fetcher, u *url.URL) (*url.URL, error) {
 		var wg sync.WaitGroup
 		start := make(chan struct{})
 		for range 8 {
@@ -946,7 +946,7 @@ func TestBudgetConcurrent(t *testing.T) {
 	}}
 	n := installNet(t)
 	s := n.HandleTLS("b.example.net", rvBody("ok"))
-	r := rvResolver(t, n, Config{Registry: rvRegistry(t, Entry{Name: "burst", Match: []string{"*://b.example.net/*"}, Strategy: strat})})
+	r := rvResolver(t, n, Config{Registry: rvRegistry(t, Entry{Name: "burst", Match: []string{"*://b.example.net/*"}, Strategy: strategy})})
 	raw := "https://b.example.net/x"
 	res, err := r.Resolve(context.Background(), raw)
 	rvFailOpen(t, r, raw, res, err, ErrNoMatch)

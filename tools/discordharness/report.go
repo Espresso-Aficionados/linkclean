@@ -154,11 +154,11 @@ func writeRun(dir string, rec *runRecord) error {
 func readRun(dir string) (*runRecord, error) {
 	b, err := os.ReadFile(filepath.Join(dir, runFile))
 	if err != nil {
-		return nil, fmt.Errorf("-out: %v", err)
+		return nil, fmt.Errorf("-out: %w", err)
 	}
 	var rec runRecord
 	if err := json.Unmarshal(b, &rec); err != nil {
-		return nil, fmt.Errorf("%s: %v", runFile, err)
+		return nil, fmt.Errorf("%s: %w", runFile, err)
 	}
 	if rec.Version != 1 || !snowflake.MatchString(rec.BotID) || !snowflake.MatchString(rec.GuildID) || !snowflake.MatchString(rec.ChannelID) {
 		return nil, fmt.Errorf("%s: not a harness run record", runFile)

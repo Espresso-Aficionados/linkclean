@@ -319,8 +319,10 @@ func (rel *releaser) onMain(ctx context.Context, s string) error {
 	if !relIsHex(s, 40) {
 		return fmt.Errorf("%q is not a commit id", s)
 	}
-	if _, ok, err := rel.r.RevParse(ctx, s+"^{commit}"); err != nil || !ok {
-		return fmt.Errorf("not in the fetched history: %v", err)
+	if _, ok, err := rel.r.RevParse(ctx, s+"^{commit}"); err != nil {
+		return fmt.Errorf("not in the fetched history: %w", err)
+	} else if !ok {
+		return errors.New("not in the fetched history")
 	}
 	ok, err := rel.r.IsAncestor(ctx, s, relMainRef)
 	if err != nil {
@@ -516,7 +518,7 @@ func relIsHex(s string, n int) bool {
 		return false
 	}
 	for i := 0; i < len(s); i++ {
-		if c := s[i]; !('0' <= c && c <= '9' || 'a' <= c && c <= 'f') {
+		if c := s[i]; (c < '0' || '9' < c) && (c < 'a' || 'f' < c) {
 			return false
 		}
 	}

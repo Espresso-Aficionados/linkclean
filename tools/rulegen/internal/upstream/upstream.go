@@ -201,7 +201,7 @@ func isCommitID(s string) bool {
 		return false
 	}
 	for i := 0; i < len(s); i++ {
-		if c := s[i]; !('0' <= c && c <= '9' || 'a' <= c && c <= 'f') {
+		if c := s[i]; (c < '0' || '9' < c) && (c < 'a' || 'f' < c) {
 			return false
 		}
 	}

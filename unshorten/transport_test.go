@@ -24,8 +24,8 @@ import (
 	"github.com/Espresso-Aficionados/linkclean/unshorten/internal/dialhook"
 )
 
-// handlerOK answers 200 "ok".
-var handlerOK = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { io.WriteString(w, "ok") })
+// handlerOK answers 200 "ok" (a failed write is the client's to report).
+var handlerOK = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { _, _ = io.WriteString(w, "ok") })
 
 // guardedTransport is NewTransport(opts) trusting n's CA, closed at the end of
 // the test (before n's cleanup, which was registered first).
@@ -37,16 +37,23 @@ func guardedTransport(t *testing.T, n *testNet, opts TransportOptions) *http.Tra
 	return tr
 }
 
-// fetch sends a GET for rawURL through rt with the production headers,
-// reads and closes the body, and returns the response (body drained).
-func fetchVia(t *testing.T, rt http.RoundTripper, rawURL string) (*http.Response, error) {
+// fetched is what fetchVia keeps of a response whose body it has read and
+// closed.
+type fetched struct {
+	StatusCode int
+	Proto      string
+}
+
+// fetchVia sends a GET for rawURL through rt with the production headers,
+// reads and closes the body, and returns the response's status and protocol.
+func fetchVia(t *testing.T, rt http.RoundTripper, rawURL string) (*fetched, error) {
 	t.Helper()
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	return fetchViaCtx(ctx, rt, rawURL)
 }
 
-func fetchViaCtx(ctx context.Context, rt http.RoundTripper, rawURL string) (*http.Response, error) {
+func fetchViaCtx(ctx context.Context, rt http.RoundTripper, rawURL string) (*fetched, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, rawURL, nil)
 	if err != nil {
 		return nil, err
@@ -58,9 +65,11 @@ func fetchViaCtx(ctx context.Context, rt http.RoundTripper, rawURL string) (*htt
 	if err != nil {
 		return nil, err
 	}
-	io.Copy(io.Discard, resp.Body)
-	resp.Body.Close()
-	return resp, nil
+	defer resp.Body.Close()
+	if _, err := io.Copy(io.Discard, resp.Body); err != nil {
+		return nil, err
+	}
+	return &fetched{StatusCode: resp.StatusCode, Proto: resp.Proto}, nil
 }
 
 // capturedLog is a slog handler's output, counted by line.
@@ -141,7 +150,7 @@ func TestNewTransportFields(t *testing.T) {
 		t.Error("DialContext is not the guard")
 	case tr.Proxy != nil || a.proxy != nil:
 		t.Error("Proxy set without opts.Proxy")
-	case tr.Dial != nil || tr.DialTLS != nil || tr.DialTLSContext != nil:
+	case tr.Dial != nil || tr.DialTLS != nil || tr.DialTLSContext != nil: //nolint:staticcheck // SA1019: the guard must refuse the deprecated fields net/http still uses
 		t.Error("a Dial* field is set")
 	case a.dial.d.Timeout != time.Second:
 		t.Errorf("dial timeout %v", a.dial.d.Timeout)
@@ -373,8 +382,8 @@ func TestTransportCheck(t *testing.T) {
 		{name: "foreign DialContext", rt: mutate(func(tr *http.Transport) { tr.DialContext = (&net.Dialer{}).DialContext }), mention: "DialContext", warn: true},
 		{name: "nil DialContext", rt: mutate(func(tr *http.Transport) { tr.DialContext = nil }), mention: "DialContext", warn: true},
 		{name: "DialTLSContext", rt: mutate(func(tr *http.Transport) { tr.DialTLSContext = (&dialSpy{}).DialContext }), mention: "DialTLSContext", warn: true},
-		{name: "Dial", rt: mutate(func(tr *http.Transport) { tr.Dial = net.Dial }), mention: "Dial is set", warn: true},
-		{name: "DialTLS", rt: mutate(func(tr *http.Transport) { tr.DialTLS = net.Dial }), mention: "DialTLS is set", warn: true},
+		{name: "Dial", rt: mutate(func(tr *http.Transport) { tr.Dial = net.Dial }), mention: "Dial is set", warn: true},          //nolint:staticcheck // SA1019: the guard must refuse the deprecated fields net/http still uses
+		{name: "DialTLS", rt: mutate(func(tr *http.Transport) { tr.DialTLS = net.Dial }), mention: "DialTLS is set", warn: true}, //nolint:staticcheck // SA1019: the guard must refuse the deprecated fields net/http still uses
 		{name: "ProxyURL", rt: mutate(func(tr *http.Transport) { tr.Proxy = http.ProxyURL(urlOf(t, "http://p.test")) }), mention: "Proxy was set", warn: true},
 		{name: "invalid proxy", rt: func() http.RoundTripper { return NewTransport(TransportOptions{Proxy: urlOf(t, "ftp://p.test")}) }, mention: "invalid proxy URL", warn: true},
 	}
@@ -873,7 +882,7 @@ func TestProxyErrorRedacted(t *testing.T) {
 	if err == nil || strings.Contains(err.Error(), secret) {
 		t.Errorf("changed transport: %v", err)
 	}
-	checkTransport(tr, true, logs.logger())
+	_, _ = checkTransport(tr, true, logs.logger()) // only the warning it logs is checked
 	if strings.Contains(logs.String(), secret) {
 		t.Errorf("warning: %s", logs.String())
 	}

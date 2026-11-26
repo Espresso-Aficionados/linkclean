@@ -80,10 +80,10 @@ func (s *summary) render(ctx context.Context) []byte {
 
 // sumDelta renders "a → b (±x.x%)", or "a" when unchanged.
 func sumDelta(a, b int) string {
-	switch {
-	case a == b:
+	switch a {
+	case b:
 		return fmt.Sprint(a)
-	case a == 0:
+	case 0:
 		return fmt.Sprintf("%d → %d (new)", a, b)
 	}
 	return fmt.Sprintf("%d → %d (%+.1f%%)", a, b, 100*float64(b-a)/float64(a))

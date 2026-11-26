@@ -89,7 +89,7 @@ func parseCases(file string, data []byte) ([]goldenCase, error) {
 				dec := json.NewDecoder(strings.NewReader(val))
 				dec.UseNumber()
 				if err := dec.Decode(&m); err != nil {
-					return nil, fmt.Errorf("%s:%d: %s: %v", file, n, key, err)
+					return nil, fmt.Errorf("%s:%d: %s: %w", file, n, key, err)
 				}
 				return m, nil
 			}
@@ -117,7 +117,7 @@ func parseCases(file string, data []byte) ([]goldenCase, error) {
 				dec := json.NewDecoder(strings.NewReader(val))
 				dec.DisallowUnknownFields()
 				if err := dec.Decode(&c.Config); err != nil {
-					return nil, fmt.Errorf("%s:%d: config: %v", file, n, err)
+					return nil, fmt.Errorf("%s:%d: config: %w", file, n, err)
 				}
 				if c.Config.Affiliate != AffiliateKeep || c.Config.Sources != nil {
 					return nil, fmt.Errorf("%s:%d: config may not set Affiliate or Sources", file, n)

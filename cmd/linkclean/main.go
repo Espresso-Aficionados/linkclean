@@ -79,6 +79,7 @@ package main
 
 import (
 	"bufio"
+	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -151,7 +152,7 @@ func run(e env, args []string) int {
 	licenses := fs.Bool("licenses", false, "print the license and attribution notices")
 	version := fs.Bool("version", false, "print the version and the rule data sources")
 	if err := fs.Parse(args); err != nil {
-		if err == flag.ErrHelp {
+		if errors.Is(err, flag.ErrHelp) {
 			fs.SetOutput(e.Stderr)
 			fmt.Fprint(e.Stderr, usageText)
 			fs.PrintDefaults()
@@ -336,7 +337,7 @@ func runClean(e env, c *linkclean.Cleaner, mode int, args []string) int {
 	}
 	for {
 		line, long, err := lr.next(spill)
-		if err == io.EOF {
+		if errors.Is(err, io.EOF) {
 			break
 		}
 		if in.err != nil {
@@ -407,13 +408,13 @@ func (lr *lineReader) next(spill func([]byte)) (line []byte, long bool, err erro
 	started := false
 	for {
 		chunk, err := lr.r.ReadSlice('\n')
-		if err != nil && err != bufio.ErrBufferFull && err != io.EOF {
+		if err != nil && !errors.Is(err, bufio.ErrBufferFull) && !errors.Is(err, io.EOF) {
 			return nil, false, err
 		}
 		if len(chunk) > 0 {
 			started = true
 		}
-		if err == io.EOF && !started {
+		if errors.Is(err, io.EOF) && !started {
 			return nil, false, io.EOF
 		}
 		switch {
@@ -424,7 +425,7 @@ func (lr *lineReader) next(spill func([]byte)) (line []byte, long bool, err erro
 		default:
 			lr.buf = append(lr.buf, chunk...)
 			// Content plus a possible '\r' fits in maxLine+1 bytes.
-			if err == bufio.ErrBufferFull && len(lr.buf) > maxLine+1 {
+			if errors.Is(err, bufio.ErrBufferFull) && len(lr.buf) > maxLine+1 {
 				long = true
 				if spill != nil {
 					spill(lr.buf)
@@ -432,7 +433,7 @@ func (lr *lineReader) next(spill func([]byte)) (line []byte, long bool, err erro
 				lr.buf = lr.buf[:0]
 			}
 		}
-		if err == bufio.ErrBufferFull {
+		if errors.Is(err, bufio.ErrBufferFull) {
 			continue
 		}
 		lr.n++
@@ -467,27 +468,28 @@ type rawCopy struct {
 	cr bool // a '\r' is held back
 }
 
+// A bufio.Writer's write error sticks: the caller's Flush reports it.
 func (c *rawCopy) write(p []byte) {
 	nl := len(p) > 0 && p[len(p)-1] == '\n'
 	if nl {
 		p = p[:len(p)-1]
 	}
 	if c.cr && (!nl || len(p) > 0) {
-		c.w.WriteByte('\r')
+		_ = c.w.WriteByte('\r')
 	}
 	c.cr = false
 	if n := len(p); n > 0 && p[n-1] == '\r' {
 		p = p[:n-1]
 		c.cr = !nl
 	}
-	c.w.Write(p)
+	_, _ = c.w.Write(p)
 }
 
 // end finishes the line: a held '\r' was content (the line ended at EOF), and
 // the output line ends with '\n'.
 func (c *rawCopy) end() error {
 	if c.cr {
-		c.w.WriteByte('\r')
+		_ = c.w.WriteByte('\r') // an error sticks: the WriteByte below returns it
 		c.cr = false
 	}
 	return c.w.WriteByte('\n')

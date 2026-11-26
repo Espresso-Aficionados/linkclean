@@ -80,7 +80,7 @@ func TestRehydrate(t *testing.T) {
 		for _, s := range all[1:] {
 			want := false
 			for _, w := range tt.want {
-				want = want || w == s
+				want = want || errors.Is(w, s)
 			}
 			if errors.Is(err, s) != want {
 				t.Errorf("%v: errors.Is(%v) = %v, want %v", tt.e, s, !want, want)

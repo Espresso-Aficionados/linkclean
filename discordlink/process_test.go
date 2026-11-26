@@ -304,7 +304,7 @@ func TestProcessErr(t *testing.T) {
 	}
 	for _, conc := range []int{1, 4} {
 		cs, un := Process(context.Background(), m, &fakeProc{fn: f}, Options{Concurrency: conc})
-		if len(cs) != 1 || un != 0 || cs[0].Link.URL != us[0] || cs[0].Result.URL != us[0]+"/c" || cs[0].Err != errA {
+		if len(cs) != 1 || un != 0 || cs[0].Link.URL != us[0] || cs[0].Result.URL != us[0]+"/c" || cs[0].Err != errA { //nolint:errorlint // identity: Process hands on the processor's error as it is
 			t.Errorf("Concurrency %d: %+v, unexamined %d", conc, cs, un)
 		}
 	}
@@ -494,7 +494,7 @@ func TestProcessPanic(t *testing.T) {
 				return result(u, u+"/c"), nil
 			}}
 			v, returned := recoverProcess(func() { Process(context.Background(), m, f, Options{Concurrency: conc}) })
-			if returned || v != errBoom {
+			if returned || v != errBoom { //nolint:errorlint // the recovered panic value itself, not an error chain
 				t.Fatalf("returned %v, recovered %v; want a panic with errBoom", returned, v)
 			}
 			if f.inflight.Load() != 0 {

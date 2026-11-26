@@ -465,12 +465,13 @@ func syncApply(rt *os.Root, want map[string][]byte, d syncDiff) error {
 			return err
 		}
 		_, werr := io.Copy(f, bytes.NewReader(want[p]))
+		// The cleanup is best effort: the write's error is the one reported.
 		if err := cmp.Or(werr, f.Chmod(0o644), f.Close()); err != nil {
-			rt.Remove(tmp)
+			_ = rt.Remove(tmp)
 			return err
 		}
 		if err := rt.Rename(tmp, name); err != nil {
-			rt.Remove(tmp)
+			_ = rt.Remove(tmp)
 			return err
 		}
 	}

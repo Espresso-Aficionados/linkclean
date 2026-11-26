@@ -58,7 +58,7 @@ const (
 		`"rule":"` + ctStripRule + `","network":"Amazon Associates","id":"foo-20"}],"kept":[]}`
 )
 
-var ctErrBoom = errors.New("boom")
+var errCtBoom = errors.New("boom")
 
 func ctExplain(line int, body string) string { return "line " + strconv.Itoa(line) + "\n" + body }
 
@@ -137,7 +137,7 @@ func (u ctUnreadable) Read([]byte) (int, error) {
 	return 0, io.EOF
 }
 
-// ctFailWriter accepts n bytes, then fails every write with ctErrBoom.
+// ctFailWriter accepts n bytes, then fails every write with errCtBoom.
 type ctFailWriter struct{ n int }
 
 func (w *ctFailWriter) Write(p []byte) (int, error) {
@@ -147,7 +147,7 @@ func (w *ctFailWriter) Write(p []byte) (int, error) {
 	}
 	k := w.n
 	w.n = 0
-	return k, ctErrBoom
+	return k, errCtBoom
 }
 
 // TestRun: invocation forms, trimming, line handling per mode, the affiliate
@@ -165,7 +165,7 @@ func TestRun(t *testing.T) {
 		args     []string
 		stdin    string
 		noStdin  bool // stdin must not be read
-		readErr  bool // stdin fails with ctErrBoom after its text
+		readErr  bool // stdin fails with errCtBoom after its text
 		out, err string
 		code     int
 	}
@@ -245,7 +245,7 @@ func TestRun(t *testing.T) {
 				case r.noStdin:
 					in = ctUnreadable{t}
 				case r.readErr:
-					in = io.MultiReader(in, iotest.ErrReader(ctErrBoom))
+					in = io.MultiReader(in, iotest.ErrReader(errCtBoom))
 				}
 				return ctRun(in, r.args...)
 			}

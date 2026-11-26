@@ -253,7 +253,9 @@ func requestError(entry, host string, kind FailureKind, class errClass, status i
 	if kind == FailNone {
 		return nil
 	}
-	re := rehydrate(CacheEntry{Failure: kind, Status: status}, entry, host, class, nil).(*resolveError)
+	// rehydrate's own result, which is always a *resolveError: not a
+	// chain to search.
+	re := rehydrate(CacheEntry{Failure: kind, Status: status}, entry, host, class, nil).(*resolveError) //nolint:errorlint // see above
 	switch class {
 	case classGuardDenied:
 		for _, s := range []error{ssrf.ErrProhibitedIP, ssrf.ErrProhibitedPort, ssrf.ErrProhibitedNetwork} {

@@ -231,7 +231,7 @@ func repost(cs []Change, o RepostOptions) ([]string, repostStats) {
 func annotateLines(f func(Change, bool) ([]string, int), c Change, compact bool) ([]string, int) {
 	lines, req := f(c, compact)
 	for i, l := range lines {
-		if strings.IndexAny(l, "\r\n") >= 0 {
+		if strings.ContainsAny(l, "\r\n") {
 			cp := make([]string, len(lines))
 			copy(cp, lines[:i])
 			for j := i; j < len(cp); j++ {

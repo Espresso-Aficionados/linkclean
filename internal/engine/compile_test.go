@@ -75,7 +75,7 @@ func TestCompileErrors(t *testing.T) {
 			}
 			found := false
 			for _, e := range err.(interface{ Unwrap() []error }).Unwrap() {
-				re := e.(*rule.Error)
+				re := e.(*rule.Error) //nolint:errorlint // the error's own shape: each leaf of the join is a *rule.Error
 				if re.Set == tc.set && re.Field == tc.field && strings.Contains(re.Error(), tc.msg) {
 					found = true
 				}

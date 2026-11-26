@@ -239,7 +239,9 @@ func _() {
 // convertErrs flattens a joined error, at any depth, into its leaves and
 // turns every *rule.Error among them into *RuleError.
 func convertErrs(err error) []error {
-	switch e := err.(type) {
+	// A walk of the join tree itself: each leaf is taken as it is, and a
+	// *rule.Error wrapped inside another error stays inside it.
+	switch e := err.(type) { //nolint:errorlint // see above
 	case nil:
 		return nil
 	case interface{ Unwrap() []error }:

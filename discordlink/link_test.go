@@ -53,14 +53,14 @@ func parseLink(s string) (Link, error) {
 	l := Link{Kind: k}
 	var err error
 	if l.URL, rest, err = parseStrExpr(rest); err != nil {
-		return Link{}, fmt.Errorf("URL: %v", err)
+		return Link{}, fmt.Errorf("URL: %w", err)
 	}
 	if r, ok := strings.CutPrefix(rest, "spoiler"); ok && (r == "" || r[0] == ' ') {
 		l.Spoiler, rest = true, strings.TrimPrefix(r, " ")
 	}
 	if r, ok := strings.CutPrefix(rest, "label="); ok {
 		if l.Label, rest, err = parseStrExpr(r); err != nil {
-			return Link{}, fmt.Errorf("label: %v", err)
+			return Link{}, fmt.Errorf("label: %w", err)
 		}
 		if l.Label == "" {
 			return Link{}, fmt.Errorf("empty label= (omit it)")
