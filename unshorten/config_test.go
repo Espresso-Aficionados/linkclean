@@ -177,7 +177,7 @@ func TestNewBuildsState(t *testing.T) {
 		t.Errorf("slot hosts %q, want %q", hosts, want)
 	}
 	c := st.client
-	if c.Jar != nil || c.Timeout != 0 || c.CheckRedirect == nil || c.CheckRedirect(nil, nil) != http.ErrUseLastResponse {
+	if c.Jar != nil || c.Timeout != 0 || c.CheckRedirect == nil || c.CheckRedirect(nil, nil) != http.ErrUseLastResponse { //nolint:errorlint // identity: the sentinel itself, as net/http's client expects
 		t.Errorf("client Jar %v, Timeout %v; want no jar, no timeout and ErrUseLastResponse", c.Jar, c.Timeout)
 	}
 	if c.Transport == nil {

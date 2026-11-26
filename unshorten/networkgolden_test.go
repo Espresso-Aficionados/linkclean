@@ -456,7 +456,7 @@ func TestParseNetCases(t *testing.T) {
 	}
 	c := cs[0]
 	if c.In != "https://t.co/a" || len(c.Servers) != 1 || c.Servers[0].status != 301 || c.Servers[0].location != "https://example.net/" ||
-		c.Servers[0].body != "<a>" || c.Requests["https://t.co"] != 1 || c.Err != ErrFallback || len(c.Listen) != 1 {
+		c.Servers[0].body != "<a>" || c.Requests["https://t.co"] != 1 || !errors.Is(c.Err, ErrFallback) || len(c.Listen) != 1 {
 		t.Errorf("parsed %+v", c)
 	}
 	if h, ok := c.Hops["keep"]; !ok || len(h) != 0 {

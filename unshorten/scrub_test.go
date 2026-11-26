@@ -161,7 +161,7 @@ func tokenLike(v string) bool {
 		return false
 	}
 	for i := 0; i < len(v); i++ {
-		if c := v[i]; !('a' <= c && c <= 'z' || c == '_' || c == '.') {
+		if c := v[i]; (c < 'a' || 'z' < c) && c != '_' && c != '.' {
 			return true
 		}
 	}
@@ -557,7 +557,7 @@ func parseDraft(data []byte) (*draft, error) {
 	dec := json.NewDecoder(bytes.NewReader(sections["meta.json"]))
 	dec.DisallowUnknownFields()
 	if err := dec.Decode(&d.Meta); err != nil {
-		return nil, fmt.Errorf("draft meta.json: %v", err)
+		return nil, fmt.Errorf("draft meta.json: %w", err)
 	}
 	lines := strings.Split(strings.TrimRight(string(sections["response"]), "\n"), "\n")
 	code, ok := strings.CutPrefix(lines[0], "HTTP/1.1 ")

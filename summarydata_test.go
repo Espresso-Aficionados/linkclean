@@ -271,10 +271,10 @@ func overlayHygiene(srcs []RuleSet) []summaryHygiene {
 	var overlay []Rule
 	for _, s := range srcs {
 		for _, r := range s.Rules {
-			switch {
-			case s.Name == overlaySet:
+			switch s.Name {
+			case overlaySet:
 				overlay = append(overlay, r)
-			case s.Name == "brave/debounce":
+			case "brave/debounce":
 				debounce = append(debounce, braveRule{s.Name + ":" + r.ID, r})
 			default:
 				strips = append(strips, braveRule{s.Name + ":" + r.ID, r})

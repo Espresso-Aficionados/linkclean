@@ -81,7 +81,7 @@ func validName(s string) bool {
 	}
 	for i := 0; i < len(s); i++ {
 		c := s[i]
-		if !('a' <= c && c <= 'z' || 'A' <= c && c <= 'Z' || '0' <= c && c <= '9' || c == '-' || c == '_' || c == '.') {
+		if (c < 'a' || 'z' < c) && (c < 'A' || 'Z' < c) && (c < '0' || '9' < c) && c != '-' && c != '_' && c != '.' {
 			return false
 		}
 	}

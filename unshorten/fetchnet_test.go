@@ -217,7 +217,7 @@ func TestRequestHeaders(t *testing.T) {
 					return
 				}
 				w.Header().Set("Content-Type", "text/html")
-				io.WriteString(w, `<a href="https://example.net/p">`)
+				_, _ = io.WriteString(w, `<a href="https://example.net/p">`) // a failed write is the client's to report
 			})
 			var s *testServer
 			if c.h1 {
@@ -589,9 +589,9 @@ func TestCtxDeadline(t *testing.T) {
 	st := netState(t, n, Config{}, netRegistry(t), nil)
 	const short = 200 * time.Millisecond
 	for _, c := range []struct {
-		name       string
-		hop, strat time.Duration // 0: no deadline on the strategy's ctx
-		class      errClass
+		name          string
+		hop, strategy time.Duration // 0: no deadline on the strategy's ctx
+		class         errClass
 	}{
 		{"strategy deadline", 5 * time.Second, short, classTimeout},
 		{"hop deadline", short, 0, classDeadline},
@@ -599,9 +599,9 @@ func TestCtxDeadline(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			f, _ := netFetcher(t, st, "t.co", c.hop)
 			ctx := context.Background()
-			if c.strat > 0 {
+			if c.strategy > 0 {
 				var cancel context.CancelFunc
-				ctx, cancel = context.WithTimeout(ctx, c.strat)
+				ctx, cancel = context.WithTimeout(ctx, c.strategy)
 				defer cancel()
 			}
 			start := time.Now()

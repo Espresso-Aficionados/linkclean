@@ -18,6 +18,7 @@ var allowedImports = []string{
 	"bytes",
 	"embed",
 	"encoding/json",
+	"errors",
 	"flag",
 	"fmt",
 	"io",

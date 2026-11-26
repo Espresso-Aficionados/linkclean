@@ -488,7 +488,7 @@ func relEmbeddedInert(t *testing.T, root string) []string {
 					pat = strings.TrimPrefix(pat, "all:")
 					matches, err := filepath.Glob(filepath.Join(filepath.Dir(p), filepath.FromSlash(pat)))
 					if err != nil {
-						return fmt.Errorf("%s: //go:embed %s: %v", fset.Position(c.Pos()), pat, err)
+						return fmt.Errorf("%s: //go:embed %s: %w", fset.Position(c.Pos()), pat, err)
 					}
 					for _, m := range matches {
 						err := filepath.WalkDir(m, func(q string, d fs.DirEntry, err error) error {

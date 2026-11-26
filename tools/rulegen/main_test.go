@@ -196,7 +196,11 @@ func TestNetworkGuard(t *testing.T) {
 	}
 	g := &mainNetGuard{}
 	req, _ := http.NewRequest("GET", "https://example.invalid/x", nil)
-	if _, err := (&http.Client{Transport: g}).Do(req); err == nil || !strings.Contains(err.Error(), "network use refused") {
+	resp, err := (&http.Client{Transport: g}).Do(req)
+	if err == nil {
+		resp.Body.Close()
+	}
+	if err == nil || !strings.Contains(err.Error(), "network use refused") {
 		t.Errorf("guard error = %v", err)
 	}
 	if uses := g.recorded(); len(uses) != 1 || uses[0] != "GET https://example.invalid/x" {

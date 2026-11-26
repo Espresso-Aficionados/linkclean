@@ -42,7 +42,7 @@ func parseRepostCase(f txtarFile) (*repostCase, error) {
 		}
 		err := c.parseLine(l)
 		if err != nil {
-			return nil, fmt.Errorf("line %d: %v", f.Line+1+n, err)
+			return nil, fmt.Errorf("line %d: %w", f.Line+1+n, err)
 		}
 	}
 	if (len(c.bodies) > 0) == c.nobodies {
@@ -100,7 +100,7 @@ func (c *repostCase) parseLine(l string) error {
 				return fmt.Errorf("unknown opt %q", k)
 			}
 			if err != nil {
-				return fmt.Errorf("opt %s: %v", k, err)
+				return fmt.Errorf("opt %s: %w", k, err)
 			}
 			rest = r
 		}
@@ -137,8 +137,11 @@ func (c *repostCase) parseLine(l string) error {
 		m[len(c.cs)-1] = annotation{lines, req}
 	case "overflow":
 		s, r, err := parseStrExpr(rest)
-		if err != nil || r != "" {
-			return fmt.Errorf("overflow: %v %q", err, r)
+		if err != nil {
+			return fmt.Errorf("overflow: %w", err)
+		}
+		if r != "" {
+			return fmt.Errorf("overflow: trailing %q", r)
 		}
 		c.overflow = &s
 	case "overflow-at":
@@ -147,14 +150,20 @@ func (c *repostCase) parseLine(l string) error {
 			return err
 		}
 		s, r, err := parseStrExpr(r)
-		if err != nil || r != "" {
-			return fmt.Errorf("overflow-at: %v %q", err, r)
+		if err != nil {
+			return fmt.Errorf("overflow-at: %w", err)
+		}
+		if r != "" {
+			return fmt.Errorf("overflow-at: trailing %q", r)
 		}
 		c.overflowAt[k] = s
 	case "body":
 		s, r, err := parseStrExpr(rest)
-		if err != nil || r != "" {
-			return fmt.Errorf("body: %v %q", err, r)
+		if err != nil {
+			return fmt.Errorf("body: %w", err)
+		}
+		if r != "" {
+			return fmt.Errorf("body: trailing %q", r)
 		}
 		c.bodies = append(c.bodies, s)
 	case "nobodies":

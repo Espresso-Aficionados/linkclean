@@ -218,7 +218,7 @@ func parseAbsolute(s string) (*url.URL, error) {
 // extractRegexp returns group 1 of re's first match in body.
 func extractRegexp(re *regexp.Regexp, body []byte) (string, error) {
 	m := re.FindSubmatch(body)
-	if m == nil || len(m) < 2 || len(m[1]) == 0 {
+	if len(m) < 2 || len(m[1]) == 0 {
 		return "", ErrNoMatch
 	}
 	return html.UnescapeString(string(m[1])), nil

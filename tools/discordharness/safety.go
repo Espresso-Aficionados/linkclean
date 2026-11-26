@@ -42,7 +42,7 @@ func readToken(path string) (string, error) {
 	}
 	fi, err := os.Stat(path)
 	if err != nil {
-		return "", fmt.Errorf("-token-file: %v", err)
+		return "", fmt.Errorf("-token-file: %w", err)
 	}
 	switch {
 	case !fi.Mode().IsRegular():
@@ -54,7 +54,7 @@ func readToken(path string) (string, error) {
 	}
 	b, err := os.ReadFile(path)
 	if err != nil {
-		return "", fmt.Errorf("-token-file: %v", err)
+		return "", fmt.Errorf("-token-file: %w", err)
 	}
 	t := strings.TrimSpace(string(b))
 	if t == "" {
@@ -75,7 +75,7 @@ func checkOutDir(dir string) error {
 		return errors.New("-out is inside a git work tree; use a directory outside every repository")
 	}
 	if err := os.MkdirAll(dir, 0o700); err != nil {
-		return fmt.Errorf("-out: %v", err)
+		return fmt.Errorf("-out: %w", err)
 	}
 	if _, in := gitTree(dir); in { // a symlink created meanwhile
 		return errors.New("-out is inside a git work tree; use a directory outside every repository")
@@ -159,7 +159,7 @@ func preflight(ctx context.Context, c *client, guildID, channelID string, allow 
 func confirm(e *env, t target, action string) error {
 	tty, err := e.openTTY()
 	if err != nil {
-		return fmt.Errorf("cannot open /dev/tty to confirm (%v); run this from an interactive terminal", err)
+		return fmt.Errorf("cannot open /dev/tty to confirm (%w); run this from an interactive terminal", err)
 	}
 	defer tty.Close()
 	fmt.Fprintf(tty, "About to %s as bot %q in guild %q, channel #%s.\nType the channel name to continue: ", action, t.botName, t.guildName, t.channelName)

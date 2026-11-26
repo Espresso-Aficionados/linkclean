@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"io"
 	"strconv"
@@ -36,7 +37,7 @@ func runCheck(e env) int {
 	lr := &lineReader{r: bufio.NewReaderSize(e.Stdin, 64<<10)}
 	for {
 		line, long, err := lr.next(nil)
-		if err == io.EOF {
+		if errors.Is(err, io.EOF) {
 			break
 		}
 		if err != nil {

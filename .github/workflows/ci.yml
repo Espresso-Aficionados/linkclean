@@ -4,6 +4,15 @@ on:
   push: {branches: [main]}
 permissions: {contents: read}
 jobs:
+  # sadbox/ci's Go checks on both modules (. and tools): gofmt, go vet,
+  # go test -race, golangci-lint and govulncheck, per Go version, on
+  # linux/amd64 and linux/arm64. test keeps every check go.yml does not run.
+  go:
+    uses: sadbox/ci/.github/workflows/go.yml@d22f8f95bcc884ba539ce3f53c552823cff3230d # v0.6.0
+    permissions: {contents: read}
+    with:
+      go-versions: '["1.26.x", "stable"]'
+      modules: ". tools"
   test:
     strategy: {fail-fast: false, matrix: {go: ["1.26.x", "stable"]}}
     name: test (${{ matrix.go }})
@@ -16,7 +25,6 @@ jobs:
         with: {go-version: "${{ matrix.go }}"}
       - name: gofmt
         run: u=$(gofmt -l .); [ -z "$u" ] || { echo "::error::gofmt needed on:"; echo "$u"; exit 1; }
-      - run: go vet ./... && go test -race ./...
       - run: go run ./cmd/linkclean -check < testdata/golden/negative.txt
       - run: go -C tools vet ./... && go -C tools test ./...
       - run: go vet -tags livenet ./unshorten/...

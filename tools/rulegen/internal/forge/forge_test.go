@@ -102,7 +102,7 @@ func TestCommentsForeignNextPage(t *testing.T) {
 	srv.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		hits++
 		w.Header().Set("Link", `<https://elsewhere.invalid/repos/owner/linkclean/issues/1/comments?page=2>; rel="next"`)
-		w.Write([]byte("[]"))
+		_, _ = w.Write([]byte("[]")) // a failed write is the client's to report
 	})
 	ts := httptest.NewServer(srv)
 	t.Cleanup(ts.Close)

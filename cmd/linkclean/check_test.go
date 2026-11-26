@@ -107,7 +107,7 @@ func TestCheckErrors(t *testing.T) {
 		})
 	}
 	t.Run("read error", func(t *testing.T) {
-		in := io.MultiReader(strings.NewReader("X1 "+ctAmazon+"\n"), iotest.ErrReader(ctErrBoom))
+		in := io.MultiReader(strings.NewReader("X1 "+ctAmazon+"\n"), iotest.ErrReader(errCtBoom))
 		ctCheck(t, ctRun(in, "-check"), "", "linkclean: reading stdin: boom\n", 2)
 	})
 }

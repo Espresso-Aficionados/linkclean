@@ -15,15 +15,6 @@ import (
 	"unicode/utf8"
 )
 
-// runeLen is the length of the rune at p (an invalid byte is a 1-byte rune).
-func runeLen(s string, p, hi int) int {
-	if s[p] < utf8.RuneSelf {
-		return 1
-	}
-	_, n := utf8.DecodeRuneInString(s[p:hi])
-	return n
-}
-
 func isAlnum(b byte) bool {
 	return '0' <= b && b <= '9' || 'a' <= b && b <= 'z' || 'A' <= b && b <= 'Z'
 }
@@ -45,7 +36,7 @@ func (sc *scanner) escape(i, hi int) int {
 	s := sc.x.s
 	if i+1 < hi {
 		r, n := utf8.DecodeRuneInString(s[i+1 : hi])
-		if !(r < utf8.RuneSelf && isAlnum(byte(r))) && !isJSSpace(r) {
+		if (r >= utf8.RuneSelf || !isAlnum(byte(r))) && !isJSSpace(r) {
 			return i + 1 + n
 		}
 	}

@@ -107,9 +107,9 @@ func GuardTransport(t *http.Transport, proxy *url.URL) (*http.Transport, error) 
 	switch {
 	case t == nil:
 		return nil, unguarded("GuardTransport: nil transport")
-	case t.Dial != nil:
+	case t.Dial != nil: //nolint:staticcheck // SA1019: net/http still uses the deprecated field when it is set, so the guard must see it
 		return nil, unguarded("GuardTransport: Dial is set")
-	case t.DialTLS != nil:
+	case t.DialTLS != nil: //nolint:staticcheck // SA1019: net/http still uses the deprecated field when it is set, so the guard must see it
 		return nil, unguarded("GuardTransport: DialTLS is set")
 	case t.DialTLSContext != nil:
 		return nil, unguarded("GuardTransport: DialTLSContext is set")
@@ -341,9 +341,9 @@ func verifyAttested(t *http.Transport, a *attestation) error {
 	switch {
 	case t.DialContext == nil || funcPC(t.DialContext) != guardDialPC:
 		return unguarded("DialContext was changed from the guard")
-	case t.Dial != nil:
+	case t.Dial != nil: //nolint:staticcheck // SA1019: net/http still uses the deprecated field when it is set, so the guard must see it
 		return unguarded("Dial is set")
-	case t.DialTLS != nil:
+	case t.DialTLS != nil: //nolint:staticcheck // SA1019: net/http still uses the deprecated field when it is set, so the guard must see it
 		return unguarded("DialTLS is set")
 	case t.DialTLSContext != nil:
 		return unguarded("DialTLSContext is set")
@@ -371,7 +371,7 @@ func verifyAttested(t *http.Transport, a *attestation) error {
 func privateClone(t *http.Transport, a *attestation) *http.Transport {
 	c := t.Clone()
 	c.DialContext = a.dial.DialContext
-	c.Dial, c.DialTLS, c.DialTLSContext = nil, nil, nil
+	c.Dial, c.DialTLS, c.DialTLSContext = nil, nil, nil //nolint:staticcheck // SA1019: cleared because net/http still uses the deprecated fields when set
 	c.Proxy = nil
 	if a.proxy != nil {
 		c.Proxy = a.proxy.Proxy

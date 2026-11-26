@@ -162,7 +162,7 @@ func validateDate(s string) error {
 		return fmt.Errorf("expires %q is not YYYY-MM-DD", s)
 	}
 	if _, err := time.Parse(time.DateOnly, s); err != nil {
-		return fmt.Errorf("expires %q: %v", s, err)
+		return fmt.Errorf("expires %q: %w", s, err)
 	}
 	return nil
 }
@@ -456,7 +456,7 @@ func checkUpstream(t testing.TB, e *gateEnv, lock *lockFile) {
 		t.Errorf(msgNotOnMaster, g)
 	}
 	if b, err := fs.ReadFile(e.base, "GITLINK"); err == nil {
-		if b := strings.TrimSpace(string(b)); b != g && !(up.hasCommit(b) && up.isAncestor(b, g)) {
+		if b := strings.TrimSpace(string(b)); b != g && (!up.hasCommit(b) || !up.isAncestor(b, g)) {
 			if up.hasCommit(b) && up.isAncestor(b, upstreamRef) {
 				t.Errorf(msgGitlinkBackwards, b, g)
 			} else {

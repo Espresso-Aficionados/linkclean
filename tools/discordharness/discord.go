@@ -66,7 +66,7 @@ func (c *client) do(ctx context.Context, method, path string, in, out any) error
 		}
 		req, err := http.NewRequestWithContext(ctx, method, c.e.apiBase+path, bytes.NewReader(body))
 		if err != nil {
-			return fmt.Errorf("%s %s: %v", method, path, err)
+			return fmt.Errorf("%s %s: %w", method, path, err)
 		}
 		req.Header.Set("Authorization", "Bot "+c.token)
 		req.Header.Set("User-Agent", "DiscordBot (https://github.com/Espresso-Aficionados/linkclean, harness)")
@@ -80,7 +80,7 @@ func (c *client) do(ctx context.Context, method, path string, in, out any) error
 			if errors.As(err, &ue) {
 				err = ue.Err // without the URL, which repeats method and path
 			}
-			return fmt.Errorf("%s %s: %v", method, path, err)
+			return fmt.Errorf("%s %s: %w", method, path, err)
 		}
 		data, rerr := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
 		resp.Body.Close()
@@ -96,7 +96,7 @@ func (c *client) do(ctx context.Context, method, path string, in, out any) error
 			continue
 		}
 		if rerr != nil {
-			return fmt.Errorf("%s %s: reading the response: %v", method, path, rerr)
+			return fmt.Errorf("%s %s: reading the response: %w", method, path, rerr)
 		}
 		if resp.StatusCode < 200 || resp.StatusCode > 299 {
 			a := &apiError{method: method, path: path, status: resp.StatusCode}
@@ -111,7 +111,7 @@ func (c *client) do(ctx context.Context, method, path string, in, out any) error
 		}
 		if out != nil && resp.StatusCode != http.StatusNoContent {
 			if err := json.Unmarshal(data, out); err != nil {
-				return fmt.Errorf("%s %s: decoding the response: %v", method, path, err)
+				return fmt.Errorf("%s %s: decoding the response: %w", method, path, err)
 			}
 		}
 		return nil

@@ -150,7 +150,9 @@ func TestHostLimiterCancelReturnsToken(t *testing.T) {
 		if d := time.Since(next); d != 2*time.Second {
 			t.Errorf("the later waiter started after %v, want its 2s slot", d)
 		}
-		<-ok
+		if err := <-ok; err != nil {
+			t.Fatalf("the new request failed: %v", err)
+		}
 		if d := time.Since(next); d != 3*time.Second {
 			t.Errorf("a new request started after %v, want 3s: the earlier cancel must not let it share the 2s slot", d)
 		}

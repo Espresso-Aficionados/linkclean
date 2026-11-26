@@ -319,12 +319,7 @@ func checkSchema(t testing.TB, e *gateEnv) {
 	}
 }
 
-// readLines returns the non-comment, non-blank lines of a human-owned list.
-func readLines(t testing.TB, path string) []string {
-	t.Helper()
-	return readLinesFS(t, os.DirFS("."), path)
-}
-
+// readLinesFS returns the non-comment, non-blank lines of a human-owned list.
 func readLinesFS(t testing.TB, fsys fs.FS, path string) []string {
 	t.Helper()
 	data, err := fs.ReadFile(fsys, path)
@@ -460,15 +455,11 @@ func isGlobalPattern(p string) bool {
 	return strings.HasPrefix(rest, "*/")
 }
 
-// corpusFunctionalNames returns the canonical functional_params names of the
+// corpusFunctionalNamesFS returns the canonical functional_params names of the
 // corpus, except those of items the signed or archive guard protects: there
 // the guard, not a functional meaning, keeps the name (negatives-004's S3
 // SigV4 and negatives-046's Wayback utm_source). Probing them would fail M-9
 // and F-1, which §11.3 says the probe covers.
-func corpusFunctionalNames(t testing.TB) map[string]bool {
-	return corpusFunctionalNamesFS(t, os.DirFS("."))
-}
-
 func corpusFunctionalNamesFS(t testing.TB, fsys fs.FS) map[string]bool {
 	out := map[string]bool{}
 	guarded := MustNew(Config{Sources: []RuleSet{}})
@@ -483,11 +474,7 @@ func corpusFunctionalNamesFS(t testing.TB, fsys fs.FS) map[string]bool {
 	return out
 }
 
-// goldenRuleNames returns every rule ID named by a rules: line.
-func goldenRuleNames(t testing.TB) map[string]bool {
-	return goldenRuleNamesFS(t, os.DirFS("."))
-}
-
+// goldenRuleNamesFS returns every rule ID named by a rules: line.
 func goldenRuleNamesFS(t testing.TB, fsys fs.FS) map[string]bool {
 	out := map[string]bool{}
 	for _, c := range readCasesFS(t, fsys, "testdata/golden/positive.txtar") {

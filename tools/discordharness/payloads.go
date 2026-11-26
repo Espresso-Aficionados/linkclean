@@ -51,13 +51,13 @@ var caseID = regexp.MustCompile(`^[A-Za-z0-9.-]{1,16}$`)
 func loadPayloads(path string) (*payloadFile, error) {
 	b, err := os.ReadFile(path)
 	if err != nil {
-		return nil, fmt.Errorf("-payloads: %v", err)
+		return nil, fmt.Errorf("-payloads: %w", err)
 	}
 	var pf payloadFile
 	dec := json.NewDecoder(bytes.NewReader(b))
 	dec.DisallowUnknownFields()
 	if err := dec.Decode(&pf); err != nil {
-		return nil, fmt.Errorf("-payloads: %v", err)
+		return nil, fmt.Errorf("-payloads: %w", err)
 	}
 	if err := pf.validate(); err != nil {
 		return nil, fmt.Errorf("-payloads: %w", err)

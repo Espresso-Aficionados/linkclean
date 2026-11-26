@@ -119,7 +119,7 @@ func parseLinks(data []byte, example bool) (*linksFile, error) {
 	dec := json.NewDecoder(bytes.NewReader(data))
 	dec.DisallowUnknownFields()
 	if err := dec.Decode(&lf); err != nil {
-		return nil, fmt.Errorf("links file: %v", err)
+		return nil, fmt.Errorf("links file: %w", err)
 	}
 	if dec.More() {
 		return nil, errors.New("links file: more than one JSON value")
@@ -275,7 +275,7 @@ func gitTree(path string) (string, bool) {
 func readInput(flagName, path string) ([]byte, error) {
 	abs, err := filepath.Abs(path)
 	if err != nil {
-		return nil, fmt.Errorf("-%s: %v", flagName, err)
+		return nil, fmt.Errorf("-%s: %w", flagName, err)
 	}
 	if _, in := gitTree(abs); in {
 		return nil, fmt.Errorf("-%s is inside a git work tree; keep it outside every repository", flagName)
@@ -283,7 +283,7 @@ func readInput(flagName, path string) ([]byte, error) {
 	fi, err := os.Stat(abs)
 	switch {
 	case err != nil:
-		return nil, fmt.Errorf("-%s: %v", flagName, err)
+		return nil, fmt.Errorf("-%s: %w", flagName, err)
 	case !fi.Mode().IsRegular():
 		return nil, fmt.Errorf("-%s is not a regular file", flagName)
 	case fi.Size() > 1<<20:
@@ -291,7 +291,7 @@ func readInput(flagName, path string) ([]byte, error) {
 	}
 	b, err := os.ReadFile(abs)
 	if err != nil {
-		return nil, fmt.Errorf("-%s: %v", flagName, err)
+		return nil, fmt.Errorf("-%s: %w", flagName, err)
 	}
 	return b, nil
 }
@@ -310,7 +310,7 @@ func checkOutDir(dir string) error {
 	fi, err := os.Stat(dir)
 	switch {
 	case err != nil:
-		return fmt.Errorf("-livenet.out: %v (create it with mkdir -m 0700)", err)
+		return fmt.Errorf("-livenet.out: %w (create it with mkdir -m 0700)", err)
 	case !fi.IsDir():
 		return errors.New("-livenet.out is not a directory")
 	case fi.Mode().Perm() != 0o700:
@@ -466,7 +466,7 @@ type gateEntry struct {
 	Intermediate bool
 }
 
-func gateEntries(es []unshorten.Entry) ([]gateEntry, error) {
+func gateEntries(es []unshorten.Entry) ([]gateEntry, error) { //nolint:unused // livenet_test.go (build tag livenet) calls it
 	var out []gateEntry
 	for _, e := range es {
 		g := gateEntry{Name: e.Name, Intermediate: e.Intermediate}
@@ -601,7 +601,7 @@ func renderResults(tmpl string, r liveResults) ([]byte, error) {
 
 // linkOriginals returns every value of the links' URLs that could be a
 // token, for the residual check of the results file.
-func linkOriginals(lf *linksFile) []string {
+func linkOriginals(lf *linksFile) []string { //nolint:unused // livenet_test.go (build tag livenet) calls it
 	var out []string
 	for _, l := range lf.Links {
 		if u, err := url.Parse(l.URL); err == nil {

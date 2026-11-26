@@ -10,6 +10,7 @@ package gittest
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"maps"
 	"os"
@@ -439,7 +440,8 @@ func (l *Linkclean) GoTest(t testing.TB, run string, env map[string]string) (out
 		cmd.Env = append(cmd.Env, k+"="+env[k])
 	}
 	b, err := cmd.CombinedOutput()
-	if _, isExit := err.(*exec.ExitError); err != nil && !isExit {
+	var exit *exec.ExitError
+	if err != nil && !errors.As(err, &exit) {
 		t.Fatalf("gittest: go test: %v", err)
 	}
 	return string(b), err == nil
